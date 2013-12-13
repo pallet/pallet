@@ -3033,13 +3033,13 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-RC.4</h2><br /><p>DevOps for the JVM.</p>
+</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-RC.5</h2><br /><p>DevOps for the JVM.</p>
 
 <p>Pallet is a platform for agile and programmatic automation of infrastructure
 in the cloud, on server racks or directly on virtual machines. Pallet
 provides cloud provider and operating system independence, and allows for an
 unprecedented level of customization.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.4.0</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">org.clojure/tools.macro</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr><tr><td class="dep-name">org.clojure/tools.cli</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2</td></tr><tr><td class="dep-name">org.clojure/algo.monads</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">com.palletops/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">com.palletops/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.3.0</td></tr><tr><td class="dep-name">com.palletops/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/pallet-repl</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.2</td></tr><tr><td class="dep-name">com.palletops/script-exec</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.5</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.1</td></tr><tr><td class="dep-name">pallet-fsmop</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr><tr><td class="dep-name">pallet-map-merge</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojars.runa/clj-schema</td><td class="dotted"><hr /></td><td class="dep-version">0.9.4</td></tr><tr><td class="dep-name">org.flatland/useful</td><td class="dotted"><hr /></td><td class="dep-version">0.10.3</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#cfg.current">cfg.current</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-impl">pallet.action-impl</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.actions">pallet.actions</a></li><li><a href="#pallet.actions.direct">pallet.actions.direct</a></li><li><a href="#pallet.actions.direct.conditional">pallet.actions.direct.conditional</a></li><li><a href="#pallet.actions.direct.directory">pallet.actions.direct.directory</a></li><li><a href="#pallet.actions.direct.exec-script">pallet.actions.direct.exec-script</a></li><li><a href="#pallet.actions.direct.file">pallet.actions.direct.file</a></li><li><a href="#pallet.actions.direct.package">pallet.actions.direct.package</a></li><li><a href="#pallet.actions.direct.remote-directory">pallet.actions.direct.remote-directory</a></li><li><a href="#pallet.actions.direct.remote-file">pallet.actions.direct.remote-file</a></li><li><a href="#pallet.actions.direct.retry">pallet.actions.direct.retry</a></li><li><a href="#pallet.actions.direct.rsync">pallet.actions.direct.rsync</a></li><li><a href="#pallet.actions.direct.service">pallet.actions.direct.service</a></li><li><a href="#pallet.actions.direct.settings">pallet.actions.direct.settings</a></li><li><a href="#pallet.actions.direct.user">pallet.actions.direct.user</a></li><li><a href="#pallet.actions-impl">pallet.actions-impl</a></li><li><a href="#pallet.api">pallet.api</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.localhost">pallet.compute.localhost</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.context">pallet.context</a></li><li><a href="#pallet.contracts">pallet.contracts</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.core.api">pallet.core.api</a></li><li><a href="#pallet.core.api-impl">pallet.core.api-impl</a></li><li><a href="#pallet.core.data-api">pallet.core.data-api</a></li><li><a href="#pallet.core.operations">pallet.core.operations</a></li><li><a href="#pallet.core.plan-state">pallet.core.plan-state</a></li><li><a href="#pallet.core.primitives">pallet.core.primitives</a></li><li><a href="#pallet.core.session">pallet.core.session</a></li><li><a href="#pallet.core.thread-local">pallet.core.thread-local</a></li><li><a href="#pallet.core.user">pallet.core.user</a></li><li><a href="#pallet.core.version-dispatch">pallet.core.version-dispatch</a></li><li><a href="#pallet.crate">pallet.crate</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.filesystem">pallet.crate.filesystem</a></li><li><a href="#pallet.crate.initd">pallet.crate.initd</a></li><li><a href="#pallet.crate.limits-conf">pallet.crate.limits-conf</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.nohup">pallet.crate.nohup</a></li><li><a href="#pallet.crate.os">pallet.crate.os</a></li><li><a href="#pallet.crate.package.centos">pallet.crate.package.centos</a></li><li><a href="#pallet.crate.package.debian-backports">pallet.crate.package.debian-backports</a></li><li><a href="#pallet.crate.package.epel">pallet.crate.package.epel</a></li><li><a href="#pallet.crate.package.jpackage">pallet.crate.package.jpackage</a></li><li><a href="#pallet.crate.package.rpmforge">pallet.crate.package.rpmforge</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.service">pallet.crate.service</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.echo.execute">pallet.echo.execute</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.environment-impl">pallet.environment-impl</a></li><li><a href="#pallet.event">pallet.event</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.executors">pallet.executors</a></li><li><a href="#pallet.feature">pallet.feature</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.local.execute">pallet.local.execute</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.node-value">pallet.node-value</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.plugin">pallet.plugin</a></li><li><a href="#pallet.project">pallet.project</a></li><li><a href="#pallet.project.load">pallet.project.load</a></li><li><a href="#pallet.project.loader">pallet.project.loader</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.script-builder">pallet.script-builder</a></li><li><a href="#pallet.script-exec">pallet.script-exec</a></li><li><a href="#pallet.session.action-plan">pallet.session.action-plan</a></li><li><a href="#pallet.session.verify">pallet.session.verify</a></li><li><a href="#pallet.ssh.credentials">pallet.ssh.credentials</a></li><li><a href="#pallet.ssh.execute">pallet.ssh.execute</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.bootstrap">pallet.task.bootstrap</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.down">pallet.task.down</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.project-init">pallet.task.project-init</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.up">pallet.task.up</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task-utils">pallet.task-utils</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#cfg.current" name="cfg.current"><h1 class="project-name">cfg.current</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>DO NOT EDIT THIS FILE
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.4.0</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">org.clojure/tools.macro</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr><tr><td class="dep-name">org.clojure/tools.cli</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2</td></tr><tr><td class="dep-name">org.clojure/algo.monads</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">com.palletops/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">com.palletops/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.3.0</td></tr><tr><td class="dep-name">com.palletops/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/pallet-repl</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.2</td></tr><tr><td class="dep-name">com.palletops/script-exec</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.5</td></tr><tr><td class="dep-name">clj-ssh</td><td class="dotted"><hr /></td><td class="dep-version">0.5.7</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.1</td></tr><tr><td class="dep-name">pallet-fsmop</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr><tr><td class="dep-name">pallet-map-merge</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojars.runa/clj-schema</td><td class="dotted"><hr /></td><td class="dep-version">0.9.4</td></tr><tr><td class="dep-name">org.flatland/useful</td><td class="dotted"><hr /></td><td class="dep-version">0.10.3</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#cfg.current">cfg.current</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-impl">pallet.action-impl</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.actions">pallet.actions</a></li><li><a href="#pallet.actions.direct">pallet.actions.direct</a></li><li><a href="#pallet.actions.direct.conditional">pallet.actions.direct.conditional</a></li><li><a href="#pallet.actions.direct.directory">pallet.actions.direct.directory</a></li><li><a href="#pallet.actions.direct.exec-script">pallet.actions.direct.exec-script</a></li><li><a href="#pallet.actions.direct.file">pallet.actions.direct.file</a></li><li><a href="#pallet.actions.direct.package">pallet.actions.direct.package</a></li><li><a href="#pallet.actions.direct.remote-directory">pallet.actions.direct.remote-directory</a></li><li><a href="#pallet.actions.direct.remote-file">pallet.actions.direct.remote-file</a></li><li><a href="#pallet.actions.direct.retry">pallet.actions.direct.retry</a></li><li><a href="#pallet.actions.direct.rsync">pallet.actions.direct.rsync</a></li><li><a href="#pallet.actions.direct.service">pallet.actions.direct.service</a></li><li><a href="#pallet.actions.direct.settings">pallet.actions.direct.settings</a></li><li><a href="#pallet.actions.direct.user">pallet.actions.direct.user</a></li><li><a href="#pallet.actions-impl">pallet.actions-impl</a></li><li><a href="#pallet.api">pallet.api</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.localhost">pallet.compute.localhost</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.context">pallet.context</a></li><li><a href="#pallet.contracts">pallet.contracts</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.core.api">pallet.core.api</a></li><li><a href="#pallet.core.api-impl">pallet.core.api-impl</a></li><li><a href="#pallet.core.data-api">pallet.core.data-api</a></li><li><a href="#pallet.core.executor">pallet.core.executor</a></li><li><a href="#pallet.core.executor.protocols">pallet.core.executor.protocols</a></li><li><a href="#pallet.core.executor.ssh">pallet.core.executor.ssh</a></li><li><a href="#pallet.core.file-upload">pallet.core.file-upload</a></li><li><a href="#pallet.core.file-upload.protocols">pallet.core.file-upload.protocols</a></li><li><a href="#pallet.core.file-upload.rsync-upload">pallet.core.file-upload.rsync-upload</a></li><li><a href="#pallet.core.operations">pallet.core.operations</a></li><li><a href="#pallet.core.plan-state">pallet.core.plan-state</a></li><li><a href="#pallet.core.primitives">pallet.core.primitives</a></li><li><a href="#pallet.core.session">pallet.core.session</a></li><li><a href="#pallet.core.thread-local">pallet.core.thread-local</a></li><li><a href="#pallet.core.user">pallet.core.user</a></li><li><a href="#pallet.core.version-dispatch">pallet.core.version-dispatch</a></li><li><a href="#pallet.crate">pallet.crate</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.filesystem">pallet.crate.filesystem</a></li><li><a href="#pallet.crate.initd">pallet.crate.initd</a></li><li><a href="#pallet.crate.limits-conf">pallet.crate.limits-conf</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.nohup">pallet.crate.nohup</a></li><li><a href="#pallet.crate.os">pallet.crate.os</a></li><li><a href="#pallet.crate.package.centos">pallet.crate.package.centos</a></li><li><a href="#pallet.crate.package.debian-backports">pallet.crate.package.debian-backports</a></li><li><a href="#pallet.crate.package.epel">pallet.crate.package.epel</a></li><li><a href="#pallet.crate.package.jpackage">pallet.crate.package.jpackage</a></li><li><a href="#pallet.crate.package.rpmforge">pallet.crate.package.rpmforge</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.service">pallet.crate.service</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.echo.execute">pallet.echo.execute</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.environment-impl">pallet.environment-impl</a></li><li><a href="#pallet.event">pallet.event</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.executor.protocols">pallet.executor.protocols</a></li><li><a href="#pallet.executors">pallet.executors</a></li><li><a href="#pallet.feature">pallet.feature</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.local.execute">pallet.local.execute</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.node-value">pallet.node-value</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.plugin">pallet.plugin</a></li><li><a href="#pallet.project">pallet.project</a></li><li><a href="#pallet.project.load">pallet.project.load</a></li><li><a href="#pallet.project.loader">pallet.project.loader</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.script-builder">pallet.script-builder</a></li><li><a href="#pallet.script-exec">pallet.script-exec</a></li><li><a href="#pallet.session.action-plan">pallet.session.action-plan</a></li><li><a href="#pallet.session.verify">pallet.session.verify</a></li><li><a href="#pallet.ssh.credentials">pallet.ssh.credentials</a></li><li><a href="#pallet.ssh.execute">pallet.ssh.execute</a></li><li><a href="#pallet.ssh.file-upload.sftp-upload">pallet.ssh.file-upload.sftp-upload</a></li><li><a href="#pallet.ssh.node-state">pallet.ssh.node-state</a></li><li><a href="#pallet.ssh.node-state.no-state">pallet.ssh.node-state.no-state</a></li><li><a href="#pallet.ssh.node-state.protocols">pallet.ssh.node-state.protocols</a></li><li><a href="#pallet.ssh.node-state.state-root">pallet.ssh.node-state.state-root</a></li><li><a href="#pallet.ssh.script-upload.protocols">pallet.ssh.script-upload.protocols</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.bootstrap">pallet.task.bootstrap</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.down">pallet.task.down</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.project-init">pallet.task.project-init</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.up">pallet.task.up</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task-utils">pallet.task-utils</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#cfg.current" name="cfg.current"><h1 class="project-name">cfg.current</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>DO NOT EDIT THIS FILE
 This file was auto-generated by Configleaf.
 Your changes could get overwritten by Configleaf.
 DO NOT EDIT THIS FILE</p>
@@ -4020,11 +4020,13 @@ It is made available at action execution via <em>defining-context</em>.</p>
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
+   [pallet.core.file-upload :refer :all]
+   [pallet.core.session :refer [session]]
    [pallet.crate :refer [admin-user packager phase-context role-&gt;nodes-map
                          target]]
    [pallet.node-value :refer [node-value]]
-   [pallet.script.lib :as lib :refer [set-flag-value]]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.script.lib :as lib :refer [set-flag-value user-home]]
+   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline tmpfile]])
   (:import clojure.lang.Keyword))</pre></td></tr><tr><td class="docs"><h1>Direct Script Execution</h1>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Execute script on the target node. The <code>script</code> is a plain string. <code>type</code>
@@ -4286,13 +4288,14 @@ by default.</p>
    (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) any-value
    (optional-path [:link]) String
-   (optional-path [:verify]) any-value])</pre></td></tr><tr><td class="docs">
+   (optional-path [:verify]) any-value
+   (optional-path [::upload-path]) String])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmacro check-remote-file-arguments
   [m]
   (check-spec m `remote-file-arguments &amp;form))</pre></td></tr><tr><td class="docs"><p>Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action.</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction transfer-file
-  [local-path remote-path remote-md5-path])</pre></td></tr><tr><td class="docs"><p>Function to transfer a remote file to a local path.</p>
+  [local-path remote-path])</pre></td></tr><tr><td class="docs"><p>Function to transfer a remote file to a local path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction transfer-file-to-local
   [remote-path local-path])</pre></td></tr><tr><td class="docs"><p>Function to delete a local path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction delete-local-path
@@ -4440,21 +4443,25 @@ downloads and to verify the download.</p>
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)]
+        abs-path (if (or (.startsWith path &quot;/&quot;)
+                         (.startsWith path &quot;$(&quot;)
+                         (.startsWith path &quot;`&quot;))
+                   path
+                   (if script-dir
+                     (str script-dir &quot;/&quot; path)
+                     (fragment
+                      (lib/file (user-home ~(:username (admin-user)))
+                                path))))]
     (when local-file
-      (transfer-file local-file new-path md5-path))
+      (transfer-file local-file path))
     ;; we run as root so we don't get permission issues
-    (with-action-options (merge
-                          {:script-prefix :sudo :sudo-user nil}
-                          local-file-options)
-      (remote-file-action
-       path
-       (merge
-        {:install-new-files *install-new-files* ; capture bound values
-         :overwrite-changes *force-overwrite*
-         :owner user}
-        options)))))</pre></td></tr><tr><td class="docs"><p>Function to call f with a local copy of the sessioned remote path.
+    (remote-file-action
+     path
+     (merge
+      {:install-new-files *install-new-files* ; capture bound values
+       :overwrite-changes *force-overwrite*
+       :owner user}
+      options))))</pre></td></tr><tr><td class="docs"><p>Function to call f with a local copy of the sessioned remote path.
    f should be a function taking [session local-path &amp; _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f.</p>
@@ -4566,20 +4573,21 @@ only specified files or directories, use the :extract-files option.</p>
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)]
+        upload-path (upload-filename (session) script-dir path)]
     (when local-file
-      (transfer-file local-file new-path md5-path))
+      (transfer-file local-file upload-path))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
-                          {:script-prefix :sudo :sudo-user nil}
+                          {:script-prefix :sudo
+                           :sudo-user (:sudo-user (admin-user))}
                           local-file-options)
       (remote-directory-action
        path
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
-         :owner user}
+         :owner user
+         ::upload-path upload-path}
         options)))))</pre></td></tr><tr><td class="docs"><p>Wait for a file to exist</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction wait-for-file
   [path &amp; {:keys [max-retries standoff service-name]
@@ -4703,7 +4711,9 @@ The :id key must contain a recognised repository.</p>
 
 <h1>Synch local file to remote</h1>
 </td><td class="codes"><pre class="brush: clojure">(defaction rsync
-  [local-path remote-path {:keys [port]}])</pre></td></tr><tr><td class="docs"><p>Rsync from a local directory to a remote directory.</p>
+  [local-path remote-path {:keys [port]}])</pre></td></tr><tr><td class="docs"><p>Use rsync to copy files from remote-path to local-path</p>
+</td><td class="codes"><pre class="brush: clojure">(defaction rsync-to-local
+  [remote-path local-path {:keys [port]}])</pre></td></tr><tr><td class="docs"><p>Rsync from a local directory to a remote directory.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn rsync-directory
   {:pallet/plan-fn true}
   [from to &amp; {:keys [owner group mode port] :as options}]
@@ -4713,7 +4723,12 @@ The :id key must contain a recognised repository.</p>
     ;; root permision
     ;; (package &quot;rsync&quot;)
     (directory to :owner owner :group group :mode mode)
-    (rsync from to options)))</pre></td></tr><tr><td class="docs"><p>User Group Management.</p>
+    (rsync from to options)))</pre></td></tr><tr><td class="docs"><p>Rsync from a local directory to a remote directory.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-to-local-directory
+  {:pallet/plan-fn true}
+  [from to &amp; {:keys [owner group mode port] :as options}]
+  (phase-context rsync-directory-fn {:name :rsync-directory}
+    (rsync-to-local from to options)))</pre></td></tr><tr><td class="docs"><p>User Group Management.</p>
 
 <p><code>:action</code>
 : One of :create, :manage, :remove.</p>
@@ -5698,7 +5713,8 @@ Specify :line, or the other options.&quot;
             new-filename
             remote-directory-action
             remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.actions.direct.remote-file :refer [file-uploader]]
+   [pallet.core.file-upload :refer [upload-file-path]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))</pre></td></tr><tr><td class="docs">
@@ -5710,7 +5726,7 @@ Specify :line, or the other options.&quot;
   remote-file* (action-fn remote-file-action :direct))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- source-to-cmd-and-path
   [session path url local-file remote-file md5 md5-url
-   install-new-files overwrite-changes]
+   install-new-files overwrite-changes upload-path]
   (cond
    url (let [tarpath (str
                       (with-source-line-comments false
@@ -5725,8 +5741,8 @@ Specify :line, or the other options.&quot;
            first second)
           tarpath])
    local-file [
-               (new-filename (-&gt; session :action :script-dir) path)
-               (md5-filename (-&gt; session :action :script-dir) path)]
+               upload-path
+               (md5-filename session (-&gt; session :action :script-dir) path)]
    remote-file [ remote-file (str remote-file &quot;.md5&quot;)]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action remote-directory-action :direct
   {:action-type :script :location :target}
@@ -5744,8 +5760,10 @@ Specify :line, or the other options.&quot;
                  :as options}]
   [[{:language :bash}
     (case action
-      :create (let [url (options :url)
+      :create (let [uploader (file-uploader options)
+                    url (options :url)
                     unpack (options :unpack :tar)
+                    upload-path (upload-file-path uploader session path options)
                     options (if (and owner (not group))
                               (assoc options
                                 :group (fragment @(user-default-group ~owner)))
@@ -5756,7 +5774,8 @@ Specify :line, or the other options.&quot;
                                                url local-file remote-file
                                                md5 md5-url
                                                install-new-files
-                                               overwrite-changes)
+                                               overwrite-changes
+                                               upload-path)
                         tar-md5 (str tarpath &quot;.md5&quot;)
                         path-md5 (str path &quot;/.pallet.directory.md5&quot;)
                         extract-files (string/join \space extract-files)]
@@ -5809,7 +5828,7 @@ Specify :line, or the other options.&quot;
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [pallet.action :refer [implement-action]]
+   [pallet.action :refer [action-options implement-action]]
    [pallet.action-plan :as action-plan]
    [pallet.actions
     :refer [content-options
@@ -5818,87 +5837,82 @@ Specify :line, or the other options.&quot;
             transfer-file-to-local
             wait-for-file]]
    [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action]]
+    :refer [copy-filename md5-filename new-filename upload-filename
+            remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
+   [pallet.core.file-upload :refer [upload-file upload-file-path]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
-    :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
-            path-owner user-default-group]]
+    :refer [canonical-path chgrp chmod chown dirname exit mkdir
+            path-group path-mode path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
+   [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
+   [pallet.ssh.node-state
+    :refer [new-file-content record-checksum verify-checksum]]
+   [pallet.ssh.node-state.state-root
+    :refer [state-root-backup state-root-checksum]]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [fragment]]
+   [pallet.stevedore :refer [fragment script]]
    [pallet.template :as templates]
    [pallet.utils :refer [first-line]]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def default-file-uploader (sftp-upload {}))
+(def default-checksum (state-root-checksum {}))
+(def default-backup (state-root-backup {}))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn file-uploader
+  [action-options]
+  (or (:file-uploader action-options) default-file-uploader))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action delete-local-path :direct
-  {:action-type :fn/clojure :location :origin}
-  [session ^java.io.File local-path]
+                  {:action-type :fn/clojure :location :origin}
+                  [session ^java.io.File local-path]
   [(fn [session]
      (.delete (io/file local-path))
      [local-path session])
    session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action transfer-file-to-local :direct
-  {:action-type :transfer/to-local :location :origin}
-  [session remote-path local-path]
+                  {:action-type :transfer/to-local :location :origin}
+                  [session remote-path local-path]
   [[(.getPath (io/file remote-path))
     (.getPath (io/file local-path))]
    session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action transfer-file :direct
-  {:action-type :transfer/from-local :location :origin}
-  [session local-path remote-path remote-md5-path]
+                  {:action-type :transfer/from-local :location :origin}
+                  [session local-path remote-path]
   [[(.getPath (io/file local-path))
     (.getPath (io/file remote-path))
-    (.getPath (io/file remote-md5-path))]
-   session])</pre></td></tr><tr><td class="docs"><p>Create the /var/lib/pallet directory if required, ensuring correct
-permissions. Note this is not the final directory.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn create-path-with-template
-  [template-path new-path]
-  (stevedore/script
-   (do
-     (set! dirpath @(dirname ~new-path))
-     (set! templatepath @(dirname @(if (file-exists? ~template-path)
-                                     (canonical-path ~template-path)
-                                     (println ~template-path))))
-     (when (not (directory? @templatepath))
-       (println @templatepath &quot;: Directory does not exist.&quot;)
-       (exit 1))
-     (set! templatepath @(canonical-path @templatepath))
-     (chain-or (lib/mkdir @dirpath :path true) (exit 1))
-     (&quot;while&quot; (!= &quot;/&quot; @templatepath) &quot;;do&quot;
-      ~(stevedore/chained-script
-        (set! d @dirpath)               ; copy these and update
-        (set! t @templatepath)          ; so we can continue on any failure
-        (when (not (directory? @templatepath))
-          (println @templatepath &quot;: Directory does not exist.&quot;)
-          (exit 1))
-        (set! dirpath @(dirname @dirpath))
-        (set! templatepath @(dirname @templatepath))
-        (chain-or (chgrp @(path-group @t) @d) &quot;:&quot;)
-        (chain-or (chmod @(path-mode @t) @d) &quot;:&quot;)
-        (chain-or (chown @(path-owner @t) @d) &quot;:&quot;))
-      (&quot;; done&quot;)))))</pre></td></tr><tr><td class="docs">
+    (fn []
+      ;; return function that will do the upload
+      (let [action-options (action-options session)
+            uploader (or (:file-uploader action-options)
+                         default-file-uploader)]
+        (upload-file uploader session
+                     (.getPath (io/file local-path))
+                     (.getPath (io/file remote-path))
+                     action-options)))]
+   session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- summarise-content
   [m]
   (if (:content m)
     (update-in m [:content] #(str (first-line %) &quot;...&quot;))
     m))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action remote-file-action :direct
-  {:action-type :script :location :target}
-  [session path {:keys [action url local-file remote-file link
-                        content literal
-                        template values
-                        md5 md5-url
-                        owner group mode force
-                        blob blobstore
-                        install-new-files
-                        overwrite-changes no-versioning max-versions
-                        flag-on-changed
-                        force
-                        insecure
-                        verify]
-                 :or {action :create max-versions 5
-                      install-new-files true}
-                 :as options}]
+                  {:action-type :script :location :target}
+                  [session path {:keys [action url local-file remote-file link
+                                        content literal
+                                        template values
+                                        md5 md5-url
+                                        owner group mode force
+                                        blob blobstore
+                                        install-new-files
+                                        overwrite-changes
+                                        no-versioning max-versions
+                                        flag-on-changed
+                                        force
+                                        insecure
+                                        verify]
+                                 :or {action :create max-versions 5
+                                      install-new-files true}
+                                 :as options}]
   [[{:language :bash
      :summary (str &quot;remote-file &quot; path &quot; &quot;
                    (string/join
@@ -5907,10 +5921,14 @@ permissions. Note this is not the final directory.</p>
                          (summarise-content)
                          (apply concat)
                          (map pr-str))))}
-    (let [new-path (new-filename (-&gt; session :action :script-dir) path)
-          md5-path (md5-filename (-&gt; session :action :script-dir) path)
-          copy-path (copy-filename (-&gt; session :action :script-dir) path)
-          versioning (if no-versioning nil :numbered)
+    (let [action-options (action-options session)
+          uploader (file-uploader action-options)
+          file-checksum (or (:file-checksum action-options) default-checksum)
+          file-backup (or (:file-backup action-options) default-backup)
+
+          new-path (upload-file-path uploader session path action-options)
+          md5-path (str new-path &quot;.md5&quot;)
+
           proxy (get-for session [:proxy] nil)
           options (if (and owner (not group))
                     (assoc options
@@ -5921,76 +5939,84 @@ permissions. Note this is not the final directory.</p>
         (action-plan/checked-commands
          (str &quot;remote-file &quot; path)
 
-         (create-path-with-template path new-path)
+         ;; check for local modifications
+         (if overwrite-changes
+           &quot;&quot;
+           (verify-checksum file-checksum session path))
+
+         ;; create upload dir if needed
+         (stevedore/script
+          (mkdir @(dirname ~new-path) :path true))
 
          ;; Create the new content
          (cond
-           (and url md5) (stevedore/chained-script
-                          (if (chain-or (not (file-exists? ~path))
-                                  (!= ~md5 @((pipe
-                                              (~lib/md5sum ~path)
-                                              (~lib/cut
-                                               &quot;&quot; :fields 1 :delimiter &quot; &quot;)))))
-                            ~(stevedore/chained-script
-                              (~lib/download-file
-                               ~url ~new-path
-                               :proxy ~proxy :insecure ~insecure))))
-           ;; Download md5 to temporary directory.
-           (and url md5-url) (stevedore/chained-script
-                              (var tmpdir (quoted (lib/make-temp-dir &quot;rf&quot;)))
-                              (var basefile
-                                   (quoted
-                                    (str @tmpdir &quot;/&quot; @(lib/basename ~path))))
-                              (var newmd5path (quoted (str @basefile &quot;.md5&quot;)))
-                              (lib/download-file
-                               ~md5-url @newmd5path :proxy ~proxy
-                               :insecure ~insecure)
-                              (lib/normalise-md5 @newmd5path)
-                              (if (chain-or (not (file-exists? ~md5-path))
-                                      (not (lib/diff @newmd5path ~md5-path)))
-                                (do
-                                  (lib/download-file
-                                   ~url ~new-path :proxy ~proxy
-                                   :insecure ~insecure)
-                                  (lib/ln ~new-path @basefile)
-                                  (if-not (~lib/md5sum-verify @newmd5path)
-                                    (do
-                                      (println ~(str &quot;Download of &quot; url
-                                                     &quot; failed to match md5&quot;))
-                                      (lib/rm @tmpdir
-                                              :force ~true :recursive ~true)
-                                      (lib/exit 1)))))
-                              (lib/rm @tmpdir :force ~true :recursive ~true))
-           url (stevedore/chained-script
-                (~lib/download-file
-                 ~url ~new-path :proxy ~proxy :insecure ~insecure))
-           content (stevedore/script
+          (and url md5) (stevedore/chained-script
+                         (if (chain-or (not (file-exists? ~path))
+                                       (!= ~md5 @((pipe
+                                                   (~lib/md5sum ~path)
+                                                   (~lib/cut &quot;&quot;
+                                                             :fields 1
+                                                             :delimiter &quot; &quot;)))))
+                           ~(stevedore/chained-script
+                             (~lib/download-file
+                              ~url ~new-path
+                              :proxy ~proxy :insecure ~insecure))))
+          ;; Download md5 to temporary directory.
+          (and url md5-url) (stevedore/chained-script
+                             (var tmpdir (quoted (lib/make-temp-dir &quot;rf&quot;)))
+                             (var basefile
+                                  (quoted
+                                   (str @tmpdir &quot;/&quot; @(lib/basename ~path))))
+                             (var newmd5path (quoted (str @basefile &quot;.md5&quot;)))
+                             (lib/download-file
+                              ~md5-url @newmd5path :proxy ~proxy
+                              :insecure ~insecure)
+                             (lib/normalise-md5 @newmd5path)
+                             (if (chain-or (not (file-exists? ~md5-path))
+                                           (not (lib/diff @newmd5path ~md5-path)))
+                               (do
+                                 (lib/download-file
+                                  ~url ~new-path :proxy ~proxy
+                                  :insecure ~insecure)
+                                 (lib/ln ~new-path @basefile)
+                                 (if-not (~lib/md5sum-verify @newmd5path)
+                                   (do
+                                     (println ~(str &quot;Download of &quot; url
+                                                    &quot; failed to match md5&quot;))
+                                     (lib/rm @tmpdir
+                                             :force ~true :recursive ~true)
+                                     (lib/exit 1)))))
+                             (lib/rm @tmpdir :force ~true :recursive ~true))
+          url (stevedore/chained-script
+               (~lib/download-file
+                ~url ~new-path :proxy ~proxy :insecure ~insecure))
+          content (stevedore/script
+                   (~lib/heredoc
+                    ~new-path ~content ~(select-keys options [:literal])))
+          local-file (do)               ; file already in place at new-path
+          remote-file (stevedore/script
+                       (~lib/cp ~remote-file ~new-path :force ~true))
+          template (stevedore/script
                     (~lib/heredoc
-                     ~new-path ~content ~(select-keys options [:literal])))
-           local-file nil ; already copied in remote-file wrapper
-           remote-file (stevedore/script
-                        (~lib/cp ~remote-file ~new-path :force ~true))
-           template (stevedore/script
-                     (~lib/heredoc
-                      ~new-path
-                      ~(templates/interpolate-template
-                        template (or values {}) session)
-                      ~(select-keys options [:literal])))
-           link (stevedore/script
-                 (~lib/ln ~link ~path :force ~true :symbolic ~true))
-           blob (action-plan/checked-script
-                 &quot;Download blob&quot;
-                 (~lib/download-request
-                  ~new-path
-                  ~(blobstore/sign-blob-request
-                    (or blobstore (get-for session [:blobstore] nil)
-                        (throw (IllegalArgumentException.
-                                &quot;No :blobstore given for blob content.&quot;) ))
-                    (:container blob) (:path blob)
-                    {:method :get})))
-           :else (throw
-                  (IllegalArgumentException.
-                   (str &quot;remote-file &quot; path &quot; specified without content.&quot;))))
+                     ~new-path
+                     ~(templates/interpolate-template
+                       template (or values {}) session)
+                     ~(select-keys options [:literal])))
+          link (stevedore/script
+                (~lib/ln ~link ~path :force ~true :symbolic ~true))
+          blob (action-plan/checked-script
+                &quot;Download blob&quot;
+                (~lib/download-request
+                 ~new-path
+                 ~(blobstore/sign-blob-request
+                   (or blobstore (get-for session [:blobstore] nil)
+                       (throw (IllegalArgumentException.
+                               &quot;No :blobstore given for blob content.&quot;) ))
+                   (:container blob) (:path blob)
+                   {:method :get})))
+          :else (throw
+                 (IllegalArgumentException.
+                  (str &quot;remote-file &quot; path &quot; specified without content.&quot;))))
 
          ;; process the new file accordingly
          (when verify
@@ -5999,78 +6025,29 @@ permissions. Note this is not the final directory.</p>
             (~verify ~new-path)))
 
          (when (and install-new-files (not link))
-           (stevedore/chain-commands
-            (if (or overwrite-changes no-versioning)
-              (stevedore/script
-               (if (file-exists? ~new-path)
-                 (do
-                   ~(stevedore/chain-commands
-                     (stevedore/script
-                      (lib/cp           ; copy to copy-path with versioning
-                       ~new-path ~copy-path :backup ~versioning :force ~true)
-                      (lib/mv ~new-path ~path :force ~true))
-                     (if flag-on-changed
-                       (stevedore/script (~lib/set-flag ~flag-on-changed)))))))
-              (stevedore/chained-script
-               ;; check if the file and the current copy are the same
-               (var filediff &quot;&quot;)
-               (if (&amp;&amp; (file-exists? ~path) (file-exists? ~copy-path))
-                 (do
-                   (lib/diff ~path ~copy-path :unified true)
-                   (set! filediff &quot;$?&quot;)))
-               ;; check if the current copy and the md5 match
-               (var md5diff &quot;&quot;)
-               (if (&amp;&amp; (file-exists? ~copy-path) (file-exists? ~md5-path))
-                 (do
-                   (~lib/md5sum-verify ~md5-path)
-                   (set! md5diff &quot;$?&quot;)))
-               ;; get the diff between current and new
-               (var contentdiff &quot;&quot;)
-               (if (&amp;&amp; (file-exists? ~path) (file-exists? ~new-path))
-                 (do
-                   (~lib/diff ~path ~new-path :unified true)
-                   (set! contentdiff &quot;$?&quot;)))
+           (stevedore/chained-script
+            ;; get the diff between current and new
+            (var contentdiff &quot;&quot;)
+            (if (&amp;&amp; (file-exists? ~path) (file-exists? ~new-path))
+              (do
+                (~lib/diff ~path ~new-path :unified true)
+                (set! contentdiff &quot;$?&quot;)))
 
-               ;; report any errors
-               (var errexit 0)
-               (if (== @filediff 1)
-                 (do
-                   (println
-                    &quot;Existing file did not match the pallet master copy: FAIL&quot;)
-                   (set! errexit 1)))
+            ;; install the file if the content is different
+            (if (&amp;&amp; (not (== @contentdiff 0)) (file-exists? ~new-path))
+              ~(stevedore/chain-commands
+                ;; adjust ownership/permissions before putting the
+                ;; file in place
+                (file/adjust-file new-path options)
+                (script (lib/mv ~new-path ~path :force ~true))
+                (if flag-on-changed
+                  (script (lib/set-flag ~flag-on-changed)))
+                (new-file-content
+                 file-backup session path
+                 (select-keys
+                  options [:max-versions :no-versioning :versioning]))
+                (record-checksum file-checksum session path))))))
 
-               (if (== @md5diff 1)
-                 (do
-                   (println &quot;Existing content did not match md5: FAIL&quot;)
-                   (set! errexit 1)))
-
-               ;; exit if error
-               (== @errexit 0)
-
-               ;; install the file if the content is different
-               (if (&amp;&amp; (not (== @contentdiff 0)) (file-exists? ~new-path))
-                 (do
-                   ~(stevedore/chain-commands
-                     (stevedore/script
-                      (lib/cp
-                       ~new-path ~copy-path :force ~true :backup ~versioning)
-                      (lib/mv ~new-path ~path :force ~true))
-                     (if flag-on-changed
-                       (stevedore/script (lib/set-flag ~flag-on-changed))))))))
-            (file/adjust-file path options)
-            (when-not no-versioning
-              (stevedore/chain-commands
-               (file/write-md5-for-file path md5-path)
-               (stevedore/script
-                (println &quot;MD5 sum is&quot; @(~lib/cat ~md5-path)))))))
-         ;; cleanup
-         (if (and (not no-versioning) (pos? max-versions))
-           (stevedore/script
-            (pipe
-             ((~lib/ls (str ~path &quot;.~[0-9]*~&quot;) :sort-by-time ~true)
-              &quot;2&gt;&quot; &quot;/dev/null&quot;)
-             (~lib/tail &quot;&quot; :max-lines ~(str &quot;+&quot; (inc max-versions)))
-             (~lib/xargs (~lib/rm &quot;&quot; :force ~true))))))
         :delete (action-plan/checked-script
                  (str &quot;delete remote-file &quot; path)
                  (~lib/rm ~path :force ~force))))]
@@ -6096,19 +6073,57 @@ permissions. Note this is not the final directory.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.actions.direct.rsync
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [rsync]]
+   [pallet.action :refer [action-options implement-action]]
+   [pallet.actions :refer [rsync rsync-to-local]]
    [pallet.crate :refer [target-node]]
    [pallet.core.session :refer [admin-user target-ip]]
    [pallet.node :refer [ssh-port]]
-   [pallet.stevedore :as stevedore]))</pre></td></tr><tr><td class="docs">
+   [pallet.script.lib :refer [sudo]]
+   [pallet.stevedore :as stevedore :refer [fragment]]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def ^{:private true}
   cmd &quot;/usr/bin/rsync -e '%s' -F -F %s %s %s@%s:%s&quot;)</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(def default-options {:r true :delete true :copy-links true
-                      :rsync-path &quot;sudo rsync&quot;
-                      :owner true
-                      :perms true})</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ^{:private true}
+  cmd-to-local &quot;/usr/bin/rsync -e '%s' -F -F %s '%s@%s:%s' %s&quot;)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-sudo-user [session]
+  (let [user (:user session)]
+    (or (:sudo-user (action-options session))
+        (and (not (:no-sudo user))
+             (or (:sudo-user user)
+                 &quot;root&quot;)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn default-options
+  [session]
+  {:r true :delete true :copy-links true
+   :rsync-path (if-let [sudo-user (rsync-sudo-user session)]
+                 (fragment ((sudo :no-prompt true :user ~sudo-user) &quot;rsync&quot;))
+                 &quot;rsync&quot;)
+   :owner true
+   :perms true})</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-command
+  [from to username address port options]
+  (let [ssh (str &quot;/usr/bin/ssh -o \&quot;StrictHostKeyChecking no\&quot; &quot;
+                 (if port (format &quot;-p %s&quot; port))) ]
+    (format
+     cmd ssh
+     (stevedore/map-to-arg-string options)
+     from username
+     address to)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action rsync :direct
+                  {:action-type :script :location :origin}
+                  [session from to {:keys [port] :as options}]
+  (logging/debugf &quot;rsync %s to %s&quot; from to)
+  (let [extra-options (dissoc options :port)
+        port (or port (ssh-port (target-node)))
+        cmd (rsync-command
+             from to
+             (:username (admin-user session))
+             (target-ip session)
+             port
+             (merge (default-options session) extra-options))]
+    (logging/debugf &quot;rsync %s&quot; cmd)
+    [[{:language :bash}
+      (stevedore/checked-commands (format &quot;rsync %s to %s&quot; from to) cmd)]
+     session]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(implement-action rsync-to-local :direct
                   {:action-type :script :location :origin}
                   [session from to {:keys [port] :as options}]
   (logging/debugf &quot;rsync %s to %s&quot; from to)
@@ -6117,10 +6132,14 @@ permissions. Note this is not the final directory.</p>
                  (if-let [port (or port (ssh-port (target-node)))]
                    (format &quot;-p %s&quot; port)))
         cmd (format
-             cmd ssh
-             (stevedore/map-to-arg-string (merge default-options extra-options))
-             from (:username (admin-user session))
-             (target-ip session) to)]
+             cmd-to-local ssh
+             (stevedore/map-to-arg-string
+              (merge (default-options session) {:delete false} extra-options))
+             (:username (admin-user session))
+             (target-ip session)
+             from
+             to)]
+    (logging/debugf &quot;rsync-to-local %s&quot; cmd)
     [[{:language :bash}
       (stevedore/checked-commands (format &quot;rsync %s to %s&quot; from to) cmd)]
      session]))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.actions.direct.service" name="pallet.actions.direct.service"><h1 class="project-name">pallet.actions.direct.service</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Service control. Deprecated in favour of pallet.crate.service.</p>
@@ -6242,6 +6261,7 @@ permissions. Note this is not the final directory.</p>
                               password shell comment groups remove force append]
                        :or {action :manage}
                        :as options}]
+  {:pre [(string? username)]}
   (let [opts (if-let [shell (get shell-names shell shell)]
                (merge options {:shell shell})
                options)]
@@ -6318,11 +6338,12 @@ permissions. Note this is not the final directory.</p>
    [pallet.action :refer [defaction]]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
-   [pallet.core.session :refer [session]]
-   [pallet.crate :refer (admin-user)]
+   [pallet.core.session :as session :refer [session]]
+   [pallet.crate :refer [admin-user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
-   [pallet.stevedore :refer [fragment script]]))</pre></td></tr><tr><td class="docs">
+   [pallet.stevedore :refer [fragment script]]
+   [pallet.utils :refer [base64-md5]]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def ^:dynamic *script-location-info* true)</pre></td></tr><tr><td class="docs"><p>An 'if' flow control action, that claims the next (up to two) nested scopes.</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction if-action
   [condition])</pre></td></tr><tr><td class="docs">
@@ -6375,7 +6396,37 @@ to deal with local file transfer.</p>
   (str (fragment (lib/etc-init)) &quot;/&quot; service-name))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod service-script-path :upstart
   [_ service-name]
-  (str (fragment (lib/upstart-script-dir)) &quot;/&quot; service-name &quot;.conf&quot;))</pre></td></tr><tr><td class="docs"><h1>File names for transfers</h1>
+  (str (fragment (lib/upstart-script-dir)) &quot;/&quot; service-name &quot;.conf&quot;))</pre></td></tr><tr><td class="docs"><h1>File Names for Pallet Internals</h1>
+</td><td class="codes"><pre class="brush: clojure">(defn- adjust-root
+  [^String script-dir ^String path]
+  (if (or (.startsWith path &quot;/&quot;)
+          (.startsWith path &quot;$&quot;))
+    path
+    (fragment
+     (file ~(or script-dir
+                ;; use /home so we have a path tha doesn't
+                ;; involve shell vars
+                (str &quot;/home/&quot; (:username (admin-user))))
+           ~path))))</pre></td></tr><tr><td class="docs"><p>This is where pallet will keep backups and md5 files.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn pallet-state-root
+  [session]
+  (or (:state-root (session/admin-user session))
+      (fragment (file (state-root) &quot;pallet&quot;))))</pre></td></tr><tr><td class="docs"><h2>File Names for Transfers from localhost</h2>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>These provide an upload path that will have ownership assigned
+to the admin user, so that the admin user can always overwrite files
+at these paths (ie. for re-upload).</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Generate a temporary file name for a given path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn upload-filename
+  [session script-dir path]
+  (str (pallet-state-root session)
+       (adjust-root nil (base64-md5 path))))</pre></td></tr><tr><td class="docs"><p>(defn upload-md5-filename
+  "Generate a temporary file name for a given path."
+  [session script-dir path]
+  (str (pallet-state-root session)
+       (str "/home/" (:username (admin-user))) "/.pallet-uploads"
+       (adjust-root script-dir path)
+       ".md5"))</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><h2>File Names for Pallet State</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>These paths create a parallel directory tree under "/var/lib/pallet" which
 contains the up/downloaded files, the md5s and the installed file history.</p>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>To facilitate md5 checks the basename of the generated copy-filename should
@@ -6383,28 +6434,16 @@ match the original basename, and the md5 file should be in the same
 directory.</p>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Note that we can not use remote evaluated expressions in these paths, as
 they are used locally.</p>
-</td><td class="codes"></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- adjust-root
-  [^String script-dir ^String path]
-  (if (.startsWith path &quot;/&quot;)
-    path
-    (fragment
-     (file ~(or script-dir
-                ;; use /home so we have a path tha doesn't
-                ;; involve shell vars
-                (str &quot;/home/&quot; (:username (admin-user))))
-           ~path))))</pre></td></tr><tr><td class="docs"><p>Generate a temporary file name for a given path.</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Generate a temporary file name for a given path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn new-filename
-  [script-dir path]
-  (fragment
-   (str (state-root) &quot;/pallet&quot; ~(str (adjust-root script-dir path) &quot;.new&quot;))))</pre></td></tr><tr><td class="docs"><p>Generate a md5 file name for a given path.</p>
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path) &quot;.new&quot;))</pre></td></tr><tr><td class="docs"><p>Generate a md5 file name for a given path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn md5-filename
-  [script-dir path]
-  (fragment
-   (str (state-root) &quot;/pallet&quot; ~(str (adjust-root script-dir path) &quot;.md5&quot;))))</pre></td></tr><tr><td class="docs"><p>Generate a file name for a copy of the given path.</p>
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path) &quot;.md5&quot;))</pre></td></tr><tr><td class="docs"><p>Generate a file name for a copy of the given path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn copy-filename
-  [script-dir path]
-  (fragment (str (state-root) &quot;/pallet&quot; ~(adjust-root script-dir path))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.api" name="pallet.api"><h1 class="project-name">pallet.api</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Pallet API</h1>
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.api" name="pallet.api"><h1 class="project-name">pallet.api</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Pallet API</h1>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.api
   (:require
    [clojure.java.io :refer [input-stream resource]]
@@ -6991,8 +7030,10 @@ applied.</p>
                               [:settings])
                              {})
        results (ops/lift-partitions
-                nodes-set plan-state environment (remove #{:settings} phases)
-                lift-options)]
+                (distinct (concat consider-set nodes-set))
+                plan-state environment (remove #{:settings} phases)
+                (assoc lift-options
+                  :targets nodes-set))]
       (assoc results
         :environment environment
         :initial-plan-state initial-plan-state))))</pre></td></tr><tr><td class="docs"><p>Lift the running nodes in the specified node-set by applying the specified
@@ -8062,7 +8103,7 @@ support.&quot;
   [] [&quot;node-list&quot;])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider]
-      :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
+      :or {tag-provider (NodeTagStatic. {&quot;pallet/state&quot; &quot;{:bootstrapped true}&quot;})}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)
@@ -8696,7 +8737,9 @@ the providers.</p>
    (optional-path [:public-key-path]) [:or String nil]
    (optional-path [:private-key]) [:or String bytes? nil]
    (optional-path [:public-key]) [:or String bytes? nil]
-   (optional-path [:passphrase]) [:or String bytes? nil]])</pre></td></tr><tr><td class="docs">
+   (optional-path [:passphrase]) [:or String bytes? nil]
+   (optional-path [:state-root]) [:or String nil]
+   (optional-path [:state-group]) [:or String nil]])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def-map-schema environment-strict-schema
   [(optional-path [:algorithms]) (map-schema :loose [])
    (optional-path [:user]) user-schema
@@ -8807,7 +8850,7 @@ the providers.</p>
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.action :refer [get-action-options]]
+   [pallet.action :refer [action-options-key get-action-options]]
    [pallet.action-plan :refer [execute stop-execution-on-error translate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
@@ -8819,7 +8862,9 @@ the providers.</p>
    [pallet.session.action-plan
     :refer [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
-   [pallet.stevedore :refer [with-source-line-comments]]))</pre></td></tr><tr><td class="docs"><p>Returns the pallet version.</p>
+   [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
+   [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [maybe-update-in]]))</pre></td></tr><tr><td class="docs"><p>Returns the pallet version.</p>
 </td><td class="codes"><pre class="brush: clojure">(let [v (atom nil)]
   (defn version
     []
@@ -8853,7 +8898,10 @@ the providers.</p>
                   {:user (:user environment)}
                   target-map
                   {:service-state service-state
-                   :plan-state plan-state
+                   :plan-state (maybe-update-in
+                                plan-state
+                                [action-options-key]
+                                #(merge (:action-options environment) %))
                    :environment environment}))
               (apply plan-fn args)
               (check-session (session) '(plan-fn))
@@ -9275,7 +9323,106 @@ the providers.</p>
   (let [runs (map run-summary results)]
     {:destroyed-nodes (seq (map #(node-map (:node %)) old-nodes))
      :created-nodes (seq (map #(node-map (:node %)) new-nodes))
-     :runs runs}))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.operations" name="pallet.core.operations"><h1 class="project-name">pallet.core.operations</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Built in operations</p>
+     :runs runs}))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.executor" name="pallet.core.executor"><h1 class="project-name">pallet.core.executor</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Action Execution</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.executor
+  (:require
+   [pallet.core.executor.protocols :as impl]))</pre></td></tr><tr><td class="docs"><p>Execute an action on a target, using any action-options specified</p>
+</td><td class="codes"><pre class="brush: clojure">(defn execute
+  [executor target action action-options]
+  (impl/excute executor target action action-options))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.executor.protocols" name="pallet.core.executor.protocols"><h1 class="project-name">pallet.core.executor.protocols</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Action execution protocols</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.executor.protocols)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defprotocol ActionExecutor
+  (execute [_ target action action-options]
+  &quot;Execute an action on a target, using any action-options specified&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.executor.ssh" name="pallet.core.executor.ssh"><h1 class="project-name">pallet.core.executor.ssh</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>An action executor over ssh</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.executor.ssh
+  (:require
+   [pallet.core.executor.protocols :refer :all]
+   [pallet.ssh.execute :as ssh]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(deftype SshActionExecutor [result-chan]
+  ActionExecutor
+  (execute [executor target action action-options]
+    (ssh/ssh-script-on-target
+     session action action-type script)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.file-upload" name="pallet.core.file-upload"><h1 class="project-name">pallet.core.file-upload</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.file-upload
+  (:require
+   [pallet.core.file-upload.protocols :as impl]))</pre></td></tr><tr><td class="docs"><p>Return the path to which upload-file would upload a file for
+    target-path</p>
+</td><td class="codes"><pre class="brush: clojure">(defn upload-file-path
+  [uploader session target-path action-options]
+  (impl/upload-file-path uploader session target-path action-options))</pre></td></tr><tr><td class="docs"><p>Upload a file to the target-path, and return any script needed to
+    be run on the node to get the file into place.</p>
+
+<pre><code>file-options is a map of options as passed to remote-file, for file
+ownership, permissions, etc.
+
+action-options can contain a :sudo-user, specify the user to install
+the file as.
+</code></pre>
+</td><td class="codes"><pre class="brush: clojure">(defn upload-file
+  [uploader session local-path target-path action-options]
+  (impl/upload-file
+   uploader session local-path target-path action-options))</pre></td></tr><tr><td class="docs"><p>Instantiate a file-upload provider based on keyword and option map.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti file-uploader
+  (fn [kw options] kw))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.file-upload.protocols" name="pallet.core.file-upload.protocols"><h1 class="project-name">pallet.core.file-upload.protocols</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Protocols for file upload</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.file-upload.protocols)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defprotocol FileUpload
+  (upload-file-path [_ session target-path action-options]
+    &quot;Return the path to which upload-file would upload a file for
+    target-path&quot;)
+  (upload-file [_ session local-path target-path action-options]
+    &quot;Upload a file to the target-path, and return any script needed to
+    be run on the node to get the file into place.
+    file-options is a map of options as passed to remote-file, for file
+    ownership, permissions, etc.
+    action-options can contain a :sudo-user, specify the user to install
+    the file as.&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.file-upload.rsync-upload" name="pallet.core.file-upload.rsync-upload"><h1 class="project-name">pallet.core.file-upload.rsync-upload</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Implementation of file upload using rsync.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.core.file-upload.rsync-upload
+  (:require
+   [clojure.tools.logging :refer [debugf]]
+   [pallet.actions.direct.rsync
+    :refer [default-options rsync-command rsync-sudo-user]]
+   [pallet.local.execute :refer [local-checked-script]]
+   [pallet.core.session
+    :refer [admin-user effective-username target-ip target-node]]
+   [pallet.core.file-upload :refer [file-uploader]]
+   [pallet.core.file-upload.protocols :refer [FileUpload]]
+   [pallet.node :refer [ssh-port]]
+   [pallet.ssh.file-upload.sftp-upload :refer [target]]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-user [session]
+  (or (rsync-sudo-user session)
+      (:username (admin-user session))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-upload-file
+  [local-path target-path address port username options]
+  (debugf &quot;rsync-upload-file %s:%s:%s from %s&quot;
+          address port target-path local-path)
+  (local-checked-script
+   &quot;rsync file to target&quot;
+   ~(rsync-command
+     local-path target-path
+     username
+     address port
+     options)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord RsyncUpload [upload-root]
+  FileUpload
+  (upload-file-path [_ session target-path action-options]
+    (target upload-root (rsync-user session) target-path))
+  (upload-file
+    [_ session local-path target-path action-options]
+    (rsync-upload-file
+     local-path
+     (target upload-root (rsync-user session) target-path)
+     (target-ip session)
+     (ssh-port (target-node session))
+     (:username (admin-user session))
+     (merge (-&gt; (default-options session)
+                (select-keys [:rsync-path]))
+            {:chmod &quot;go-w,go-r&quot;}))))</pre></td></tr><tr><td class="docs"><p>Create an instance of the rsync upload strategy.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn rsync-upload
+  [{:keys [upload-root] :as options}]
+  (map-&gt;RsyncUpload (merge {:upload-root &quot;/tmp&quot;} options)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-uploader :rsync
+  [_ options]
+  (rsync-upload options))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.operations" name="pallet.core.operations"><h1 class="project-name">pallet.core.operations</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Built in operations</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.core.operations
   (:require
    [clojure.tools.logging :as logging]
@@ -9463,7 +9610,8 @@ to the correct targets in lift.</p>
      targets
      (clojure.core/partition-by fns)
      (mapcat
-      #(let [[pf &amp; _] (fns (first %))]
+      #(let [[pf &amp; _] (fns (first %))
+             pf       (or f pf)]
          (if pf
            (pf %)
            [%]))))))</pre></td></tr><tr><td class="docs"><p>Lift targets by phase, applying partitions for each phase.</p>
@@ -9517,11 +9665,7 @@ deploy.</p>
                    (count r) (count results))
                   [(concat r results) plan-state])))
             [acc-results plan-state]
-            (let [fns (comp
-                       (juxt :partition-f :post-phase-f :post-phase-fsm
-                             :phase-execution-f)
-                       meta #(api/target-phase % phase))]
-              (partition-targets targets phase partition-f)))]
+            (partition-targets targets phase partition-f))]
           (do
             (logging/tracef &quot;back from phase loop&quot;)
             (logging/tracef &quot;(count lift-results) %s&quot; (count lift-results))
@@ -9974,8 +10118,10 @@ other than a plain map.</p>
    (packager-for-os (os-family session) (os-version session))))</pre></td></tr><tr><td class="docs"><p>User that remote commands are run under.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn admin-user
   [session]
-  {:pre [session (-&gt; session :environment :user)]}
-  ;; Note: this is not (:user session), which is set to the actuall user used
+  {:pre [(map? session)
+         (or (map? (-&gt; session :environment)) (println &quot;session&quot; session) (flush))
+         (-&gt; session :environment :user)]}
+  ;; Note: this is not (:user session), which is set to the actual user used
   ;; for authentication when executing scripts, and may be different, e.g. when
   ;; bootstrapping.
   (-&gt; session :environment :user))</pre></td></tr><tr><td class="docs"><p>User that remote commands are run under</p>
@@ -9983,7 +10129,15 @@ other than a plain map.</p>
   [session]
   (compute/admin-group
    (node/os-family (target-node session))
-   (node/os-version (target-node session))))</pre></td></tr><tr><td class="docs"><p>Predicate for a 64 bit target</p>
+   (node/os-version (target-node session))))</pre></td></tr><tr><td class="docs"><p>Return the effective username.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn effective-username
+  [session]
+  {:post [%]}
+  (clojure.tools.logging/debugf &quot;effective-username %s %s&quot; (:action session) (:user session))
+  (or
+   (-&gt; session :action :sudo-user)
+   (-&gt; session :user (:sudo-user (if-not (-&gt; session :user :no-sudo) &quot;root&quot;)))
+   (-&gt; session :user :username)))</pre></td></tr><tr><td class="docs"><p>Predicate for a 64 bit target</p>
 </td><td class="codes"><pre class="brush: clojure">(defn is-64bit?
   [session]
   (node/is-64bit? (target-node session)))</pre></td></tr><tr><td class="docs"><p>Display errors from the session results.</p>
@@ -10053,7 +10207,8 @@ alternative would be to use a deftype to provide the mutable place.</p>
   (str (System/getProperty &quot;user.home&quot;) &quot;/.ssh/id_rsa.pub&quot;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defrecord User
     [username public-key-path private-key-path public-key private-key
-     passphrase password sudo-password no-sudo sudo-user])</pre></td></tr><tr><td class="docs">
+     passphrase password sudo-password no-sudo sudo-user state-root
+     state-group])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn user? [user]
   (instance? pallet.core.user.User user))</pre></td></tr><tr><td class="docs"><p>Creates a User record with the given username and options. Generally used
    in conjunction with <em>admin-user</em> and pallet.api/with-admin-user, or passed
@@ -10087,11 +10242,21 @@ alternative would be to use a deftype to provide the mutable place.</p>
 
 <p><code>:no-sudo</code>
 : flag to not use sudo (e.g. when the user has root privileges).</p>
+
+<p><code>:state-root</code>
+: directory on target to use for pallet state files.  Defaults to
+  /var/lib/pallet.</p>
+
+<p><code>:state-group</code>
+: group shared between admin user and sudo-user.  Used when uploading
+  files. Needed only if the sudo user is unprivileged, and the admin
+  user can't chown/chgrp files.  </p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-user
   [username {:keys [public-key-path private-key-path
                     public-key private-key
                     passphrase
-                    password sudo-password no-sudo sudo-user]
+                    password sudo-password no-sudo sudo-user
+                    state-root state-group]
              :as options}]
   (map-&gt;User (assoc options :username username)))</pre></td></tr><tr><td class="docs"><p>The admin user is used for running remote admin commands that require
    root permissions.  The default admin user is taken from the
@@ -10467,7 +10632,7 @@ context automatically sets up the phase context, which is available
   for the actions you wish to generate service control phases for.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn service-phases
   [facility options service-f
-   &amp; {:keys [actions] :or {actions [:start :stop :restart]}}]
+   &amp; {:keys [actions] :or {actions [:start :stop :restart :status]}}]
   (letfn [(service-phases [action]
             (let [f #(apply-map service-f :action action options)]
               [[action f]
@@ -12059,7 +12224,7 @@ changes.</p>
   (let [{:keys [package-source packages package-options preseeds repository]
          :as settings}
         (get-settings facility {:instance-id instance-id})]
-    (debugf &quot;package source %s %s&quot; facility package-source)
+    (debugf &quot;package source %s %s %s&quot; facility package-source repository)
     (check-keys
      settings [:package-source :packages]
      (map-schema :strict
@@ -12177,7 +12342,7 @@ installs from the repository.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn echo-transfer
   [session value]
   (logging/trace &quot;Local transfer&quot;)
-  (doseq [[from to] value]
+  (let [[from to] value]
     (logging/debugf &quot;Copying %s to %s&quot; from to))
   [value session])</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.enlive" name="pallet.enlive"><h1 class="project-name">pallet.enlive</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Wrappers for enlive to enable template specialisation and use xml.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.enlive
@@ -12250,6 +12415,8 @@ installs from the repository.</p>
   (:require
    [clojure.core.incubator :refer [-?&gt;]]
    [clojure.walk :as walk]
+   [pallet.core.file-upload :as file-upload]
+   [pallet.ssh.node-state :as node-state]
    [pallet.core.primitives :refer [phases-with-meta]]
    [pallet.core.session :refer [session]]
    [pallet.core.user :refer [make-user]]
@@ -12327,7 +12494,27 @@ installs from the repository.</p>
      (when (and (symbol? %) (namespace %))
        (utils/find-var-with-require %))
       %)
-   algorithms))</pre></td></tr><tr><td class="docs"><p>Shell-expand the values matching the specified keys</p>
+   algorithms))</pre></td></tr><tr><td class="docs"><p>Evaluate an action-option map.  This will construct action options
+  from keywords, if present.
+  e.g :file-uploader [:sftp {}]</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- eval-action-options
+  [{:keys [file-backup file-checksum file-uploader] :as options}]
+  (let [options (if (vector? file-uploader)
+                  (assoc options
+                    :file-uploader (apply file-upload/file-uploader
+                                          file-uploader))
+                  options)
+        options (if (vector? file-checksum)
+                  (assoc options
+                    :file-checksum (apply node-state/file-checksum
+                                          file-checksum))
+                  options)
+        options (if (vector? file-backup)
+                  (assoc options
+                    :file-backup (apply node-state/file-backup
+                                          file-backup))
+                  options)]
+    options))</pre></td></tr><tr><td class="docs"><p>Shell-expand the values matching the specified keys</p>
 </td><td class="codes"><pre class="brush: clojure">(defn shell-expand-keys
   [user-map keys]
   (reduce
@@ -12360,6 +12547,9 @@ installs from the repository.</p>
                   (if (every? fn? (vals algorithms))
                     env-map
                     (assoc env-map :algorithms (eval-algorithms algorithms)))
+                  env-map)
+        env-map (if-let [action-options (:action-options env-map)]
+                  (assoc env-map :algorithms (eval-action-options action-options))
                   env-map)]
     env-map))</pre></td></tr><tr><td class="docs"><p>Environment accessor.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn get-environment
@@ -12566,7 +12756,8 @@ target :flags key.</p>
      (-&gt;
       session
       (set-target-flags flags)
-      (set-target-flag-values values))]))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.executors" name="pallet.executors"><h1 class="project-name">pallet.executors</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Action executors for pallet.</p>
+      (set-target-flag-values values))]))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.executor.protocols" name="pallet.executor.protocols"><h1 class="project-name">pallet.executor.protocols</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Protocols for upload and execution of script</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.executor.protocols)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.executors" name="pallet.executors"><h1 class="project-name">pallet.executors</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Action executors for pallet.</p>
 
 <p>   An action has a :action-type. Known types include :script
    and :fn/clojure.</p>
@@ -12585,7 +12776,7 @@ target :flags key.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.executors
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [implementation]]
+   [pallet.action :refer [implementation with-action-options]]
    [pallet.action-plan :refer [execute-if map-action-f session-exec-action]]
    [pallet.echo.execute :as echo]
    [pallet.local.execute :as local]
@@ -12596,12 +12787,14 @@ target :flags key.</p>
   argument data, and metadata.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn direct-script
   [session {:keys [args script-dir] :as action}]
-  (let [{:keys [metadata f]} (implementation action :direct)
-        {:keys [action-type location]} metadata
-        [script session] (apply f (assoc session :script-dir script-dir) args)]
-    (logging/tracef &quot;direct-script %s %s&quot; f (vec args))
-    (logging/tracef &quot;direct-script %s&quot; script)
-    [script action-type location session]))</pre></td></tr><tr><td class="docs"><p>The standard direct executor for pallet. Target actions for localhost
+  (with-action-options action           ; allow actions to interrogate options
+    (let [{:keys [metadata f]} (implementation action :direct)
+          {:keys [action-type location]} metadata
+          [script session] (apply
+                            f (assoc session :script-dir script-dir) args)]
+      (logging/tracef &quot;direct-script %s %s&quot; f (vec args))
+      (logging/tracef &quot;direct-script %s&quot; script)
+      [script action-type location session])))</pre></td></tr><tr><td class="docs"><p>The standard direct executor for pallet. Target actions for localhost
    are executed via shell, rather than via ssh.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn default-executor
   [session action]
@@ -12622,7 +12815,7 @@ target :flags key.</p>
                            session action action-type script))
       [:fn/clojure :origin] (local/clojure-on-origin session action script)
       [:flow/if :origin] (execute-if session action script)
-      [:transfer/from-local :origin] (ssh/ssh-from-local session script)
+      [:transfer/from-local :origin] [((last script)) session]
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw
        (ex-info
@@ -13860,14 +14053,14 @@ statically on pallet.api and the crates.</p>
   [path])
 (script/defimpl path-owner :default
   [path]
-  (&quot;stat&quot; &quot;-c%u&quot; ~path))
+  (&quot;stat&quot; &quot;-c%U&quot; ~path))
 (script/defimpl path-owner [#{:darwin :os-x}] [path]
   (&quot;stat&quot; &quot;-f&quot; &quot;%Su&quot; ~path))</pre></td></tr><tr><td class="docs"><p>Return the group of the given path</p>
 </td><td class="codes"><pre class="brush: clojure">(script/defscript path-group
   [path])
 (script/defimpl path-group :default
   [path]
-  (&quot;stat&quot; &quot;-c%g&quot; ~path))
+  (&quot;stat&quot; &quot;-c%G&quot; ~path))
 (script/defimpl path-group [#{:darwin :os-x}] [path]
   (&quot;stat&quot; &quot;-f&quot; &quot;%Sg&quot; ~path))</pre></td></tr><tr><td class="docs"><p>Return the mode of the given path</p>
 </td><td class="codes"><pre class="brush: clojure">(script/defscript path-mode
@@ -14630,7 +14823,14 @@ future).</p>
         (var r @?)
         (rm @t)
         (exit @r))))
-   epilog))</pre></td></tr><tr><td class="docs"><p>Builds a code map, describing the command to execute a script.</p>
+   epilog))</pre></td></tr><tr><td class="docs"><p>Ensure that a :sudo-user specified in the action trumps a :no-sudo
+  specified in the admin user.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn normalise-sudo-options
+  [action]
+  action
+  ;; (if (:sudo-user action)
+  ;;   (assoc action :no-sudo false)
+  ;;   action))</pre></td></tr><tr><td class="docs"><p>Builds a code map, describing the command to execute a script.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn build-code
   [session {:keys [default-script-prefix script-context script-dir script-env
                    script-env-fwd script-prefix sudo-user]
@@ -14656,7 +14856,7 @@ future).</p>
                                        default-script-prefix
                                        :sudo))
                                   session
-                                  action)]
+                                  (normalise-sudo-options action))]
                  (debugf &quot;prefix %s&quot; prefix)
                  (string/split prefix #&quot; &quot;))
        :execv (concat (interpreter {:language :bash}) args)})))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.script-exec" name="pallet.script-exec"><h1 class="project-name">pallet.script-exec</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Script execution for pallet.
@@ -14859,6 +15059,7 @@ Is interpreter specific</p>
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.core.session :refer [effective-username]]
    [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
@@ -14866,7 +15067,8 @@ Is interpreter specific</p>
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [chown env exit mkdir]]
+   [pallet.script.lib
+    :refer [chgrp chmod chown env exit mkdir path-group path-owner]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -15022,14 +15224,16 @@ Is interpreter specific</p>
    &quot;Transferring file %s from local to %s:%s&quot;
    file (:server (transport/endpoint connection)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
-    (let [prefix (or (script-builder/prefix :sudo session nil) &quot;&quot;)
+    (let [  ; prefix (or (script-builder/prefix :sudo session nil) &quot;&quot;)
+          user (-&gt; session :user :username)
+          _ (logging/debugf
+             &quot;Transfer: ensure dir %s with ownership %s&quot; dir user)
           {:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
-                                       (~prefix (mkdir ~dir :path true))
-                                       (~prefix
-                                        (chown
-                                         ~(-&gt; session :user :username) ~dir))
+                                       (mkdir ~dir :path true)
+                                       ;; (~prefix (mkdir ~dir :path true))
+                                       ;; (~prefix (chown ~user ~dir))
                                        (exit &quot;$?&quot;))}
                                  {})]
       (if (zero? exit)
@@ -15039,7 +15243,46 @@ Is interpreter specific</p>
                 (str &quot;Failed to create target directory &quot; dir)
                 rv))))
     (transport/send-stream
-     connection (io/input-stream file) remote-name {:mode 0600})))</pre></td></tr><tr><td class="docs"><p>Transfer a file from the origin machine to the target via ssh.</p>
+     connection (io/input-stream file) remote-name {:mode 0600}))
+  (let [effective-user (effective-username session)
+        state-group (-&gt; session :user :state-group)]
+    (cond
+     state-group
+     (do (logging/debugf &quot;Transfer: chgrp/mod %s %s&quot; state-group remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println &quot;group is &quot; @(path-group ~remote-name))
+                      (println &quot;owner is &quot; @(path-owner ~remote-name))
+                      (chain-and
+                       (when-not (= @(path-group ~remote-name) ~state-group)
+                         (chgrp ~state-group ~remote-name))
+                       (chmod &quot;0666&quot; ~remote-name))
+                      (exit &quot;$?&quot;))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str &quot;Failed to chgrp/mod uploaded file &quot; remote-name
+                          &quot;.  &quot; out)
+                     rv)))))
+     (not= effective-user (-&gt; session :user :username))
+     (do (logging/debugf &quot;Transfer: chown %s %s&quot; effective-user remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println &quot;group is &quot; @(path-group ~remote-name))
+                      (println &quot;owner is &quot; @(path-owner ~remote-name))
+                      (if-not (= @(path-owner ~remote-name) ~effective-user)
+                        (chown ~effective-user ~remote-name))
+                      (exit &quot;$?&quot;))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str &quot;Failed to chown uploaded file &quot; remote-name
+                          &quot;.  &quot; out)
+                     rv))))))))</pre></td></tr><tr><td class="docs"><p>Transfer a file from the origin machine to the target via ssh.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn ssh-from-local
   [session value]
   (logging/tracef &quot;ssh-from-local %s&quot; value)
@@ -15098,7 +15341,322 @@ Is interpreter specific</p>
   `(let [{:as connection#} (get-connection ~session)]
      (transport/with-ssh-tunnel
        connection# ~tunnels
-       ~@body)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.strint" name="pallet.strint"><h1 class="project-name">pallet.strint</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Runtime string interpolation built on top of clojure.contrib.strint.</p>
+       ~@body)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.file-upload.sftp-upload" name="pallet.ssh.file-upload.sftp-upload"><h1 class="project-name">pallet.ssh.file-upload.sftp-upload</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Implementation of file upload using SFTP.</p>
+
+<p>  This assumes that chown/chgrp/chmod are all going to work.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.file-upload.sftp-upload
+  (:require
+   [clojure.java.io :refer [input-stream]]
+   [clojure.string :refer [blank?]]
+   [clojure.tools.logging :refer [debugf]]
+   [pallet.common.filesystem :as filesystem]
+   [pallet.script.lib
+    :refer [chgrp chmod chown dirname env exit file mkdir path-group
+            path-owner user-home]]
+   [pallet.ssh.execute :refer [with-connection]]
+   [pallet.core.file-upload :refer [file-uploader]]
+   [pallet.core.file-upload.protocols :refer [FileUpload]]
+   [pallet.core.session :refer [admin-user effective-username]]
+   [pallet.stevedore :refer [fragment]]
+   [pallet.transport :as transport]
+   [pallet.utils :refer [base64-md5]])
+  (:import
+   [java.security MessageDigest DigestInputStream]
+   [org.apache.commons.codec.binary Base64]))</pre></td></tr><tr><td class="docs"><p>Return a tuple containing a MessageDigest and a DigestInputStream.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn md5-digest-input-stream
+  [str]
+  (let [md (MessageDigest/getInstance &quot;MD5&quot;)]
+    [md (DigestInputStream. str md)]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn ^String md5 [path]
+  (let [[^java.security.MessageDigest md s]
+        (md5-digest-input-stream (input-stream path))]
+    (with-open [s s]
+      (slurp s))
+    (Base64/encodeBase64URLSafeString (.digest md))))</pre></td></tr><tr><td class="docs"><p>Return the upload directory for username. A :home at the start of the
+  upload directory will be replaced by the user's home directory.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn upload-dir
+  [upload-root username]
+  (if (.startsWith upload-root &quot;:home&quot;)
+    (let [path-rest (subs upload-root 5)]
+      (if (blank? path-rest)
+        (fragment (user-home ~username))
+        (fragment (str (user-home ~username) ~path-rest))))
+    (str upload-root &quot;/&quot; username)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn target
+  [upload-root username target-path]
+  (str (upload-dir upload-root username)  &quot;/&quot; (base64-md5 target-path)))</pre></td></tr><tr><td class="docs"><p>Ensure directory exists</p>
+</td><td class="codes"><pre class="brush: clojure">(defn sftp-ensure-dir
+  [connection target-path]
+  (debugf &quot;sftp-ensure-dir %s:%s&quot;
+          (:server (transport/endpoint connection)) target-path)
+  (let [dir (fragment @(dirname ~target-path))
+        {:keys [exit] :as rv} (do
+                                (debugf &quot;Transfer: ensure dir %s&quot; dir)
+                                (transport/exec
+                                 connection
+                                 {:in (fragment
+                                       (mkdir ~dir :path true)
+                                       (chmod &quot;0700&quot; ~dir)
+                                       (exit &quot;$?&quot;))}
+                                 {}))]
+    (when-not (zero? exit)
+      (throw (ex-info
+              (str &quot;Failed to create target directory &quot; dir &quot;. &quot; (:out rv))
+              {:type :pallet/upload-fail
+               :status rv})))))</pre></td></tr><tr><td class="docs"><p>Upload a file via SFTP</p>
+</td><td class="codes"><pre class="brush: clojure">(defn sftp-upload-file
+  [connection local-path target-path]
+  (debugf &quot;sftp-upload-file %s:%s from %s&quot;
+          (:server (transport/endpoint connection))
+          target-path local-path)
+  (transport/send-stream
+       connection
+       (input-stream local-path)
+       target-path
+       {:mode 0600}))</pre></td></tr><tr><td class="docs"><p>Return the md5 for a remote file.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn sftp-remote-md5
+  [connection md5-path]
+  (try
+    (filesystem/with-temp-file [md5-copy]
+      (transport/receive connection md5-path (.getPath md5-copy))
+      (slurp md5-copy))
+    (catch Exception _ nil)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn sftp-put-md5
+  [connection path md5]
+  (transport/send-text connection md5 path {:mode 0600}))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord SftpUpload [upload-root]
+  FileUpload
+  (upload-file-path [_ session target-path action-options]
+    (target upload-root (effective-username session) target-path))
+  (upload-file
+    [_ session local-path target-path action-options]
+    (let [target (target upload-root (effective-username session) target-path)
+          target-md5-path (str target &quot;.md5&quot;)]
+      (with-connection session [connection]
+        (let [target-md5 (sftp-remote-md5 connection target-md5-path)
+              local-md5 (md5 local-path)]
+          (when-not (= target-md5 local-md5)
+            (sftp-ensure-dir connection target)
+            (sftp-upload-file connection local-path target)
+            (sftp-put-md5 connection target-md5-path local-md5)))))))</pre></td></tr><tr><td class="docs"><p>Create an instance of the SFTP upload strategy.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn sftp-upload
+  [{:keys [upload-root] :as options}]
+  (map-&gt;SftpUpload (merge
+                    {:upload-root &quot;/tmp&quot;}
+                    options)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-uploader :sftp
+  [_ options]
+  (sftp-upload options))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.node-state" name="pallet.ssh.node-state"><h1 class="project-name">pallet.ssh.node-state</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Node state tracking</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.node-state
+  (:require
+   [pallet.ssh.node-state.protocols :as impl]))</pre></td></tr><tr><td class="docs"><p>Notify that path has been modified.
+    Options include, :versioning, :no-versioning, :max-versions</p>
+</td><td class="codes"><pre class="brush: clojure">(defn new-file-content
+  [ns session path options]
+  (impl/new-file-content ns session path options))</pre></td></tr><tr><td class="docs"><p>Verify the expected MD5 of the file at path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn verify-checksum
+  [ns session path]
+  (impl/verify-checksum ns session path))</pre></td></tr><tr><td class="docs"><p>Save the MD5 for the file at path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn record-checksum
+  [ns session path]
+  (impl/record-checksum ns session path))</pre></td></tr><tr><td class="docs"><p>Instantiate a file-backup provider based on keyword and option map.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti file-backup
+  (fn [kw options] kw))</pre></td></tr><tr><td class="docs"><p>Instantiate a file-checksum provider based on keyword and option map.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmulti file-checksum
+  (fn [kw options] kw))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.node-state.no-state" name="pallet.ssh.node-state.no-state"><h1 class="project-name">pallet.ssh.node-state.no-state</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A node-state implementation that maintains no node state</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.node-state.no-state
+  (:require
+   [pallet.ssh.node-state :refer [file-backup file-checksum]]
+   [pallet.ssh.node-state.protocols :refer [FileBackup FileChecksum]]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord NoBackup []
+  FileBackup
+  (new-file-content [_ session path options]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord NoChecksum []
+  FileChecksum
+  (verify-checksum [_ session path])
+  (record-checksum [_ session path]))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn no-backup []
+  (NoBackup.))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn no-checksum []
+  (NoChecksum.))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-backup :no-state
+  [_ options]
+  (no-backup))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-checksum :no-state
+  [_ options]
+  (no-checksum))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.node-state.protocols" name="pallet.ssh.node-state.protocols"><h1 class="project-name">pallet.ssh.node-state.protocols</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Protocols for node state updates</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.node-state.protocols)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defprotocol FileBackup
+  (new-file-content [_ session path options]
+    &quot;Notify that path has been modified.
+    Options include, :versioning, :no-versioning, :max-versions&quot;))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defprotocol FileChecksum
+  (verify-checksum [_ session path]
+    &quot;Verify the expected MD5 of the file at path.&quot;)
+  (record-checksum [_ session path]
+    &quot;Save the MD5 for the file at path.&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.node-state.state-root" name="pallet.ssh.node-state.state-root"><h1 class="project-name">pallet.ssh.node-state.state-root</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A node-state implementation that maintains node state in a parallel directory
+  tree.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.node-state.state-root
+  (:require
+   [pallet.actions.direct.file :as file]
+   [pallet.core.session :refer [admin-user]]
+   [pallet.script.lib :as lib
+    :refer [canonical-path cat chgrp chmod chown cp diff dirname exit file ls
+            md5sum md5sum-verify mkdir path-group path-mode path-owner rm
+            tail user-home xargs]]
+   [pallet.ssh.node-state :refer [file-backup file-checksum]]
+   [pallet.ssh.node-state.protocols :refer [FileBackup FileChecksum]]
+   [pallet.stevedore :refer [chain-commands chained-script fragment script]]))</pre></td></tr><tr><td class="docs"><p>Provide a computed default for state-root if it isn't set.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn default-state-root
+  []
+  (fragment (file (lib/state-root) &quot;pallet&quot;)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- adjust-root
+  [session ^String script-dir ^String path]
+  (if (or (.startsWith path &quot;/&quot;)
+          (.startsWith path &quot;$&quot;)
+          (.startsWith path &quot;`&quot;))
+    path
+    (fragment
+     (file ~(or script-dir
+                (user-home (:username (admin-user session))))
+           ~path))))</pre></td></tr><tr><td class="docs"><p>Return a path under state-root for a given path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn state-path*
+  [session state-root script-dir path]
+  (str state-root (adjust-root session script-dir path)))</pre></td></tr><tr><td class="docs"><p>Return a path under state-root for a given path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn state-path
+  [session state-root path]
+  (state-path* session
+               (or state-root (default-state-root))
+               (fragment @(&quot;pwd&quot;))
+               path))</pre></td></tr><tr><td class="docs"><p>Return a path for the md5 file for state-path under state-root.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn md5-path
+  [state-path]
+  (str state-path &quot;.md5&quot;))</pre></td></tr><tr><td class="docs"><p>Create the /var/lib/pallet directory if required, ensuring correct
+permissions. Note this is not the final directory.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn create-path-with-template
+  [template-path new-path]
+  (script
+   (do
+     (set! dirpath @(dirname ~new-path))
+     (set! templatepath @(dirname @(if (file-exists? ~template-path)
+                                     (canonical-path ~template-path)
+                                     (println ~template-path))))
+     (when (not (directory? @templatepath))
+       (println @templatepath &quot;: Directory does not exist.&quot;)
+       (exit 1))
+     (set! templatepath @(canonical-path @templatepath))
+     (chain-or (mkdir @dirpath :path true) (exit 1))
+     (&quot;while&quot; (!= &quot;/&quot; @templatepath) &quot;;do&quot;
+      ~(chained-script
+        (set! d @dirpath)               ; copy these and update
+        (set! t @templatepath)          ; so we can continue on any failure
+        (when (not (directory? @templatepath))
+          (println @templatepath &quot;: Directory does not exist.&quot;)
+          (exit 1))
+        (set! dirpath @(dirname @dirpath))
+        (set! templatepath @(dirname @templatepath))
+        (chain-or (chgrp @(path-group @t) @d) &quot;:&quot;)
+        (chain-or (chmod @(path-mode @t) @d) &quot;:&quot;)
+        (chain-or (chown @(path-owner @t) @d) &quot;:&quot;))
+      (&quot;; done&quot;)))))</pre></td></tr><tr><td class="docs"><p>verify if the files at path and state-path are identical, and
+  whether they match the md5-path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn verify
+  [path state-path md5-path]
+  (chained-script
+   ;; check if the file and the current copy are the same
+   (var filediff &quot;&quot;)
+   (if (&amp;&amp; (file-exists? ~path) (file-exists? ~state-path))
+     (do
+       (diff ~path ~state-path :unified true)
+       (set! filediff &quot;$?&quot;)))
+   ;; check if the current copy and the md5 match
+   (var md5diff &quot;&quot;)
+   (if (&amp;&amp; (file-exists? ~state-path) (file-exists? ~md5-path))
+     (do
+       (md5sum-verify ~md5-path)
+       (set! md5diff &quot;$?&quot;)))
+   ;; report any errors
+   (var errexit 0)
+   (if (== @filediff 1)
+     (do
+       (println
+        &quot;Existing file did not match the pallet master copy: FAIL&quot;)
+       (set! errexit 1)))
+   (if (== @md5diff 1)
+     (do
+       (println &quot;Existing content did not match md5: FAIL&quot;)
+       (set! errexit 1)))
+   ;; exit if error
+   (== @errexit 0)))</pre></td></tr><tr><td class="docs"><p>Script to record a new (version of a) file in state-root</p>
+</td><td class="codes"><pre class="brush: clojure">(defn record
+  [path state-path {:keys [max-versions no-versioning versioning]
+                    :or {max-versions 5
+                         versioning :numbered}}]
+  (chain-commands
+   ;; output the diff between current and new
+   (script
+    (var contentdiff &quot;&quot;)
+    (if (&amp;&amp; (file-exists? ~path) (file-exists? ~state-path))
+      (do
+        (diff ~path ~state-path :unified true)
+        (set! contentdiff &quot;$?&quot;)))
+    ;; install the file if the content is different
+    (if (&amp;&amp; (not (== @contentdiff 0)) (file-exists? ~path))
+      (cp ~path ~state-path :force ~true :backup ~versioning)))
+   ;; cleanup backup copies
+   (if (and (not no-versioning) (pos? max-versions))
+     (script
+      (pipe
+       ((ls (str ~state-path &quot;.~[0-9]*~&quot;) :sort-by-time ~true)
+        &quot;2&gt;&quot; &quot;/dev/null&quot;)
+       (tail &quot;&quot; :max-lines ~(str &quot;+&quot; (inc max-versions)))
+       (xargs (rm &quot;&quot; :force ~true)))))))</pre></td></tr><tr><td class="docs"><p>Script to record a file's md5</p>
+</td><td class="codes"><pre class="brush: clojure">(defn record-md5
+  [path md5-path]
+   ;; write the md5 file
+  (chain-commands
+   (file/write-md5-for-file path md5-path)
+   (script
+    (println &quot;MD5 sum is&quot; @(cat ~md5-path)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord StateRootBackup [state-root]
+  FileBackup
+  (new-file-content
+    [_ session path options]
+    ;; create the state-root dir
+    (let [state-path (state-path session state-root path)]
+      (chain-commands
+       (create-path-with-template path state-path)
+       (record path state-path options)))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defrecord StateRootChecksum [state-root]
+  FileChecksum
+  (verify-checksum [_ session path]
+    (let [state-path (state-path session state-root path)]
+      (verify path state-path (md5-path state-path))))
+  (record-checksum [_ session path]
+    (let [state-path (state-path session state-root path)]
+      (create-path-with-template path state-path)
+      (record-md5 path (md5-path state-path)))))</pre></td></tr><tr><td class="docs"><p>Return a state-root backup instance that can keep backups.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn state-root-backup
+  [{:keys [state-root] :as options}]
+  (map-&gt;StateRootBackup options))</pre></td></tr><tr><td class="docs"><p>Return a state-root checksum instance that can verify md5 checksums.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn state-root-checksum
+  [{:keys [state-root] :as options}]
+  (map-&gt;StateRootChecksum options))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-backup :state-root
+  [_ options]
+  (state-root-backup options))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod file-checksum :state-root
+  [_ options]
+  (state-root-checksum options))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.ssh.script-upload.protocols" name="pallet.ssh.script-upload.protocols"><h1 class="project-name">pallet.ssh.script-upload.protocols</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Protocols for uploading scripts to be run on the remote machine</p>
+</td><td class="codes"><pre class="brush: clojure">(ns pallet.ssh.script-upload.protocols)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defprotocol ScriptUpload
+  (upload-file [_ local-path target-path file-options action-options]
+    &quot;Upload a file to the target-path, and return any script needed to
+    be run on the node to get the file into place.
+    file-options is a map of options as passed to remote-file, for file
+    ownership, permissions, etc.
+    action-options can contain a :sudo-user, specify the user to install
+    the file as.&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.strint" name="pallet.strint"><h1 class="project-name">pallet.strint</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Runtime string interpolation built on top of clojure.contrib.strint.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.strint
   (:require
    [clojure.walk :refer [prewalk-replace]]))</pre></td></tr><tr><td class="docs">
@@ -16205,7 +16763,9 @@ value to assoc. The assoc only occurs if the value is non-nil.</p>
             (filter seq))
            (conj r (first candidates)))
           (throw
-           (ex-info &quot;No total ordering available&quot;
+           (ex-info (str &quot;No total ordering available: &quot;
+                         (vec first-elements) &quot;, &quot;
+                         (vec other-elements))
                     {:seqs seqs}))))
       r)))</pre></td></tr><tr><td class="docs"><p>Take a sequence and a key function, and returns a map with the
   count of each key.</p>
