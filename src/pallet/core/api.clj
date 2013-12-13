@@ -12,8 +12,9 @@
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult BaseSession EnvironmentMap
             ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
-            IncompleteTargetMapSeq Keyword Phase PhaseResult PhaseTarget PlanFn
-            PlanState Result TargetMapSeq Session TargetMap TargetPhaseResult
+            IncompleteGroupTargetMapSeq Keyword Phase PlanResult PhaseTarget
+            PlanFn
+            PlanState Result TargetMapSeq Session TargetMap TargetPlanResult
             User]]
    [clojure.java.io :as io]
    [clojure.string :as string]
@@ -83,7 +84,6 @@
       ;; session (parse-shell-result session rv)
       ;; TODO add retries, timeouts, etc
 
-
 ;;; # Execute a phase on a target node
 (ann stop-execution-on-error [ActionResult -> nil])
 (defn stop-execution-on-error
@@ -98,30 +98,7 @@
                :message msg}
               (get (get result :error) :exception))))))
 
-(ann phase-args [Phase -> (Nilable (Seqable Any))])
-(defn phase-args [phase]
-  (if (keyword? phase)
-    nil
-    (rest phase)))
-
-;; TODO remove :no-check when core.typed can handle first with a Vector*
-(ann ^:no-check phase-kw [Phase -> Keyword])
-(defn- phase-kw [phase]
-  (if (keyword? phase)
-    phase
-    (first phase)))
-
-
-
-;; TODO remove no-check when get gets smarter
-(ann ^:no-check target-phase [PhaseTarget Phase -> [Any * -> Any]])
-(defn target-phase [target phase]
-  (tracef "target-phase %s %s" target phase)
-  ;; TODO switch back to keyword invocation when core.typed can handle it
-  (get (get target :phases) (phase-kw phase)))
-
-(ann ^:no-check execute
-     [BaseSession TargetMap PlanFn -> (ReadOnlyPort PhaseResult)])
+(ann ^:no-check execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute
   "Execute a plan function on a target.
 
@@ -131,19 +108,41 @@
   Returns a channel, which will yield a result for plan-fn, a map
   with `:target`, `:return-value` and `:action-results` keys."
   [session target plan-fn]
-  (go-logged
-   (let [r (in-memory-recorder)     ; a recorder for just this plan-fn
-         session (-> session
-                     (set-target target)
-                     (set-recorder (juxt-recorder [r (recorder session)])))]
-     (with-script-for-node target (plan-state session)
-       (let [rv (plan-fn session)]
-         {:action-results (results r)
-          :return-value rv
-          :target target})))))
+  {:pre [(map? session)(map? target)(:node target)(fn? plan-fn)]}
+  (let [r (in-memory-recorder)     ; a recorder for just this plan-fn
+        session (-> session
+                    (set-target target)
+                    (set-recorder (juxt-recorder [r (recorder session)])))]
+    (with-script-for-node target (plan-state session)
+      (let [rv (plan-fn session)]
+        {:action-results (results r)
+         :return-value rv
+         :target target}))))
+
+
+;; Not sure this is worth having as a wrapper
+;; (ann ^:no-check go-execute
+;;      [BaseSession TargetMap PlanFn -> (ReadOnlyPort PlanResult)])
+;; (defn go-execute
+;;   "Execute a plan function on a target asynchronously.
+
+;;   Ensures that the session target is set, and that the script
+;;   environment is set up for the target.
+
+;;   Returns a channel, which will yield a result for plan-fn, a map
+;;   with `:target`, `:return-value` and `:action-results` keys."
+;;   [session target plan-fn]
+;;   {:pre [(map? session)(map? target)(:node target)(fn? plan-fn)]}
+;;   (go-logged
+;;    (execute session target plan-fn)))
+
+
+
+
+
 
 (ann ^:no-check action-errors?
-  [(Seqable (ReadOnlyPort ActionResult)) -> (Nilable PhaseResult)])
+  [(Seqable (ReadOnlyPort ActionResult)) -> (Nilable PlanResult)])
 (defn action-errors?
   "Check for errors reported by the sequence of channels.  This provides
   a synchronisation point."
@@ -153,7 +152,7 @@
                (timeout-chan c (* 5 60 1000))))
        async/merge
        (async/reduce
-        (fn> [r :- (Nilable PhaseResult)
+        (fn> [r :- (Nilable PlanResult)
               v :- (Nilable ActionResult)]
           (or r (and (nil? v) {:error {:timeout true}})
               (and (:error v) (select-keys v [:error]))))
@@ -197,8 +196,8 @@
 ;;; # Exception reporting
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
 (ann ^:no-check phase-errors-in-results
-     [(Nilable (NonEmptySeqable PhaseResult)) ->
-      (Nilable (NonEmptySeqable PhaseResult))])
+     [(Nilable (NonEmptySeqable PlanResult)) ->
+      (Nilable (NonEmptySeqable PlanResult))])
 (defn phase-errors-in-results
   "Return a sequence of phase errors for a sequence of result maps.
    Each element in the sequence represents a failed action, and is a map,
@@ -209,18 +208,18 @@
    (concat
     (->>
      results
-     ((inst map PhaseResult PhaseResult)
-      (fn> [ar :- PhaseResult]
+     ((inst map PlanResult PlanResult)
+      (fn> [ar :- PlanResult]
            ((inst update-in
-                  PhaseResult (Nilable (NonEmptySeqable ActionResult)))
+                  PlanResult (Nilable (NonEmptySeqable ActionResult)))
             ar [:result]
             (fn> [rs :- (NonEmptySeqable ActionResult)]
                  (seq (filter (fn> [r :- ActionResult]
                                    (get r :error))
                               rs))))))
-     (mapcat (fn> [ar :- PhaseResult]
-                  ((inst map PhaseResult PhaseResult)
-                   (fn> [r :- PhaseResult]
+     (mapcat (fn> [ar :- PlanResult]
+                  ((inst map PlanResult PlanResult)
+                   (fn> [r :- PlanResult]
                         (merge (dissoc ar :result) r))
                    (get ar :result)))))
     (filter (inst :error ActionErrorMap) results))))
@@ -260,7 +259,7 @@
 
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
 (ann ^:no-check phase-errors
-     [Session -> (Nilable (NonEmptySeqable PhaseResult))])
+     [Session -> (Nilable (NonEmptySeqable PlanResult))])
 (defn phase-errors
   "Return a sequence of phase errors for an operation.
    Each element in the sequence represents a failed action, and is a map,
@@ -277,8 +276,8 @@
   "Return a sequence of exceptions from phase errors for an operation. "
   [result]
   (->> (phase-errors result)
-       ((inst map Throwable PhaseResult)
-        ((inst comp ActionErrorMap Throwable PhaseResult) :exception :error))
+       ((inst map Throwable PlanResult)
+        ((inst comp ActionErrorMap Throwable PlanResult) :exception :error))
        (filter identity)))
 
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
@@ -291,8 +290,8 @@
       (str "Phase errors: "
            (string/join
             " "
-            ((inst map (U String nil) PhaseResult)
-             ((inst comp ActionErrorMap String PhaseResult) :message :error)
+            ((inst map (U String nil) PlanResult)
+             ((inst comp ActionErrorMap String PlanResult) :message :error)
              e)))
       {:errors e}
       (first (phase-error-exceptions result))))))

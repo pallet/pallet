@@ -65,6 +65,12 @@
   (Fn [Session -> Any]
       [Session Any * -> Any]))
 
+(def-alias ^:internal TargetMap
+  "A minimal target map."
+  (HMap :mandatory
+        {:node Node}))
+
+
 (def-alias GroupSpec
   (HMap :mandatory {:group-name GroupName}
         :optional {:group-names (PersistentHashSet GroupName)
@@ -86,7 +92,7 @@
   ;;       :absent-keys #{:node})
   )
 
-(def-alias ^:internal IncompleteTargetMap
+(def-alias ^:internal IncompleteGroupTargetMap
   "A partial target map.  May not have any os details."
   (Assoc GroupSpec
          (Value :node) Node
@@ -101,9 +107,9 @@
   ;;       {:node Node})
   )
 
-(def-alias TargetMap
+(def-alias GroupTargetMap
   "A target map is the denormalised combination of a group-spec and a node."
-  ;; (Assoc IncompleteTargetMap
+  ;; (Assoc IncompleteGroupTargetMap
   ;;        (Value :node) Node
   ;;        (Value :image) (HMap :mandatory {:os-family Keyword}))
   (HMap :mandatory
@@ -217,9 +223,9 @@ a priviledged user."
   ;; (Nilable (NonEmptySeqable TargetMap))
   (Seqable TargetMap))
 
-(def-alias IncompleteTargetMapSeq
+(def-alias IncompleteGroupTargetMapSeq
   "Describes the nodes that are available."
-  (Nilable (NonEmptySeqable IncompleteTargetMap)))
+  (Nilable (NonEmptySeqable IncompleteGroupTargetMap)))
 
 (def-alias ScopeMap
   (Map Keyword Any))
@@ -305,7 +311,7 @@ a priviledged user."
   ;;   :pallet.core.api/execute-status-fn [ActionResult -> nil]
   ;;   :user User}
   ;;  :optional
-  ;;  {:results (NonEmptySeqable PhaseResult)
+  ;;  {:results (NonEmptySeqable PlanResult)
   ;;   :phase-results (NilableNonEmptySeq ActionResult)
   ;;   :pallet.phase/session-verification boolean})
   )
@@ -326,7 +332,7 @@ a priviledged user."
   "Describes the invocation of a phase."
   (U Keyword (Vector* Keyword Any *)))
 
-(def-alias PhaseResult
+(def-alias PlanResult
   "Describe the result of executing a phase on a target."
   (HMap
    :mandatory {:action-results (NilableNonEmptySeq ActionResult)
@@ -355,7 +361,7 @@ a priviledged user."
   "A function type that returns details needed for execution."
   [EnvironmentMap PhaseTarget -> ExecSettings])
 
-(def-alias TargetPhaseResult
+(def-alias TargetPlanResult
   "The result of executing a phase on a target."
   (HMap :mandatory {:plan-state PlanState
                     :environment EnvironmentMap
@@ -365,7 +371,7 @@ a priviledged user."
 
 (def-alias ^:internal Result
   "Overall result of a lift or converge."
-  (Nilable (NonEmptySeqable PhaseResult)))
+  (Nilable (NonEmptySeqable PlanResult)))
 
 (def-alias SettingsOptions
   (HMap :optional {:instance-id Keyword

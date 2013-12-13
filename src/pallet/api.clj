@@ -11,7 +11,7 @@
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult BaseSession EnvironmentMap
             ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
-            IncompleteTargetMapSeq Keyword Phase PhaseResult PhaseTarget PlanFn
+            IncompleteGroupTargetMapSeq Keyword Phase PhaseResult PhaseTarget PlanFn
             PlanState Result TargetMapSeq Session TargetMap TargetPhaseResult
             User]]
    [clojure.java.io :refer [input-stream resource]]

@@ -6,7 +6,7 @@
             Map Nilable NilableNonEmptySeq NonEmptySeqable Seq Vec]]
    [pallet.core.types
     :refer [assert-type-predicate
-            GroupName GroupSpec IncompleteTargetMap Keyword OsDetailsMap
+            GroupName GroupSpec IncompleteGroupTargetMap Keyword OsDetailsMap
             PlanState TargetMap]]
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.compute :refer [packager-for-os]]
@@ -59,7 +59,7 @@
 
 ;; TODO remove :no-check
 (ann ^:no-check node->node-map [(Nilable (NonEmptySeqable GroupSpec))
-                                -> [Node -> IncompleteTargetMap]])
+                                -> [Node -> IncompleteGroupTargetMap]])
 (defn node->node-map
   "Build a map entry from a node and a list of groups."
   {:internal true}

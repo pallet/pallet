@@ -3,7 +3,7 @@
 
 
 (ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
-                    -> IncompleteTargetMapSeq])
+                    -> IncompleteGroupTargetMapSeq])
 (defn service-state
   "Query the available nodes in a `compute-service`, filtering for nodes in the
   specified `groups`. Returns a sequence that contains a node-map for each
@@ -28,6 +28,29 @@
                      Keyword Keyword)
                m assoc :type :pallet.api/group-spec)))))
 
+
+
+(ann ^:no-check execute
+     [BaseSession TargetMap PlanFn -> (ReadOnlyPort PhaseResult)])
+(defn execute
+  "Execute a plan function on a target.
+
+  Ensures that the session target is set, and that the script
+  environment is set up for the target.
+
+  Returns a channel, which will yield a result for plan-fn, a map
+  with `:target`, `:return-value` and `:action-results` keys."
+  [session target plan-fn]
+  (go-logged
+   (let [r (in-memory-recorder)     ; a recorder for just this plan-fn
+         session (-> session
+                     (set-target target)
+                     (set-recorder (juxt-recorder [r (recorder session)])))]
+     (with-script-for-node target (plan-state session)
+       (let [rv (plan-fn session)]
+         {:action-results (results r)
+          :return-value rv
+          :target target})))))
 
 ;;; ## Calculation of node count adjustments
 (def-alias NodeDeltaMap (HMap :mandatory {:actual AnyInteger
