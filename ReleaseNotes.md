@@ -1,5 +1,79 @@
 Unstable development branch
 
+# 0.8.0-RC.5
+
+- Use effective user in rsync
+
+- Use effective username for sftp upload path
+
+- Add no-op file-checksum and file-backup implementations
+
+- Add rsync file uploader
+
+- Fix creation of state root and upload dirs
+
+- Allow action-options in environment
+  Also splits state-root implementation into state-root-checksum and
+  state-root-backup.
+
+- Add node-state protocols
+
+- Set the file-uploader from action-options
+
+- Add file upload protocol
+
+- Update to clj-ssh 0.5.7
+
+- Normalise action sudo options
+  Ensure :no-sudo is false if the action-options specify a :sudo-user.
+
+  Addresses #300
+
+- Add data to no total ordering exception
+
+- Add precondition for username as string
+
+- Add rsync-to-local action
+  Adds rsync-to-local and rsync-to-local-directory actions to rsync files
+  from a target node to the local filesystem.
+
+- Add a default :status phase to service-phases
+
+- Make md5 files non-writeable by others
+
+- Fix sudo user in rsync
+  Ensure the sudo user from the admin-user or action-options is used when
+  executing rsync.
+
+- Add :state-group option to admin user
+  When uploading files from localhost, state-group will be used to share
+  ownership of uploaded files between the admin user and the sudo user.
+
+  A chgrp will be done, if the upload files do not have the state-group
+  group ownership.
+
+- User specific upload path for local files
+
+- Allow configuration of pallet state directory
+
+- Change path-user and path-group to return names
+
+- Correctly wire partition function in `partition-targets`.
+  `:partition-f` parameter passed to `pallet.api/lift` was not took into
+  account in the partitioning logic.
+
+- Update node-list test for new state tag format.
+
+- Have remote-file and remote-directory honor :sudo-user. Fixes #295
+
+- Properly tag node-list nodes as bootstrapped. Fixes #294
+
+- Log repository in :package-source install strategy
+
+- Update test-spec for :partition-f testing
+
+- Fix use of :consider-nodes in lift
+
 # 0.8.0-RC.4
 
 ## Features
