@@ -47,6 +47,7 @@ The session is a map with well defined keys:
    [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.compute.protocols :refer [Node]]
    [pallet.context :refer [with-context]]
+   [pallet.core.executor :refer [executor?]]
    [pallet.core.plan-state :refer [get-settings get-scopes plan-state?]]
    [pallet.core.plan-state.protocols :refer [StateGet]]
    [pallet.core.recorder :refer [recorder?]]
@@ -71,8 +72,8 @@ The session is a map with well defined keys:
 
 (ann execution-state (HMap))
 (def execution-state
-  {:executor clojure.lang.IFn
-   :execute-status-fn clojure.lang.IFn
+  {:executor pallet.core.executor.protocols.ActionExecutor
+   ;; :execute-status-fn clojure.lang.IFn
    :recorder pallet.core.recorder.protocols.Record
    :action-options {schema/Keyword schema/Any}})
 
@@ -83,7 +84,7 @@ The session is a map with well defined keys:
 (ann ^:no-check base-session (HMap))
 (def base-session
   {:execution-state execution-state
-   :plan-state pallet.core.plan_state.protocols.StateGet
+   (optional-key :plan-state) pallet.core.plan_state.protocols.StateGet
    (optional-key :system-targets) clojure.lang.Atom; [TargetMap]
    :type (schema/eq ::session)})
 
@@ -95,31 +96,34 @@ The session is a map with well defined keys:
 ;; (def-schema-alias BaseSession base-session)
 ;; (def-validator validate-base-session BaseSession base-session)
 
-(ann create [(HMap :optional {:recorder Record
-                              :plan-state StateGet
-                              :executor Executor
-                              :execute-status-fn ExecuteStatusFn
-                              :system-targets TargetMapSeq
-                              :action-options ActionOptions})
+(ann create [(HMap
+              :mandatory {:recorder Record
+                          :executor Executor
+                          ;; :execute-status-fn ExecuteStatusFn
+                          }
+              :optional {:plan-state StateGet
+                         :system-targets TargetMapSeq
+                         :action-options ActionOptions})
              -> BaseSession])
 (defn create
   "Create a session with the specified components."
-  [{:keys [recorder plan-state executor execute-status-fn
+  [{:keys [recorder plan-state executor ;; execute-status-fn
            system-targets action-options]
     :or {action-options {}}}]
-  {:pre [(plan-state? plan-state)
+  {:pre [(or (nil? plan-state) (plan-state? plan-state))
          (recorder? recorder)
-         (fn? executor)
-         (fn? execute-status-fn)
+         (executor? executor)
+         ;; (fn? execute-status-fn)
          (map? action-options)]
    :post [(validate base-session %)]}
-  {:type ::session
-   :execution-state {:executor executor
-                     :execute-status-fn execute-status-fn
-                     :recorder recorder
-                     :action-options action-options}
-   :plan-state plan-state
-   :system-targets (atom system-targets)})
+  (merge {:type ::session
+          :execution-state {:executor executor
+                            ;; :execute-status-fn execute-status-fn
+                            :recorder recorder
+                            :action-options action-options}
+          :system-targets (atom system-targets)}
+         (if plan-state
+           {:plan-state plan-state})))
 
 
 ;; ;; Using the session var directly is to be avoided. It is a dynamic var in
@@ -209,7 +213,7 @@ The session is a map with well defined keys:
 (defn executor
   "Get the action executor."
   [session]
-  {:post [(fn? %)]}
+  {:post [(executor? %)]}
   (-> session :execution-state :executor))
 
 (ann execute-status-fn [BaseSession -> ExecuteStatusFn])

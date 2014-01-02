@@ -27,6 +27,7 @@
             service-properties]]
    [pallet.compute.protocols :refer [ComputeService]]
    [pallet.core.api-impl :refer :all]
+   [pallet.core.executor :as executor]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -66,23 +67,38 @@
 (defn execute-action
   "Execute an action map within the context of the current session."
   [session action]
-  (debugf "execute-action %s" (pr-str action))
   (let [executor (executor session)
-        execute-status-fn (execute-status-fn session)]
+        target (:target session)
+        user (:user session)]
+
+    (debugf "execute-action %s" (pr-str action))
     (assert executor "No executor in session")
-    (assert execute-status-fn "No execute-status-fn in session")
-    (debugf "execute-action executor %s" (pr-str executor))
-    (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
-    (let [rv (executor session action)]
+    (tracef "execute-action executor %s" (pr-str executor))
+
+    (let [[rv e] (try
+                   [(executor/execute executor target user action)]
+                   (catch Exception e
+                     (let [rv (:result (ex-data e))]
+                       (when-not rv
+                         ;; Exception isn't of the expected form, so
+                         ;; just re-throw it.
+                         (throw e))
+                       [rv e])))]
       (debugf "execute-action rv %s" (pr-str rv))
       (assert (map? rv) (str "Action return value must be a map: " (pr-str rv)))
       (record (recorder session) rv)
-      (execute-status-fn rv)
+      (when e
+        (throw e))
       rv)))
 
-;; These should be part of the executor
-      ;; session (parse-shell-result session rv)
-      ;; TODO add retries, timeouts, etc
+;;; These should be part of the executor
+
+;; execute-status-fn (execute-status-fn session)
+;; (assert execute-status-fn "No execute-status-fn in session")
+;; (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
+;; (execute-status-fn rv)
+;; session (parse-shell-result session rv)
+;; TODO add retries, timeouts, etc
 
 ;;; # Execute a phase on a target node
 (ann stop-execution-on-error [ActionResult -> nil])

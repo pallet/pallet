@@ -11,8 +11,8 @@
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult BaseSession EnvironmentMap
             ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
-            IncompleteGroupTargetMapSeq Keyword Phase PhaseResult PhaseTarget PlanFn
-            PlanState Result TargetMapSeq Session TargetMap TargetPhaseResult
+            IncompleteGroupTargetMapSeq Keyword Phase PlanResult PhaseTarget PlanFn
+            PlanState Result TargetMapSeq Session TargetMap TargetPlanResult
             User]]
    [clojure.java.io :refer [input-stream resource]]
    [clojure.pprint :refer [print-table]]
@@ -1025,30 +1025,30 @@ specified in the `:extends` argument."
 
 ;;; # Execution helpers
 (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
-                       -> (Seqable (ReadOnlyPort PhaseResult))])
+                       -> (Seqable (ReadOnlyPort PlanResult))])
 (defn execute-plan-fns
   "Apply plan functions to targets.  Returns a sequence of channels that
   will yield phase result maps."
   [session targets plan-fns]
-  (for> :- (ReadOnlyPort PhaseResult)
+  (for> :- (ReadOnlyPort PlanResult)
         [target :- TargetMap targets
          plan :-PlanFn plan-fns]
     (api/execute session target plan)))
 
 (ann execute-plan-fns [BaseSession TargetMapSeq Phase
-                       -> (Seqable (ReadOnlyPort PhaseResult))])
+                       -> (Seqable (ReadOnlyPort PlanResult))])
 (defn execute-phase
   "Apply phase to targets.
   Phase is either a keyword, or a vector of keyword and phase arguments."
   [session targets phase]
-  (for> :- (ReadOnlyPort PhaseResult)
+  (for> :- (ReadOnlyPort PlanResult)
         [target :- TargetMap targets
          :let [plan (target-phase-fn )]
          :when plan]
     (api/execute session target plan)))
 
 (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
-                       -> (Seqable (ReadOnlyPort PhaseResult))])
+                       -> (Seqable (ReadOnlyPort PlanResult))])
 (defn execute-phases
   "Execute the specified `phases` on `targets`."
   [session targets phases]
@@ -1072,7 +1072,7 @@ specified in the `:extends` argument."
    (vary-meta (plan-fn (os)) merge bootstrapped-meta)])
 
 (ann os-detect [BaseSession TargetMapSeq
-                -> (Seqable (ReadOnlyPort PhaseResult))])
+                -> (Seqable (ReadOnlyPort PlanResult))])
 (defn os-detect
   "Apply OS detection to targets.  The results of the detection will
   be put into the plan-state."
