@@ -342,16 +342,7 @@ Content can also be copied from a blobstore.
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
-               (:username (admin-user)))
-        abs-path (if (or (.startsWith path "/")
-                         (.startsWith path "$(")
-                         (.startsWith path "`"))
-                   path
-                   (if script-dir
-                     (str script-dir "/" path)
-                     (fragment
-                      (lib/file (user-home ~(:username (admin-user session)))
-                                path))))]
+               (:username (admin-user session)))]
     (when local-file
       (transfer-file local-file path))
     (remote-file-action
@@ -476,10 +467,7 @@ only specified files or directories, use the :extract-files option.
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
-               (:username (admin-user)))
-        new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)
-        copy-path (copy-filename script-dir path)]
+               (:username (admin-user session)))]
     (when local-file
       (transfer-file local-file path))
     ;; we run as root so we don't get permission issues
@@ -496,13 +484,8 @@ only specified files or directories, use the :extract-files option.
          :overwrite-changes *force-overwrite*
          :owner user
          :blobstore (get-environment session [:blobstore] nil)
-         :proxy (get-environment session [:proxy] nil)
-         :pallet/new-path new-path
-         :pallet/md5-path md5-path
-         :pallet/copy-path copy-path}
-        options))
-      (when recursive
-        (directory path :owner owner :group group :recursive recursive)))))
+         :proxy (get-environment session [:proxy] nil)}
+        options)))))
 
 (defaction wait-for-file
   "Wait for a file to exist"
