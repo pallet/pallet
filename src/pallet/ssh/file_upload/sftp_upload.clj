@@ -99,6 +99,8 @@
   FileUpload
   (upload-file-path [_ target-path action-options]
     (target upload-root (:username action-options) target-path))
+  (user-file-path [_ target-path action-options]
+    (target upload-root action-options target-path))
   (upload-file
     [_ session local-path target-path action-options]
     (let [target (target

@@ -8,6 +8,10 @@
   [uploader target-path action-options]
   (impl/upload-file-path uploader target-path action-options))
 
+(defn user-file-path
+  [uploader target-path action-options]
+  (impl/user-file-path uploader target-path action-options))
+
 (defn upload-file
   "Upload a file to the target-path, and return any script needed to
     be run on the node to get the file into place.

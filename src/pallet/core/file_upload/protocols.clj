@@ -5,6 +5,9 @@
   (upload-file-path [_ target-path action-options]
     "Return the path to which upload-file would upload a file for
     target-path")
+  (user-file-path [_ target-path action-options]
+    "Return the path to which intermediate files should be written for the
+    specified username.")
   (upload-file [_ session local-path target-path action-options]
     "Upload a file to the target-path, and return any script needed to
     be run on the node to get the file into place.

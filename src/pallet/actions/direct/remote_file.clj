@@ -14,8 +14,8 @@
     :refer [checked-commands checked-script remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.core.file-upload :refer [upload-file upload-file-path]]
-   ;; [pallet.environment-impl :refer [get-for]]
+   [pallet.core.file-upload
+    :refer [upload-file upload-file-path user-file-path]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit mkdir
             path-group path-mode path-owner user-default-group]]
@@ -92,7 +92,9 @@
          file-checksum (or (:file-checksum action-options) default-checksum)
          file-backup (or (:file-backup action-options) default-backup)
 
-         new-path (upload-file-path uploader path action-options)
+         new-path (if local-file
+                    (upload-file-path uploader path action-options)
+                    (user-file-path uploader path action-options))
          md5-path (str new-path ".md5")
 
          options (if (and owner (not group))
