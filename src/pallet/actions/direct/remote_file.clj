@@ -16,7 +16,9 @@
             remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.core.file-upload :refer [upload-file upload-file-path]]
+   [pallet.core.file-upload
+    :refer [upload-file upload-file-path user-file-path]]
+   [pallet.core.session :refer [effective-username]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit mkdir
@@ -108,7 +110,10 @@
           file-checksum (or (:file-checksum action-options) default-checksum)
           file-backup (or (:file-backup action-options) default-backup)
 
-          new-path (upload-file-path uploader session path action-options)
+          new-path (if local-file
+                     (upload-file-path uploader session path action-options)
+                     (user-file-path uploader session path action-options
+                                     (effective-username session)))
           md5-path (str new-path ".md5")
 
           proxy (get-for session [:proxy] nil)

@@ -196,7 +196,7 @@
   "User that remote commands are run under."
   [session]
   {:pre [(map? session)
-         (or (map? (-> session :environment)) (println "session" session) (flush))
+         (or (map? (-> session :environment)))
          (-> session :environment :user)]}
   ;; Note: this is not (:user session), which is set to the actual user used
   ;; for authentication when executing scripts, and may be different, e.g. when
@@ -214,10 +214,12 @@
   "Return the effective username."
   [session]
   {:post [%]}
-  (clojure.tools.logging/debugf "effective-username %s %s" (:action session) (:user session))
+  (clojure.tools.logging/debugf "effective-username %s %s"
+                                (:action session) (:user session))
   (or
    (-> session :action :sudo-user)
-   (-> session :user (:sudo-user (if-not (-> session :user :no-sudo) "root")))
+   (or (-> session :user :sudo-user)
+       (if-not (-> session :user :no-sudo) "root"))
    (-> session :user :username)))
 
 (defn is-64bit?

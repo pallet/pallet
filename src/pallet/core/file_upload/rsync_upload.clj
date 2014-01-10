@@ -33,6 +33,8 @@
   FileUpload
   (upload-file-path [_ session target-path action-options]
     (target upload-root (rsync-user session) target-path))
+  (user-file-path [_ session target-path action-options username]
+    (target upload-root username target-path))
   (upload-file
     [_ session local-path target-path action-options]
     (rsync-upload-file
