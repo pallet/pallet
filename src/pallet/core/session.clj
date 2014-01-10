@@ -157,7 +157,6 @@
          (when-let [group-names (:group-names %)] (group-names group-name))))
    (map :node)))
 
-
 (defn groups-with-role
   "All target groups with the specified role."
   [session role]
@@ -167,14 +166,19 @@
    (map #(dissoc % :node))
    distinct))
 
-(defn nodes-with-role
-  "All target nodes with the specified role."
+(defn targets-with-role
+  "All targets with the specified role."
   [session role]
   (filter
    (fn [node]
      (when-let [roles (:roles node)]
        (roles role)))
    (:service-state session)))
+
+(defn nodes-with-role
+  "All target nodes with the specified role."
+  [session role]
+  (map :node (targets-with-role session role)))
 
 (defn role->nodes-map
   "Returns a map from role to nodes."
