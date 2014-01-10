@@ -246,6 +246,11 @@
   [role]
   (session/groups-with-role (session) role))
 
+(defn targets-with-role
+  "All targets with the specified role."
+  [role]
+  (session/targets-with-role (session) role))
+
 (defn nodes-with-role
   "All target nodes with the specified role."
   [role]
