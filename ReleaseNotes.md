@@ -1,5 +1,14 @@
 Unstable development branch
 
+# 0.8.0-RC.6
+
+- Fix target path for remote-dir local-file uploads
+
+- Add user-upload-path to file-upload protocol
+  Fixes the path at which non local-file remote-file sources are staged.
+
+- Fix effective-username for sudo to root
+
 # 0.8.0-RC.5
 
 - Use effective user in rsync
