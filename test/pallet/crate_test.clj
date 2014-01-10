@@ -23,9 +23,20 @@
         g2 (group-spec "group2" :roles :role2)
         targets [(assoc g1 :node n1) (assoc g2 :node n2)]
         session (test-session {:service-state targets})]
-    (is (= [(first targets)]
+    (is (= [n1]
            (with-session session
              (nodes-with-role :role1))))))
+
+(deftest targets-with-role-test
+  (let [n1 (make-node "group1")
+        n2 (make-node "group2")
+        g1 (group-spec "group1" :roles :role1)
+        g2 (group-spec "group2" :roles :role2)
+        targets [(assoc g1 :node n1) (assoc g2 :node n2)]
+        session (test-session {:service-state targets})]
+    (is (= [(first targets)]
+           (with-session session
+             (targets-with-role :role1))))))
 
 (defmulti-plan xx
   (fn [k]
