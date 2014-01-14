@@ -653,7 +653,7 @@
   ("aptitude" purge -y  ~(stevedore/option-args options) ~package))
 
 (script/defimpl list-installed-packages [#{:aptitude}] [& options]
-  ("aptitude" search (quoted "~i")))
+  ("aptitude" search --disable-columns (quoted "~i")))
 
 ;;; apt
 (script/defimpl update-package-list [#{:apt}] [& {:keys [] :as options}]

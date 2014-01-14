@@ -74,10 +74,10 @@
              (~lib/package-manager-non-interactive)
              (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
              "aptitude install -q -y java+ rubygems+ git- ruby_"
-             "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
-             "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
-             "! { aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\"; }"
-             "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
+             "aptitude search --disable-columns \"?and(?installed, ?name(^java$))\" | grep \"java\""
+             "aptitude search --disable-columns \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
+             "! { aptitude search --disable-columns \"?and(?installed, ?name(^git$))\" | grep \"git\"; }"
+             "! { aptitude search --disable-columns \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
          (first
           (build-actions
               {:server {:packager :aptitude :image {:os-family :ubuntu}}}
