@@ -226,7 +226,7 @@ fi)}}}"
 
 (deftest list-installed-packages-test
   (is (script-no-comment=
-       "aptitude search \"~i\""
+       "aptitude search --disable-columns \"~i\""
        (script/with-script-context [:aptitude]
          (script (~list-installed-packages)))))
   (is (script-no-comment=

@@ -113,6 +113,7 @@
        (stevedore/script
         (pipe ("aptitude"
                search
+               --disable-columns
                (quoted
                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
               ("grep" (quoted ~package))))
@@ -120,6 +121,7 @@
        (stevedore/script
         (not (pipe ("aptitude"
                     search
+                    --disable-columns
                     (quoted
                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
                    ("grep" (quoted ~package))))))))))
