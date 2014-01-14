@@ -93,7 +93,8 @@
                                         flag-on-changed
                                         force
                                         insecure
-                                        verify]
+                                        verify
+                                        create-only]
                                  :or {action :create max-versions 5
                                       install-new-files true}
                                  :as options}]
@@ -125,6 +126,12 @@
         :create
         (action-plan/checked-commands
          (str "remote-file " path)
+
+         (if create-only
+           (stevedore/script
+            (if (file-exists? ~path)
+              (exit 0)))
+           "")
 
          ;; check for local modifications
          (if overwrite-changes

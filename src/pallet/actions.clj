@@ -285,7 +285,8 @@ value is itself an action return value."
   ^{:doc "A vector of options for controlling versions. Can be used for option
           forwarding when calling remote-file from other crates."}
   version-options
-  [:overwrite-changes :no-versioning :max-versions :flag-on-changed])
+  [:overwrite-changes :no-versioning :max-versions :flag-on-changed
+   :create-only])
 
 (def
   ^{:doc "A vector of options for controlling ownership. Can be used for option
@@ -327,7 +328,8 @@ value is itself an action return value."
    (optional-path [:force]) any-value
    (optional-path [:link]) String
    (optional-path [:verify]) any-value
-   (optional-path [::upload-path]) String])
+   (optional-path [::upload-path]) String
+   (optional-path [::create-only]) any-value])
 
 (defmacro check-remote-file-arguments
   [m]
@@ -425,6 +427,10 @@ Options for version control are:
 `flag-on-changed`
 : flag to set if file is changed
 
+`create-only`
+: boolean flag to specify that the target file should only be
+  created. If the file already exists, it is not touched.
+
 Options for specifying the file's permissions are:
 
 `owner`
@@ -481,7 +487,8 @@ Content can also be copied from a blobstore.
                   overwrite-changes no-versioning max-versions
                   flag-on-changed
                   local-file-options
-                  verify]
+                  verify
+                  create-only]
            :as options}]
   {:pre [path]}
   (check-remote-file-arguments options)
