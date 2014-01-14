@@ -233,8 +233,16 @@
   []
   (session/group-name (session)))
 
+(defn targets-in-group
+  "All targets in the same tag as the target-node, or with the
+  specified group-name."
+  ([group-name]
+     (session/targets-in-group (session) group-name))
+  ([]
+     (targets-in-group (group-name))))
+
 (defn nodes-in-group
-  "All nodes in the same tag as the target-node, or with the specified
+  "All nodesin the same tag as the target-node, or with the specified
   group-name."
   ([group-name]
      (session/nodes-in-group (session) group-name))
