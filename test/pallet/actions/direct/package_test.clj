@@ -589,16 +589,16 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
             ("aptitude" install -q -y p1- p4_ p2+ p3+)
             (not (pipe
-                  ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+                  ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p1$))"))
                   ("grep" (quoted p1))))
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p2$))"))
              ("grep" (quoted p2)))
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p3$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p3$))"))
              ("grep" (quoted p3)))
             (not (pipe
-                  ("aptitude" search (quoted "?and(?installed, ?name(^p4$))"))
+                  ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p4$))"))
                   ("grep" (quoted "p4")))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
@@ -617,10 +617,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             ("aptitude" install -q -y -t r1 p2+)
             ("aptitude" install -q -y p1+)
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p1$))"))
              ("grep" (quoted p1)))
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p2$))"))
              ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
@@ -637,10 +637,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             ("aptitude" install -q -y p1+)
             ("aptitude" install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p1$))"))
              ("grep" (quoted p1)))
             (pipe
-             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("aptitude" search --disable-columns (quoted "?and(?installed, ?name(^p2$))"))
              ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
