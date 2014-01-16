@@ -99,11 +99,11 @@
    ~(stevedore/map-to-arg-string {:f force :p preserve} :assign true)
    ~source ~destination))
 
-(script/defscript ln [source destination & {:keys [force symbolic]}])
+(script/defscript ln [source destination & {:keys [force symbolic no-deref]}])
 (script/defimpl ln :default
-  [source destination & {:keys [force symbolic]}]
+  [source destination & {:keys [force symbolic no-deref]}]
   ("ln"
-   ~(stevedore/map-to-arg-string {:f force :s symbolic})
+   ~(stevedore/map-to-arg-string {:f force :s symbolic :n no-deref})
    ~source ~destination))
 
 (script/defscript backup-option [])

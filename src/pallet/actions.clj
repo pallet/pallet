@@ -216,7 +216,8 @@ value is itself an action return value."
      - :owner     user name or id for owner of symlink
      - :group     user name or id for group of symlink
      - :mode      symlink permissions
-     - :force     when deleting, try and force removal"
+     - :force     when deleting, try and force removal
+     - :no-deref  do not deref target if it is a symlink to a directory"
   [from name & {:keys [action owner group mode force]
                 :or {action :create force true}}])
 

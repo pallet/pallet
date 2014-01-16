@@ -56,7 +56,7 @@
 
 (implement-action symbolic-link :direct
   {:action-type :script :location :target}
-  [session from name & {:keys [action owner group mode force]
+  [session from name & {:keys [action owner group mode force no-deref]
                         :or {action :create force true}}]
   [[{:language :bash}
     (case action
@@ -65,7 +65,8 @@
                (~lib/rm ~name :force ~force))
       :create (action-plan/checked-script
                (format "Link %s as %s" from name)
-               (~lib/ln ~from ~name :force ~force :symbolic ~true)))]
+               (~lib/ln ~from ~name :force ~force :symbolic ~true
+                        :no-deref ~no-deref)))]
    session])
 
 (implement-action fifo :direct
