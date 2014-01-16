@@ -70,8 +70,9 @@
      - :owner     user name or id for owner of symlink
      - :group     user name or id for group of symlink
      - :mode      symlink permissions
-     - :force     when deleting, try and force removal"
-  [session from name & {:keys [action owner group mode force]
+     - :force     when deleting, try and force removal
+     - :no-deref  do not deref target if it is a symlink to a directory"
+  [session from name & {:keys [action owner group mode force no-deref]
                         :or {action :create force true}}])
 
 (defaction fifo
