@@ -52,11 +52,13 @@
 permissions. Note this is not the final directory."
   [template-path new-path]
   (script
-   (do
-     (set! dirpath @(dirname ~new-path))
-     (set! templatepath @(dirname @(if (file-exists? ~template-path)
-                                     (canonical-path ~template-path)
-                                     (println ~template-path))))
+   (": ")
+   ("#" "-- START pallet implementation function")
+   (defn set_tree_permissions [template_path new_path]
+     (set! dirpath @(dirname @new_path))
+     (set! templatepath @(dirname @(if (file-exists? @template_path)
+                                     (canonical-path @template_path)
+                                     (println @template_path))))
      (when (not (directory? @templatepath))
        (println @templatepath ": Directory does not exist.")
        (exit 1))
@@ -64,17 +66,22 @@ permissions. Note this is not the final directory."
      (chain-or (mkdir @dirpath :path true) (exit 1))
      ("while" (!= "/" @templatepath) ";do"
       ~(chained-script
-        (set! d @dirpath)               ; copy these and update
-        (set! t @templatepath)          ; so we can continue on any failure
+        (set! d @dirpath)        ; copy these and update
+        (set! t @templatepath)   ; so we can continue on any failure
         (when (not (directory? @templatepath))
           (println @templatepath ": Directory does not exist.")
           (exit 1))
         (set! dirpath @(dirname @dirpath))
         (set! templatepath @(dirname @templatepath))
-        (chain-or (chgrp @(path-group @t) @d) ":")
-        (chain-or (chmod @(path-mode @t) @d) ":")
-        (chain-or (chown @(path-owner @t) @d) ":"))
-      ("; done")))))
+        (if (not (== @(path-group @t) @(path-group @d)))
+          (chgrp @(path-group @t) @d))
+        (if (not (== @(path-mode @t) @(path-mode @d)))
+          (chmod @(path-mode @t) @d))
+        (if (not (== @(path-owner @t) @(path-owner @d)))
+          (chown @(path-owner @t) @d)))
+      ("; done")))
+   ("#" "-- END pallet implementation function")
+   ("set_tree_permissions" ~template-path ~new-path)))
 
 (defn verify
   "verify if the files at path and state-path are identical, and
