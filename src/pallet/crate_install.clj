@@ -15,6 +15,7 @@
             package-source-changed-flag
             plan-when
             remote-directory
+            remote-directory-arguments
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
    [pallet.crate
@@ -149,11 +150,9 @@
       (apply-map
        remote-directory path
        (merge
-        {:local-file-options
-         {:always-before #{::update-package-source ::install-package-source}}
-         :mode "755"
+        {:mode "755"
          :strip-components 0}
-        debs))
+        (dissoc debs :name)))
       (repository-packages)
       (rebuild-repository path))
     (apply-map actions/package-source (:name package-source) package-source)
