@@ -1,5 +1,53 @@
 Unstable development branch
 
+# 0.8.0-RC.7
+
+- Don't slurp files to calculate md5
+  Avoids out of memory errors on transferring large files from localhost.
+
+  Fixes #309
+
+- Allows for using crate-install by passing settings
+  Factors out install-from multi-method from the previous install
+  multi-method, which is preserved for compatibility.
+
+- Improve error handling in defmulti-plan
+
+- Improve propogation of cause in throw-phase-errors
+
+- Add argument checking for remote-directory
+
+- Fix action :sudo-user with a :no-sudo admin user
+  When using :no-sudo in the admin user, ensure that an explicit
+  :sudo-user action option is honoured.
+
+  Fixes #300
+
+- Add :no-deref option to symbolic-link
+
+- Refactor state-root script into functions
+
+- Only mirror permissions to state-root if needed
+  When mirroring permissions, only adjust the permissions if they do not
+  already match.  This is to prevent chmod, chown and chgrp errors.
+
+- Fix aptitude commands for long package names
+  Use "disable-columns" option when running aptitude search to find packages
+  with long names.
+
+  Use aptitude --disable-columns when verifying packages are installed.
+
+- Fix os detection for CentOS
+
+- Add targets-in-group
+  Returns a sequence of target-maps for all targets with the specified group
+  name.
+
+- Rename nodes-with-role to targets-with-role
+  targets-with-role returns a sequence of target maps and nodes-with-role
+  returns a sequence of nodes.
+
+
 # 0.8.0-RC.6
 
 - Fix target path for remote-dir local-file uploads
