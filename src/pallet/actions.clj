@@ -216,7 +216,8 @@ value is itself an action return value."
      - :owner     user name or id for owner of symlink
      - :group     user name or id for group of symlink
      - :mode      symlink permissions
-     - :force     when deleting, try and force removal"
+     - :force     when deleting, try and force removal
+     - :no-deref  do not deref target if it is a symlink to a directory"
   [from name & {:keys [action owner group mode force]
                 :or {action :create force true}}])
 
@@ -332,6 +333,35 @@ value is itself an action return value."
 (defmacro check-remote-file-arguments
   [m]
   (check-spec m `remote-file-arguments &form))
+
+(def-map-schema remote-directory-arguments
+  :strict
+  (constraints
+   (fn [m] (some (set content-options) (keys m))))
+  [(optional-path [:local-file]) String
+   (optional-path [:remote-file]) String
+   (optional-path [:url]) String
+   (optional-path [:md5]) String
+   (optional-path [:md5-url]) String
+   (optional-path [:action]) Keyword
+   (optional-path [:blob]) (map-schema :strict
+                                       [[:container] String [:path] String])
+   (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
+   (optional-path [:overwrite-changes]) any-value
+   (optional-path [:owner]) String
+   (optional-path [:group]) String
+   (optional-path [:recursive]) any-value
+   (optional-path [:unpack]) any-value
+   (optional-path [:extract-files]) (sequence-of String)
+   (optional-path [:mode]) [:or String Number]
+   (optional-path [:tar-options]) String
+   (optional-path [:unzip-options]) String
+   (optional-path [:strip-components]) Number
+   (optional-path [:install-new-files]) any-value])
+
+(defmacro check-remote-directory-arguments
+  [m]
+  (check-spec m `remote-directory-arguments &form))
 
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
@@ -609,6 +639,7 @@ only specified files or directories, use the :extract-files option.
                 strip-components 1
                 recursive true}
            :as options}]
+  (check-remote-directory-arguments options)
   (verify-local-file-exists local-file)
   (let [action-options (get-action-options)
         script-dir (:script-dir action-options)

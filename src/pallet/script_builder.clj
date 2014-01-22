@@ -42,13 +42,22 @@ infix-operators
        (fragment
         (sudo :user ~sudo-user :no-prompt true))))))
 
+(defn normalise-sudo-options
+  "Ensure that a :sudo-user specified in the action trumps a :no-sudo
+  specified in the admin user."
+  [user action]
+  (let [r (merge user action)]
+    (if (:sudo-user action)
+      (assoc r :no-sudo false)
+      r)))
+
 (defmulti prefix
   "The executable used to prefix the interpreter (eg. sudo, chroot, etc)."
   (fn [kw session action] kw))
 (defmethod prefix :default [_ _ _] nil)
 (defmethod prefix :sudo [_ session action]
   (debugf "prefix sudo %s" (into {} (merge (:user session) action)))
-  (sudo-cmd-for (merge (:user session) action)))
+  (sudo-cmd-for (normalise-sudo-options (:user session) action)))
 
 (defn build-script
   "Builds a script. The script is wrapped in a shell script to set
@@ -87,16 +96,6 @@ future)."
         (exit @r))))
    epilog))
 
-(defn normalise-sudo-options
-  "Ensure that a :sudo-user specified in the action trumps a :no-sudo
-  specified in the admin user."
-  [action]
-  action
-  ;; (if (:sudo-user action)
-  ;;   (assoc action :no-sudo false)
-  ;;   action)
-  )
-
 (defn build-code
   "Builds a code map, describing the command to execute a script."
   [session {:keys [default-script-prefix script-context script-dir script-env
@@ -123,7 +122,7 @@ future)."
                                        default-script-prefix
                                        :sudo))
                                   session
-                                  (normalise-sudo-options action))]
+                                  action)]
                  (debugf "prefix %s" prefix)
                  (string/split prefix #" "))
        :execv (concat (interpreter {:language :bash}) args)})))

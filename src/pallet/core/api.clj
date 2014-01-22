@@ -375,4 +375,5 @@
      (ex-info
       (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
       {:errors e}
-      (-> (first e) :message :exception)))))
+      (or (-> (first e) :message :exception)
+          (-> (first (remove nil? (map (comp :cause :error) e)))))))))

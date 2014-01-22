@@ -89,4 +89,11 @@
             :env nil
             :env-fwd [:a]
             :execv ["/bin/bash"]}
-           (build-code {:user {}} {:script-env-fwd [:a]})))))
+           (build-code {:user {}} {:script-env-fwd [:a]})))
+    (is (= {:prefix ["/usr/bin/sudo" "-n" "-u" "fred"]
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
+           (build-code {:user {:no-sudo true}} {:sudo-user "fred"}))
+        "A :sudo-user in the action overrides :no-sudo in the admin user")))
