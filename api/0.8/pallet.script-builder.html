@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-RC.6 API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-RC.7 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -54,7 +54,7 @@ running them in different environments</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-build-code" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L100">build-code</a></h3>
+            <h3><a id="var-build-code" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L99">build-code</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session {:keys [default-script-prefix script-context script-dir script-env script-env-fwd script-prefix sudo-user], :as action} &amp; args]</div>
             
@@ -62,7 +62,7 @@ running them in different environments</p>
             <div class="doc"><p>Builds a code map, describing the command to execute a script.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-build-script" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L53">build-script</a></h3>
+            <h3><a id="var-build-script" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L62">build-script</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[{:keys [language version interpreter interpreter-args], :or {language :bash}, :as options} script {:keys [script-dir script-trace script-hash], :or {script-hash true}, :as action}]</div>
             
@@ -80,16 +80,16 @@ future).</p>
             <div class="doc"><p>The interprester used to run a script.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-normalise-sudo-options" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L90">normalise-sudo-options</a></h3>
+            <h3><a id="var-normalise-sudo-options" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L45">normalise-sudo-options</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[action]</div>
+            <div class="usage">[user action]</div>
             
             
             <div class="doc"><p>Ensure that a :sudo-user specified in the action trumps a :no-sudo
 specified in the admin user.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-prefix" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L45">prefix</a></h3>
+            <h3><a id="var-prefix" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/script_builder.clj#L54">prefix</a></h3>
             <h4 class="var-type var" id="var-type">var</h4>
             
             

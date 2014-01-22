@@ -3033,7 +3033,7 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-RC.6</h2><br /><p>DevOps for the JVM.</p>
+</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-RC.7</h2><br /><p>DevOps for the JVM.</p>
 
 <p>Pallet is a platform for agile and programmatic automation of infrastructure
 in the cloud, on server racks or directly on virtual machines. Pallet
@@ -4195,6 +4195,7 @@ value is itself an action return value.</p>
  - :group     user name or id for group of symlink
  - :mode      symlink permissions
  - :force     when deleting, try and force removal
+ - :no-deref  do not deref target if it is a symlink to a directory
 </code></pre>
 </td><td class="codes"><pre class="brush: clojure">(defaction symbolic-link
   [from name &amp; {:keys [action owner group mode force]
@@ -4292,7 +4293,34 @@ by default.</p>
    (optional-path [::upload-path]) String])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmacro check-remote-file-arguments
   [m]
-  (check-spec m `remote-file-arguments &amp;form))</pre></td></tr><tr><td class="docs"><p>Function to transfer a local file to a remote path.
+  (check-spec m `remote-file-arguments &amp;form))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def-map-schema remote-directory-arguments
+  :strict
+  (constraints
+   (fn [m] (some (set content-options) (keys m))))
+  [(optional-path [:local-file]) String
+   (optional-path [:remote-file]) String
+   (optional-path [:url]) String
+   (optional-path [:md5]) String
+   (optional-path [:md5-url]) String
+   (optional-path [:action]) Keyword
+   (optional-path [:blob]) (map-schema :strict
+                                       [[:container] String [:path] String])
+   (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
+   (optional-path [:overwrite-changes]) any-value
+   (optional-path [:owner]) String
+   (optional-path [:group]) String
+   (optional-path [:recursive]) any-value
+   (optional-path [:unpack]) any-value
+   (optional-path [:extract-files]) (sequence-of String)
+   (optional-path [:mode]) [:or String Number]
+   (optional-path [:tar-options]) String
+   (optional-path [:unzip-options]) String
+   (optional-path [:strip-components]) Number
+   (optional-path [:install-new-files]) any-value])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmacro check-remote-directory-arguments
+  [m]
+  (check-spec m `remote-directory-arguments &amp;form))</pre></td></tr><tr><td class="docs"><p>Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action.</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction transfer-file
   [local-path remote-path])</pre></td></tr><tr><td class="docs"><p>Function to transfer a remote file to a local path.</p>
@@ -4558,6 +4586,7 @@ only specified files or directories, use the :extract-files option.</p>
                 strip-components 1
                 recursive true}
            :as options}]
+  (check-remote-directory-arguments options)
   (verify-local-file-exists local-file)
   (let [action-options (get-action-options)
         script-dir (:script-dir action-options)
@@ -5025,7 +5054,7 @@ End:</p>
    session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action symbolic-link :direct
   {:action-type :script :location :target}
-  [session from name &amp; {:keys [action owner group mode force]
+  [session from name &amp; {:keys [action owner group mode force no-deref]
                         :or {action :create force true}}]
   [[{:language :bash}
     (case action
@@ -5034,7 +5063,8 @@ End:</p>
                (~lib/rm ~name :force ~force))
       :create (action-plan/checked-script
                (format &quot;Link %s as %s&quot; from name)
-               (~lib/ln ~from ~name :force ~force :symbolic ~true)))]
+               (~lib/ln ~from ~name :force ~force :symbolic ~true
+                        :no-deref ~no-deref)))]
    session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action fifo :direct
   {:action-type :script :location :target}
@@ -5168,6 +5198,7 @@ need to split by enable/disable options.</p>
        (stevedore/script
         (pipe (&quot;aptitude&quot;
                search
+               --disable-columns
                (quoted
                 (str &quot;?and(?installed, ?name(^&quot; ~escaped-package &quot;$))&quot;)))
               (&quot;grep&quot; (quoted ~package))))
@@ -5175,6 +5206,7 @@ need to split by enable/disable options.</p>
        (stevedore/script
         (not (pipe (&quot;aptitude&quot;
                     search
+                    --disable-columns
                     (quoted
                      (str &quot;?and(?installed, ?name(^&quot; ~escaped-package &quot;$))&quot;)))
                    (&quot;grep&quot; (quoted ~package))))))))))</pre></td></tr><tr><td class="docs">
@@ -9164,7 +9196,8 @@ the providers.</p>
      (ex-info
       (str &quot;Phase errors: &quot; (string/join &quot; &quot; (map (comp :message :error) e)))
       {:errors e}
-      (-&gt; (first e) :message :exception)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.api-impl" name="pallet.core.api-impl"><h1 class="project-name">pallet.core.api-impl</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Implementation functions for the core api.</p>
+      (or (-&gt; (first e) :message :exception)
+          (-&gt; (first (remove nil? (map (comp :cause :error) e)))))))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.api-impl" name="pallet.core.api-impl"><h1 class="project-name">pallet.core.api-impl</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Implementation functions for the core api.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.core.api-impl
   (:require
    [clojure.tools.logging :refer [debugf warnf]]
@@ -10062,15 +10095,18 @@ other than a plain map.</p>
   (:service-state session))</pre></td></tr><tr><td class="docs"><p>Target nodes for current converge.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn target-nodes
   [session]
-  (map :node (:service-state session)))</pre></td></tr><tr><td class="docs"><p>All nodes in the same tag as the target-node, or with the specified
-  group-name.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn nodes-in-group
+  (map :node (:service-state session)))</pre></td></tr><tr><td class="docs"><p>All targets with the specified group-name.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn targets-in-group
   [session group-name]
   (-&gt;&gt;
    (:service-state session)
    (filter
     #(or (= (:group-name %) group-name)
-         (when-let [group-names (:group-names %)] (group-names group-name))))
+         (when-let [group-names (:group-names %)] (group-names group-name))))))</pre></td></tr><tr><td class="docs"><p>All nodes with the specified group-name.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn nodes-in-group
+  [session group-name]
+  (-&gt;&gt;
+   (targets-in-group session group-name)
    (map :node)))</pre></td></tr><tr><td class="docs"><p>All target groups with the specified role.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn groups-with-role
   [session role]
@@ -10078,14 +10114,17 @@ other than a plain map.</p>
    (:service-state session)
    (filter #((:roles %) role))
    (map #(dissoc % :node))
-   distinct))</pre></td></tr><tr><td class="docs"><p>All target nodes with the specified role.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn nodes-with-role
+   distinct))</pre></td></tr><tr><td class="docs"><p>All targets with the specified role.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn targets-with-role
   [session role]
   (filter
    (fn [node]
      (when-let [roles (:roles node)]
        (roles role)))
-   (:service-state session)))</pre></td></tr><tr><td class="docs"><p>Returns a map from role to nodes.</p>
+   (:service-state session)))</pre></td></tr><tr><td class="docs"><p>All target nodes with the specified role.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn nodes-with-role
+  [session role]
+  (map :node (targets-with-role session role)))</pre></td></tr><tr><td class="docs"><p>Returns a map from role to nodes.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn role-&gt;nodes-map
   [session]
   (reduce
@@ -10465,31 +10504,35 @@ context automatically sets up the phase context, which is available
                               (fn [[k# f#]]
                                 (when (isa? @~hierarchy dispatch-val# k#)
                                   f#))
-                              @a#))]
+                              @a#)
+                             (get @a# :default))]
                (f# ~@args)
                (throw
                 (ex-info
-                 (format &quot;Missing plan-multi %s dispatch for %s&quot;
+                 (format &quot;Missing defmulti-plan %s method for dispatch value %s&quot;
                          ~(clojure.core/name name) (pr-str dispatch-val#))
                  {:reason :missing-method
-                  :plan-multi ~(clojure.core/name name)})))))))))</pre></td></tr><tr><td class="docs">
+                  :defmulti-plan ~(clojure.core/name name)})))))))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn
   ^{:internal true :indent 2}
   add-plan-method-to-multi
   [multifn dispatch-val f]
+  {:pre [(-&gt; multifn meta :methods)]}
   (swap! (-&gt; multifn meta :methods) assoc dispatch-val f))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmacro defmethod-plan
   {:indent 2}
   [multifn dispatch-val args &amp; body]
   (letfn [(sanitise [v]
             (string/replace (str v) #&quot;:&quot; ))]
-    `(add-plan-method-to-multi ~multifn ~dispatch-val
-       (fn [~@args]
-         (phase-context
-             ~(symbol (str (name multifn) &quot;-&quot; (sanitise dispatch-val)))
-             {:msg ~(name multifn) :kw ~(keyword (name multifn))
-              :dispatch-val ~dispatch-val}
-           ~@body)))))</pre></td></tr><tr><td class="docs"><p>Create a state-m monadic value function that examines the session, and
+    `(do
+       (assert (-&gt; ~multifn meta :methods) ~(str multifn &quot; isn't a known defmulti-plan&quot;))
+       (add-plan-method-to-multi ~multifn ~dispatch-val
+        (fn [~@args]
+          (phase-context
+              ~(symbol (str (name multifn) &quot;-&quot; (sanitise dispatch-val)))
+              {:msg ~(name multifn) :kw ~(keyword (name multifn))
+               :dispatch-val ~dispatch-val}
+            ~@body))))))</pre></td></tr><tr><td class="docs"><p>Create a state-m monadic value function that examines the session, and
   returns nil.</p>
 
 <p> helpers</p>
@@ -10530,7 +10573,13 @@ context automatically sets up the phase context, which is available
   (session/os-version (session)))</pre></td></tr><tr><td class="docs"><p>Group-Name of the target-node.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn group-name
   []
-  (session/group-name (session)))</pre></td></tr><tr><td class="docs"><p>All nodes in the same tag as the target-node, or with the specified
+  (session/group-name (session)))</pre></td></tr><tr><td class="docs"><p>All targets in the same tag as the target-node, or with the
+  specified group-name.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn targets-in-group
+  ([group-name]
+     (session/targets-in-group (session) group-name))
+  ([]
+     (targets-in-group (group-name))))</pre></td></tr><tr><td class="docs"><p>All nodesin the same tag as the target-node, or with the specified
   group-name.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn nodes-in-group
   ([group-name]
@@ -10539,7 +10588,10 @@ context automatically sets up the phase context, which is available
      (nodes-in-group (group-name))))</pre></td></tr><tr><td class="docs"><p>All target groups with the specified role.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn groups-with-role
   [role]
-  (session/groups-with-role (session) role))</pre></td></tr><tr><td class="docs"><p>All target nodes with the specified role.</p>
+  (session/groups-with-role (session) role))</pre></td></tr><tr><td class="docs"><p>All targets with the specified role.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn targets-with-role
+  [role]
+  (session/targets-with-role (session) role))</pre></td></tr><tr><td class="docs"><p>All target nodes with the specified role.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn nodes-with-role
   [role]
   (session/nodes-with-role (session) role))</pre></td></tr><tr><td class="docs"><p>A map from role to nodes.</p>
@@ -11414,7 +11466,7 @@ function for options to the settings map</p>
   (script
    (when (file-exists? &quot;/etc/debconf_version&quot;)
      (set! ID @(pipe (&quot;cat&quot; &quot;/etc/redhat-release&quot;)
-                     (&quot;grep&quot; -o -e &quot;'^[A-Za-z ]+release'&quot;)
+                     (&quot;egrep&quot; -o -e &quot;'^[A-Za-z ]+release'&quot;)
                      (&quot;sed -e 's/ release//'&quot;)))
      (set! RELEASE @(&quot;lsb_release&quot; -s -r)))
    (when (file-exists? &quot;/etc/lsb-release&quot;)
@@ -11423,11 +11475,11 @@ function for options to the settings map</p>
      (set! RELEASE @DISTRIB_RELEASE))
    (when (file-exists? &quot;/etc/redhat-release&quot;)
      (set! ID @(pipe (&quot;cat&quot; &quot;/etc/redhat-release&quot;)
-                     (&quot;grep&quot; -o -e &quot;'^[A-Za-z ]+release'&quot;)
+                     (&quot;egrep&quot; -o -e &quot;'^[A-Za-z ]+release'&quot;)
                      (&quot;sed -e 's/ release//'&quot;)))
      (set! RELEASE @(pipe (&quot;cat&quot; &quot;/etc/redhat-release&quot;)
                           (&quot;sed&quot; -e &quot;'s/.*release//'&quot;)
-                          (&quot;sed&quot; -e &quot;'s/ .*//'&quot;))))
+                          (&quot;sed&quot; -e &quot;'s/[^0-9.]//g'&quot;))))
    (when (file-exists? &quot;/etc/SUSE-release&quot;)
      (set! ID @(pipe (&quot;cat&quot; &quot;/etc/SUSE-release&quot;)
                      (&quot;tr&quot; &quot;\n&quot; &quot;' '&quot;)
@@ -12153,6 +12205,7 @@ specs [ { ["user1" "user2"]
             package-source-changed-flag
             plan-when
             remote-directory
+            remote-directory-arguments
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
    [pallet.crate
@@ -12174,9 +12227,41 @@ specs [ { ["user1" "user2"]
                            :strict remote-file-arguments [[:name] String])
    (optional-path [:debs]) remote-file-arguments
    (optional-path [:install-source]) remote-file-arguments
-   (optional-path [:install-dir]) remote-file-arguments])</pre></td></tr><tr><td class="docs"><h2>Install helpers</h2>
+   (optional-path [:install-dir]) remote-file-arguments])</pre></td></tr><tr><td class="docs"><p>Install based on a settings map.  The :install-strategy key determines
+  the install strategy used.  Each strategy has it's own set of keywords
+  used to configure the strategy.</p>
+
+<h2>Install helpers</h2>
+</td><td class="codes"><pre class="brush: clojure">(defmulti-plan install-from
+  (fn [;; {:keys [install-strategy] :as settings}
+       settings]
+    (when-not (:install-strategy settings)
+      (throw (ex-info
+              (str &quot;No :install-strategy found in settings: &quot; settings)
+              {:settings settings})))
+    (:install-strategy settings)))</pre></td></tr><tr><td class="docs"><p>Would like this but need to preserve backward compatibility,
+so make it a multimethod</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>(defn install
+  "Install facility using the settings in the given instance-id."
+  [facility instance-id]
+  {:pre [(keyword? facility)]}
+  (let [settings (get-settings facility {:instance-id instance-id})]
+    (when-not settings
+      (throw (ex-info
+              (str "No settings found for facility " facility)
+              {:facility facility
+               :instance-id instance-id})))
+    (when-not (:install-strategy settings)
+      (throw (ex-info
+              (str "No :install-strategy found in settings for facility "
+                   facility)
+              {:facility facility
+               :instance-id instance-id})))
+    (install-from settings)))</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Install facility using the settings in the given instance-id.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti-plan install
   (fn [facility instance-id]
+    ;; {:pre [(keyword? facility)]}
     (let [settings (get-settings facility {:instance-id instance-id})]
       (when-not settings
         (throw (ex-info
@@ -12189,82 +12274,89 @@ specs [ { ["user1" "user2"]
                      facility)
                 {:facility facility
                  :instance-id instance-id})))
-      (:install-strategy settings))))</pre></td></tr><tr><td class="docs"><p>install based on the setting's :packages key</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :packages
+      (:install-strategy settings))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :default
   [facility instance-id]
-  (let [{:keys [packages package-options preseeds] :as settings}
-        (get-settings facility {:instance-id instance-id})]
-    (check-keys
-     settings [:packages]
-     (map-schema :strict [[:packages] (sequence-of String)])
-     &quot;packages install-strategy settings values&quot;)
+  {:pre [(keyword? facility)]}
+  (let [settings (get-settings facility {:instance-id instance-id})]
+    (when-not settings
+      (throw (ex-info
+              (str &quot;No settings found for facility &quot; facility)
+              {:facility facility
+               :instance-id instance-id})))
+    (when-not (:install-strategy settings)
+      (throw (ex-info
+              (str &quot;No :install-strategy found in settings for facility &quot;
+                   facility)
+              {:facility facility
+               :instance-id instance-id})))
+    (clojure.tools.logging/errorf &quot;install %s&quot; settings)
+    (install-from settings)))</pre></td></tr><tr><td class="docs"><p>install based on the setting's :packages key</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :packages
+  [{:keys [packages package-options preseeds] :as settings}]
+  (check-keys
+   settings [:packages]
+   (map-schema :strict [[:packages] (sequence-of String)])
+   &quot;packages install-strategy settings values&quot;)
+  (doseq [p preseeds]
+    (debconf-set-selections p))
+  (doseq [p packages]
+    (apply-map package p package-options)))</pre></td></tr><tr><td class="docs"><p>Install based on the setting's :package-source and :packages keys.
+This will cause a package update if the package source definition
+changes.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :package-source
+  [{:keys [package-source packages package-options preseeds repository]
+         :as settings}]
+  (debugf &quot;package source %s %s&quot; package-source repository)
+  (check-keys
+   settings [:package-source :packages]
+   (map-schema :strict
+               [(optional-path [:package-source]) (map-schema
+                                                   :loose [[:name] String])
+                (optional-path [:repository]) (map-schema
+                                               :loose [[:repository] Keyword])
+                [:packages] (sequence-of String)])
+   &quot;package-source install-strategy settings values&quot;)
+  (if repository
+    (actions/repository repository)
+    (apply-map actions/package-source (:name package-source) package-source))
+  (let [modified? (target-flag? package-source-changed-flag)]
+    (with-action-options {:always-before #{package}}
+      (plan-when modified?
+        (package-manager :update)))
+    (tracef &quot;packages %s options %s&quot; (vec packages) package-options)
     (doseq [p preseeds]
       (debconf-set-selections p))
     (doseq [p packages]
-      (apply-map package p package-options))))</pre></td></tr><tr><td class="docs"><p>Install based on the setting's :package-source and :packages keys.
-This will cause a package update if the package source definition
-changes.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :package-source
-  [facility instance-id]
-  (let [{:keys [package-source packages package-options preseeds repository]
-         :as settings}
-        (get-settings facility {:instance-id instance-id})]
-    (debugf &quot;package source %s %s %s&quot; facility package-source repository)
-    (check-keys
-     settings [:package-source :packages]
-     (map-schema :strict
-                 [(optional-path [:package-source]) (map-schema
-                                                     :loose [[:name] String])
-                  (optional-path [:repository]) (map-schema
-                                                 :loose [[:repository] Keyword])
-                  [:packages] (sequence-of String)])
-     &quot;package-source install-strategy settings values&quot;)
-    (if repository
-      (actions/repository repository)
-      (apply-map actions/package-source (:name package-source) package-source))
-    (let [modified? (target-flag? package-source-changed-flag)]
-      (with-action-options {:always-before #{package}}
-        (plan-when modified?
-          (package-manager :update)))
-      (tracef &quot;packages %s options %s&quot; (vec packages) package-options)
-      (doseq [p preseeds]
-        (debconf-set-selections p))
-      (doseq [p packages]
-        (apply-map package p package-options)))))</pre></td></tr><tr><td class="docs"><p>install based on a rpm</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :rpm
-  [facility instance-id]
-  (let [{:keys [rpm] :as settings}
-        (get-settings facility {:instance-id instance-id})]
-    (check-keys
-     settings [:rpm]
-     (map-schema
-      :strict
-      [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])])
-     &quot;packages install-strategy settings values&quot;)
-    (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))))</pre></td></tr><tr><td class="docs"><p>install based on a rpm that installs a package repository source</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :rpm-repo
-  [facility instance-id]
-  (let [{:keys [rpm packages package-options] :as settings}
-        (get-settings facility {:instance-id instance-id})]
-    (check-keys
-     settings [:rpm :packages]
-     (map-schema
-      :strict
-      [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])
-       [:packages] (sequence-of String)])
-     &quot;packages install-strategy settings values&quot;)
-    (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))
-    (doseq [p packages] (apply-map package p package-options))))</pre></td></tr><tr><td class="docs"><p>Upload a deb archive for. Options for the :debs key are as for
+      (apply-map package p package-options))))</pre></td></tr><tr><td class="docs"><p>install based on a rpm</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :rpm
+  [{:keys [rpm] :as settings}]
+  (check-keys
+   settings [:rpm]
+   (map-schema
+    :strict
+    [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])])
+   &quot;packages install-strategy settings values&quot;)
+  (with-action-options {:always-before `package/package}
+    (apply-map add-rpm (:name rpm) (dissoc rpm :name))))</pre></td></tr><tr><td class="docs"><p>install based on a rpm that installs a package repository source</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :rpm-repo
+  [{:keys [rpm packages package-options] :as settings}]
+  (check-keys
+   settings [:rpm :packages]
+   (map-schema
+    :strict
+    [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])
+     [:packages] (sequence-of String)])
+   &quot;packages install-strategy settings values&quot;)
+  (with-action-options {:always-before `package/package}
+    (apply-map add-rpm (:name rpm) (dissoc rpm :name)))
+  (doseq [p packages] (apply-map package p package-options)))</pre></td></tr><tr><td class="docs"><p>Upload a deb archive for. Options for the :debs key are as for
 remote-directory (e.g. a :local-file key with a path to a local tar
 file). Pallet uploads the deb files, creates a repository from them, then
 installs from the repository.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :deb
-  [facility instance-id]
-  (let [{:keys [debs package-source packages]}
-        (get-settings facility {:instance-id instance-id})
-        path (or (-&gt; package-source :apt :path)
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :deb
+  [{:keys [debs package-source packages]}]
+  (let [path (or (-&gt; package-source :apt :path)
                  (-&gt; package-source :aptitude :path))]
     (with-action-options
       {:action-id ::deb-install
@@ -12272,24 +12364,22 @@ installs from the repository.</p>
       (apply-map
        remote-directory path
        (merge
-        {:local-file-options
-         {:always-before #{::update-package-source ::install-package-source}}
-         :mode &quot;755&quot;
+        {:mode &quot;755&quot;
          :strip-components 0}
-        debs))
+        (dissoc debs :name)))
       (repository-packages)
       (rebuild-repository path))
     (apply-map actions/package-source (:name package-source) package-source)
     (doseq [p packages] (package p))))</pre></td></tr><tr><td class="docs"><p>Install based on an archive</p>
-</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install :archive
-  [facility instance-id]
-  (let [{:keys [install-dir install-source] :as settings}
-        (get-settings facility {:instance-id instance-id})]
-    (check-keys
-     settings [:install-dir :install-source]
-     (map-schema :strict [[:install-dir] String [:install-source] String])
-     &quot;archive install-strategy settings values&quot;)
-    (apply-map remote-directory install-dir install-source)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.debug" name="pallet.debug"><h1 class="project-name">pallet.debug</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Helpers for debugging.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmethod-plan install-from :archive
+  [{:keys [install-dir install-source] :as settings}]
+  (check-keys
+   settings [:install-dir :install-source]
+   (map-schema :strict
+               [[:install-dir] String
+                [:install-source] remote-directory-arguments])
+   &quot;archive install-strategy settings values&quot;)
+  (apply-map remote-directory install-dir install-source))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.debug" name="pallet.debug"><h1 class="project-name">pallet.debug</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Helpers for debugging.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.debug
   (:require
    [clojure.tools.logging :as logging]
@@ -14016,11 +14106,11 @@ statically on pallet.api and the crates.</p>
   (&quot;cp&quot;
    ~(stevedore/map-to-arg-string {:f force :p preserve} :assign true)
    ~source ~destination))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(script/defscript ln [source destination &amp; {:keys [force symbolic]}])
+</td><td class="codes"><pre class="brush: clojure">(script/defscript ln [source destination &amp; {:keys [force symbolic no-deref]}])
 (script/defimpl ln :default
-  [source destination &amp; {:keys [force symbolic]}]
+  [source destination &amp; {:keys [force symbolic no-deref]}]
   (&quot;ln&quot;
-   ~(stevedore/map-to-arg-string {:f force :s symbolic})
+   ~(stevedore/map-to-arg-string {:f force :s symbolic :n no-deref})
    ~source ~destination))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript backup-option [])
 (script/defimpl backup-option :default []
@@ -14457,7 +14547,7 @@ Repeating the selector makes it more explicit</p>
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl purge-package [#{:aptitude}] [package &amp; options]
   (&quot;aptitude&quot; purge -y  ~(stevedore/option-args options) ~package))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl list-installed-packages [#{:aptitude}] [&amp; options]
-  (&quot;aptitude&quot; search (quoted &quot;~i&quot;)))</pre></td></tr><tr><td class="docs"><p>apt</p>
+  (&quot;aptitude&quot; search --disable-columns (quoted &quot;~i&quot;)))</pre></td></tr><tr><td class="docs"><p>apt</p>
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl update-package-list [#{:apt}] [&amp; {:keys [] :as options}]
   (&quot;apt-get&quot; -qq ~(stevedore/map-to-arg-string options) update))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl upgrade-all-packages [#{:apt}] [&amp; options]
@@ -14767,13 +14857,20 @@ a constant standoff (in seconds) and max-retries.</p>
          (println (str &quot;'&quot; ~sudo-password &quot;'&quot;))
          (sudo :stdin true :user ~sudo-user)))
        (fragment
-        (sudo :user ~sudo-user :no-prompt true))))))</pre></td></tr><tr><td class="docs"><p>The executable used to prefix the interpreter (eg. sudo, chroot, etc).</p>
+        (sudo :user ~sudo-user :no-prompt true))))))</pre></td></tr><tr><td class="docs"><p>Ensure that a :sudo-user specified in the action trumps a :no-sudo
+  specified in the admin user.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn normalise-sudo-options
+  [user action]
+  (let [r (merge user action)]
+    (if (:sudo-user action)
+      (assoc r :no-sudo false)
+      r)))</pre></td></tr><tr><td class="docs"><p>The executable used to prefix the interpreter (eg. sudo, chroot, etc).</p>
 </td><td class="codes"><pre class="brush: clojure">(defmulti prefix
   (fn [kw session action] kw))
 (defmethod prefix :default [_ _ _] nil)
 (defmethod prefix :sudo [_ session action]
   (debugf &quot;prefix sudo %s&quot; (into {} (merge (:user session) action)))
-  (sudo-cmd-for (merge (:user session) action)))</pre></td></tr><tr><td class="docs"><p>Builds a script. The script is wrapped in a shell script to set
+  (sudo-cmd-for (normalise-sudo-options (:user session) action)))</pre></td></tr><tr><td class="docs"><p>Builds a script. The script is wrapped in a shell script to set
 up the working directory (and possibly environment variables in the
 future).</p>
 </td><td class="codes"><pre class="brush: clojure">(defn build-script
@@ -14808,14 +14905,7 @@ future).</p>
         (var r @?)
         (rm @t)
         (exit @r))))
-   epilog))</pre></td></tr><tr><td class="docs"><p>Ensure that a :sudo-user specified in the action trumps a :no-sudo
-  specified in the admin user.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn normalise-sudo-options
-  [action]
-  action
-  ;; (if (:sudo-user action)
-  ;;   (assoc action :no-sudo false)
-  ;;   action))</pre></td></tr><tr><td class="docs"><p>Builds a code map, describing the command to execute a script.</p>
+   epilog))</pre></td></tr><tr><td class="docs"><p>Builds a code map, describing the command to execute a script.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn build-code
   [session {:keys [default-script-prefix script-context script-dir script-env
                    script-env-fwd script-prefix sudo-user]
@@ -14841,7 +14931,7 @@ future).</p>
                                        default-script-prefix
                                        :sudo))
                                   session
-                                  (normalise-sudo-options action))]
+                                  action)]
                  (debugf &quot;prefix %s&quot; prefix)
                  (string/split prefix #&quot; &quot;))
        :execv (concat (interpreter {:language :bash}) args)})))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.script-exec" name="pallet.script-exec"><h1 class="project-name">pallet.script-exec</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Script execution for pallet.
@@ -15354,9 +15444,14 @@ Is interpreter specific</p>
     [md (DigestInputStream. str md)]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn ^String md5 [path]
   (let [[^java.security.MessageDigest md s]
-        (md5-digest-input-stream (input-stream path))]
+        (md5-digest-input-stream (input-stream path))
+        buffer-size 1024
+        buffer (make-array Byte/TYPE buffer-size)]
     (with-open [s s]
-      (slurp s))
+      (loop []
+        (let [size (.read s buffer)]
+          (when (pos? size)
+            (recur)))))
     (Base64/encodeBase64URLSafeString (.digest md))))</pre></td></tr><tr><td class="docs"><p>Return the upload directory for username. A :home at the start of the
   upload directory will be replaced by the user's home directory.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn upload-dir
@@ -15523,11 +15618,13 @@ permissions. Note this is not the final directory.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn create-path-with-template
   [template-path new-path]
   (script
-   (do
-     (set! dirpath @(dirname ~new-path))
-     (set! templatepath @(dirname @(if (file-exists? ~template-path)
-                                     (canonical-path ~template-path)
-                                     (println ~template-path))))
+   (&quot;: &quot;)
+   (&quot;#&quot; &quot;-- START pallet implementation function&quot;)
+   (defn set_tree_permissions [template_path new_path]
+     (set! dirpath @(dirname @new_path))
+     (set! templatepath @(dirname @(if (file-exists? @template_path)
+                                     (canonical-path @template_path)
+                                     (println @template_path))))
      (when (not (directory? @templatepath))
        (println @templatepath &quot;: Directory does not exist.&quot;)
        (exit 1))
@@ -15535,76 +15632,99 @@ permissions. Note this is not the final directory.</p>
      (chain-or (mkdir @dirpath :path true) (exit 1))
      (&quot;while&quot; (!= &quot;/&quot; @templatepath) &quot;;do&quot;
       ~(chained-script
-        (set! d @dirpath)               ; copy these and update
-        (set! t @templatepath)          ; so we can continue on any failure
+        (set! d @dirpath)        ; copy these and update
+        (set! t @templatepath)   ; so we can continue on any failure
         (when (not (directory? @templatepath))
           (println @templatepath &quot;: Directory does not exist.&quot;)
           (exit 1))
         (set! dirpath @(dirname @dirpath))
         (set! templatepath @(dirname @templatepath))
-        (chain-or (chgrp @(path-group @t) @d) &quot;:&quot;)
-        (chain-or (chmod @(path-mode @t) @d) &quot;:&quot;)
-        (chain-or (chown @(path-owner @t) @d) &quot;:&quot;))
-      (&quot;; done&quot;)))))</pre></td></tr><tr><td class="docs"><p>verify if the files at path and state-path are identical, and
+        (if (not (== @(path-group @t) @(path-group @d)))
+          (chgrp @(path-group @t) @d))
+        (if (not (== @(path-mode @t) @(path-mode @d)))
+          (chmod @(path-mode @t) @d))
+        (if (not (== @(path-owner @t) @(path-owner @d)))
+          (chown @(path-owner @t) @d)))
+      (&quot;; done&quot;)))
+   (&quot;#&quot; &quot;-- END pallet implementation function&quot;)
+   (&quot;set_tree_permissions&quot; ~template-path ~new-path)))</pre></td></tr><tr><td class="docs"><p>verify if the files at path and state-path are identical, and
   whether they match the md5-path.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn verify
   [path state-path md5-path]
-  (chained-script
-   ;; check if the file and the current copy are the same
-   (var filediff &quot;&quot;)
-   (if (&amp;&amp; (file-exists? ~path) (file-exists? ~state-path))
-     (do
-       (diff ~path ~state-path :unified true)
-       (set! filediff &quot;$?&quot;)))
-   ;; check if the current copy and the md5 match
-   (var md5diff &quot;&quot;)
-   (if (&amp;&amp; (file-exists? ~state-path) (file-exists? ~md5-path))
-     (do
-       (md5sum-verify ~md5-path)
-       (set! md5diff &quot;$?&quot;)))
-   ;; report any errors
-   (var errexit 0)
-   (if (== @filediff 1)
-     (do
-       (println
-        &quot;Existing file did not match the pallet master copy: FAIL&quot;)
-       (set! errexit 1)))
-   (if (== @md5diff 1)
-     (do
-       (println &quot;Existing content did not match md5: FAIL&quot;)
-       (set! errexit 1)))
-   ;; exit if error
-   (== @errexit 0)))</pre></td></tr><tr><td class="docs"><p>Script to record a new (version of a) file in state-root</p>
+  (script
+   (&quot;: &quot;)
+   (&quot;#&quot; &quot;-- START pallet implementation function&quot;)
+   (defn verify_md5 [path state_path md5_path]
+     (chain-and
+      ;; check if the file and the current copy are the same
+      (var filediff &quot;&quot;)
+      (if (&amp;&amp; (file-exists? @path) (file-exists? @state_path))
+        (do
+          (diff @path @state_path :unified true)
+          (set! filediff &quot;$?&quot;)))
+      ;; check if the current copy and the md5 match
+      (var md5diff &quot;&quot;)
+      (if (&amp;&amp; (file-exists? @state_path) (file-exists? @md5_path))
+        (do
+          (md5sum-verify @md5_path)
+          (set! md5diff &quot;$?&quot;)))
+      ;; report any errors
+      (var errexit 0)
+      (if (== @filediff 1)
+        (do
+          (println
+           &quot;Existing file did not match the pallet master copy: FAIL&quot;)
+          (set! errexit 1)))
+      (if (== @md5diff 1)
+        (do
+          (println &quot;Existing content did not match md5: FAIL&quot;)
+          (set! errexit 1)))
+      ;; exit if error
+      (== @errexit 0)))
+   (&quot;#&quot; &quot;-- END pallet implementation function&quot;)
+   (&quot;verify_md5&quot; ~path ~state-path ~md5-path)))</pre></td></tr><tr><td class="docs"><p>Script to record a new (version of a) file in state-root</p>
 </td><td class="codes"><pre class="brush: clojure">(defn record
   [path state-path {:keys [max-versions no-versioning versioning]
                     :or {max-versions 5
                          versioning :numbered}}]
-  (chain-commands
-   ;; output the diff between current and new
-   (script
-    (var contentdiff &quot;&quot;)
-    (if (&amp;&amp; (file-exists? ~path) (file-exists? ~state-path))
-      (do
-        (diff ~path ~state-path :unified true)
-        (set! contentdiff &quot;$?&quot;)))
-    ;; install the file if the content is different
-    (if (&amp;&amp; (not (== @contentdiff 0)) (file-exists? ~path))
-      (cp ~path ~state-path :force ~true :backup ~versioning)))
-   ;; cleanup backup copies
-   (if (and (not no-versioning) (pos? max-versions))
-     (script
-      (pipe
-       ((ls (str ~state-path &quot;.~[0-9]*~&quot;) :sort-by-time ~true)
-        &quot;2&gt;&quot; &quot;/dev/null&quot;)
-       (tail &quot;&quot; :max-lines ~(str &quot;+&quot; (inc max-versions)))
-       (xargs (rm &quot;&quot; :force ~true)))))))</pre></td></tr><tr><td class="docs"><p>Script to record a file's md5</p>
+  (script
+   (&quot;: &quot;)
+   (&quot;#&quot; &quot;-- START pallet implementation function&quot;)
+   (defn record_file [path state_path]
+     (chain-and
+      ;; output the diff between current and new
+      (var contentdiff &quot;&quot;)
+      (if (&amp;&amp; (file-exists? @path) (file-exists? @state_path))
+        (do
+          (diff @path @state_path :unified true)
+          (set! contentdiff &quot;$?&quot;)))
+      ;; install the file if the content is different
+      (if (file-exists? @path)
+        (if (not (== @contentdiff 0))
+          (cp @path @state_path :force ~true :backup ~versioning)))
+      ;; cleanup backup copies
+      ~(if (and (not no-versioning) (pos? max-versions))
+         (script
+          (pipe
+           ((ls (str @state_path &quot;.~[0-9]*~&quot;) :sort-by-time ~true)
+            &quot;2&gt;&quot; &quot;/dev/null&quot;)
+           (tail &quot;&quot; :max-lines ~(str &quot;+&quot; (inc max-versions)))
+           (xargs (rm &quot;&quot; :force ~true))))
+         &quot;&quot;)))
+   (&quot;#&quot; &quot;-- END pallet implementation function&quot;)
+   (&quot;record_file&quot; ~path ~state-path )))</pre></td></tr><tr><td class="docs"><p>Script to record a file's md5</p>
 </td><td class="codes"><pre class="brush: clojure">(defn record-md5
   [path md5-path]
-   ;; write the md5 file
-  (chain-commands
-   (file/write-md5-for-file path md5-path)
-   (script
-    (println &quot;MD5 sum is&quot; @(cat ~md5-path)))))</pre></td></tr><tr><td class="docs">
+  ;; write the md5 file
+  (script
+   (&quot;: &quot;)
+   (&quot;#&quot; &quot;-- START pallet implementation function&quot;)
+   (defn record_md5 [path md5_path]
+     (chain-and
+      (file/write-md5-for-file @path @md5_path)
+      (println &quot;MD5 sum is&quot; @(cat @md5_path))))
+   (&quot;#&quot; &quot;-- END pallet implementation function&quot;)
+   (&quot;record_md5&quot; ~path ~md5-path)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defrecord StateRootBackup [state-root]
   FileBackup
   (new-file-content
