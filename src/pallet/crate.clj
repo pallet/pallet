@@ -144,19 +144,21 @@
                               (fn [[k# f#]]
                                 (when (isa? @~hierarchy dispatch-val# k#)
                                   f#))
-                              @a#))]
+                              @a#)
+                             (get @a# :default))]
                (f# ~@args)
                (throw
                 (ex-info
-                 (format "Missing plan-multi %s dispatch for %s"
+                 (format "Missing defmulti-plan %s method for dispatch value %s"
                          ~(clojure.core/name name) (pr-str dispatch-val#))
                  {:reason :missing-method
-                  :plan-multi ~(clojure.core/name name)})))))))))
+                  :defmulti-plan ~(clojure.core/name name)})))))))))
 
 (defn
   ^{:internal true :indent 2}
   add-plan-method-to-multi
   [multifn dispatch-val f]
+  {:pre [(-> multifn meta :methods)]}
   (swap! (-> multifn meta :methods) assoc dispatch-val f))
 
 (defmacro defmethod-plan
@@ -164,13 +166,15 @@
   [multifn dispatch-val args & body]
   (letfn [(sanitise [v]
             (string/replace (str v) #":" ""))]
-    `(add-plan-method-to-multi ~multifn ~dispatch-val
-       (fn [~@args]
-         (phase-context
-             ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
-             {:msg ~(name multifn) :kw ~(keyword (name multifn))
-              :dispatch-val ~dispatch-val}
-           ~@body)))))
+    `(do
+       (assert (-> ~multifn meta :methods) ~(str multifn " isn't a known defmulti-plan"))
+       (add-plan-method-to-multi ~multifn ~dispatch-val
+        (fn [~@args]
+          (phase-context
+              ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
+              {:msg ~(name multifn) :kw ~(keyword (name multifn))
+               :dispatch-val ~dispatch-val}
+            ~@body))))))
 
 ;;;  helpers
 (defmacro session-peek-fn
