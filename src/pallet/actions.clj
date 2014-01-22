@@ -26,15 +26,6 @@
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
-;; =======
-;;    [pallet.core.session :refer [session]]
-;;    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
-;;                          target]]
-;;    [pallet.node-value :refer [node-value]]
-;;    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
-;;    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
-;;    [pallet.utils :refer [apply-map log-multiline tmpfile]])
-;; >>>>>>> 8491b02... Set the file-uploader from action-options
   (:import clojure.lang.Keyword))
 
 (defalias exec decl/exec)
@@ -189,6 +180,35 @@
 (defmacro check-remote-file-arguments
   [m]
   (check-spec m `remote-file-arguments &form))
+
+(def-map-schema remote-directory-arguments
+  :strict
+  (constraints
+   (fn [m] (some (set content-options) (keys m))))
+  [(optional-path [:local-file]) String
+   (optional-path [:remote-file]) String
+   (optional-path [:url]) String
+   (optional-path [:md5]) String
+   (optional-path [:md5-url]) String
+   (optional-path [:action]) Keyword
+   (optional-path [:blob]) (map-schema :strict
+                                       [[:container] String [:path] String])
+   (optional-path [:blobstore]) wild  ; cheating to avoid adding a reqiure
+   (optional-path [:overwrite-changes]) wild
+   (optional-path [:owner]) String
+   (optional-path [:group]) String
+   (optional-path [:recursive]) wild
+   (optional-path [:unpack]) wild
+   (optional-path [:extract-files]) (sequence-of String)
+   (optional-path [:mode]) [:or String Number]
+   (optional-path [:tar-options]) String
+   (optional-path [:unzip-options]) String
+   (optional-path [:strip-components]) Number
+   (optional-path [:install-new-files]) wild])
+
+(defmacro check-remote-directory-arguments
+  [m]
+  (check-spec m `remote-directory-arguments &form))
 
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
@@ -463,6 +483,7 @@ only specified files or directories, use the :extract-files option.
                         strip-components 1
                         recursive true}
                    :as options}]
+  (check-remote-directory-arguments options)
   (verify-local-file-exists local-file)
   (let [action-options (action-options session)
         script-dir (:script-dir action-options)

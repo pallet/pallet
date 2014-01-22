@@ -14,6 +14,7 @@
             package-manager
             package-source-changed-flag
             remote-directory
+            remote-directory-arguments
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
    [pallet.crate.package.epel :refer [add-epel]]
@@ -150,15 +151,12 @@
       (apply-map
        remote-directory session path
        (merge
-        {:local-file-options
-         {:always-before #{::update-package-source ::install-package-source}}
-         :mode "755"
+        {:mode "755"
          :strip-components 0}
-        debs))
+        (dissoc debs :name)))
       (repository-packages session)
       (rebuild-repository session path))
-    (apply-map actions/package-source
-               session (:name package-source) package-source)
+      (actions/package-source session (:name package-source) package-source)
     (doseq [p packages] (package session p))))
 
 ;; Install based on an archive

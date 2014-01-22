@@ -4,7 +4,7 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions
     :refer [exec-checked-script package package-manager repository]]
-   [pallet.crate :refer [defplan]]
+   [pallet.plan :refer [defplan]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 
