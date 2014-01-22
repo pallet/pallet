@@ -29,9 +29,14 @@
 
 (defn ^String md5 [path]
   (let [[^java.security.MessageDigest md s]
-        (md5-digest-input-stream (input-stream path))]
+        (md5-digest-input-stream (input-stream path))
+        buffer-size 1024
+        buffer (make-array Byte/TYPE buffer-size)]
     (with-open [s s]
-      (slurp s))
+      (loop []
+        (let [size (.read s buffer)]
+          (when (pos? size)
+            (recur)))))
     (Base64/encodeBase64URLSafeString (.digest md))))
 
 (defn upload-dir
