@@ -46,13 +46,13 @@
 
 (defn write-service
   [service-name {:keys [run-file user] :as service-options} options]
-  (directory (service-script-file service-name) :owner user)
-  (apply-map
-   remote-file
-   (service-script-path service-name)
-   :mode "0755"
-   :owner user
-   run-file))
+  (let [user-options (if user {:owner user})]
+    (apply-map directory (service-script-file service-name) user-options)
+    (apply-map
+     remote-file
+     (service-script-path service-name)
+     :mode "0755"
+     (merge user-options run-file))))
 
 (defn jobs
   "Write out job definitions."
@@ -71,24 +71,26 @@
 
 (defn start-nohup-service [service-name user]
   (actions/file (service-script-failed-path service-name) :action :delete)
-  (with-action-options {:sudo-user user
-                        :script-dir (service-script-file service-name)}
-    (exec-checked-script
-     (str "Start " service-name " via nohup")
-     ("("
-      (chain-or
-       ("nohup" ~(service-script-path service-name)
-        ">" (service-script-output-path ~service-name))
-       ("touch" (service-script-failed-path ~service-name)))
-      "&" ")")
-     ("sleep" 5)
-     (not (file-exists? (service-script-failed-path ~service-name))))))
+  (let [user-options (if user {:sudo-user user})]
+    (with-action-options
+      (merge user-options {:script-dir (service-script-file service-name)})
+      (exec-checked-script
+       (str "Start " service-name " via nohup")
+       ("("
+        (chain-or
+         ("nohup" ~(service-script-path service-name)
+          ">" (service-script-output-path ~service-name))
+         ("touch" (service-script-failed-path ~service-name)))
+        "&" ")")
+       ("sleep" 5)
+       (not (file-exists? (service-script-failed-path ~service-name)))))))
 
 (defn stop-nohup-service [service-name user]
-  (with-action-options {:sudo-user user}
-    (exec-checked-script
-     (str "Kill " service-name " via killall")
-     ("killall" (quoted ~service-name)))))
+  (let [user-options (if user {:sudo-user user})]
+    (with-action-options user-options
+      (exec-checked-script
+       (str "Kill " service-name " via killall")
+       ("killall" (quoted ~service-name))))))
 
 (defmethod service-supervisor :nohup
   [_
