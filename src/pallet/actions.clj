@@ -529,6 +529,7 @@ only specified files or directories, use the :extract-files option.
     - :disable [repo|(seq repo)]  disable specific repository
     - :priority n                 priority (0-100, default 50)
     - :disable-service-start      disable service startup (default false)
+    - :allow-unsigned             install package even if unsigned
 
    For package management to occur in one shot, use pallet.crate.package."
   ([session package-name {:keys [action y force purge enable disable priority]
