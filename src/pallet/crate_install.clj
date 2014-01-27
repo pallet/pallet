@@ -43,9 +43,86 @@
 
 ;;; ## Install helpers
 (defmulti-plan install-from
-  "Install based on a settings map.  The :install-strategy key determines
+  "Install based on a map.  The :install-strategy key determines
   the install strategy used.  Each strategy has it's own set of keywords
-  used to configure the strategy."
+  used to configure the strategy.
+
+## `:packages`
+
+`:packages`
+: a sequence of strings specifying the package names
+
+`:package-options`
+: a map of package options, as accepted by the `package` action.
+
+`:preseeds`
+: a map of keywords and values  used to set preseeds for the packages.
+
+
+## `:package-source`
+
+Install based on the setting's :package-source and :packages keys.
+This will cause a package update if the package source definition
+changes.
+
+`:package-source`
+A map of options as accepted by the `package-source` action.
+
+`:repository`
+A keyword that enables a repository with an implementation in the
+`repository` action multimethod.
+
+The packages to be installed are specified as for the `:packages`
+install strategy.
+
+
+## `:rpm`
+Install based on a rpm
+
+The value is a map specifying the source of the rpm, using options as
+per the `remote-file` action.
+
+
+## `:rpm-repo`
+
+Install based on a rpm that installs a package repository source.
+
+`:rpm`
+: remote-file options to specify the rpm that will install the
+repository source.
+
+`:packages`
+: a sequence of package names to install from the repository.
+
+`:package-options`
+: package options, as per the `:packages` install strategy.
+
+## `:deb`
+
+Upload a deb archive repository. Options for the :debs key are as for
+remote-directory (e.g. a :local-file key with a path to a local tar
+file). Pallet uploads the deb files, creates a repository from them,
+then installs from the repository.
+
+`:debs`
+: remote-directory options for the source of the deb  package-source packages
+
+`:packages`
+: a sequence of package names to install from the repository.
+
+`:package-source`
+: a package source definition for the repository
+
+
+## `:archive`
+
+Install based on an archive
+
+`:install-dir`
+: a path where the archive should be installed.
+
+`:install-source`
+: remote-directory options specifying the source of the archive."
   (fn [;; {:keys [install-strategy] :as settings}
        settings]
     (when-not (:install-strategy settings)
