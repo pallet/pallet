@@ -679,6 +679,7 @@ only specified files or directories, use the :extract-files option.
     - :disable [repo|(seq repo)]  disable specific repository
     - :priority n                 priority (0-100, default 50)
     - :disable-service-start      disable service startup (default false)
+    - :allow-unsigned             install package even if unsigned
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
