@@ -122,14 +122,27 @@
   environment is set up for the target.
 
   Returns a channel, which will yield a result for plan-fn, a map
-  with `:target`, `:return-value` and `:action-results` keys."
+  with `:target`, `:return-value` and `:action-results` keys.
+
+  The result is also written to the recorder in the session."
   [session target plan-fn]
-  {:pre [(map? session)(map? target)(:node target)(fn? plan-fn)]}
-  (let [r (in-memory-recorder)     ; a recorder for just this plan-fn
+  {:pre [(map? session)
+         (map? target)
+         (:node target)
+         (fn? plan-fn)
+         ;; Reduce preconditions? or reduce magic by not having defaults?
+         (recorder session)
+         (executor session)]}
+  (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
         session (-> session
                     (set-target target)
+                    ;; TODO allow no recorder in session?
+                    ;; default to null recorder?
                     (set-recorder (juxt-recorder [r (recorder session)])))]
-    (with-script-for-node target (plan-state session)
+    (with-script-for-node target (plan-state session) ; we need this
+                                                      ; for script
+                                                      ; blocks in the
+                                                      ; plan functions
       (let [rv (plan-fn session)]
         {:action-results (results r)
          :return-value rv
