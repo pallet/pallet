@@ -1,5 +1,5 @@
 (ns pallet.core.api
-  "Base level API for pallet"
+  "API for execution of pallet plan functions."
   (:require
    [clojure.core.async :as async :refer [chan close! go put! thread <! >!]]
    [clojure.core.typed
@@ -40,24 +40,10 @@
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node
     :refer [compute-service id image-user group-name primary-ip
-            tag tag! taggable? terminated?]]
-   [pallet.session.verify :refer [add-session-verification-key check-session]]
-   [pallet.stevedore :refer [with-source-line-comments]]
-   [pallet.sync :refer [sync-phase*]])
+            tag tag! taggable? terminated?]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
-
-(ann version (Fn [-> (Nilable String)]))
-(let [v (atom (ann-form nil (Nilable String)))]
-  (defn version
-    "Returns the pallet version."
-    []
-    (or
-     @v
-     (reset! v (System/getProperty "pallet.version"))
-     (reset! v (if-let [version (slurp (io/resource "pallet-version"))]
-                       (string/trim version))))))
 
 ;;; ## Action Plan Execution
 
@@ -91,144 +77,60 @@
         (throw e))
       rv)))
 
-;;; These should be part of the executor
-
-;; execute-status-fn (execute-status-fn session)
-;; (assert execute-status-fn "No execute-status-fn in session")
-;; (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
-;; (execute-status-fn rv)
-;; session (parse-shell-result session rv)
-;; TODO add retries, timeouts, etc
-
-;;; # Execute a phase on a target node
-(ann stop-execution-on-error [ActionResult -> nil])
-(defn stop-execution-on-error
-  ":execute-status-fn algorithm to stop execution on an error"
-  [result]
-  (when (:error result)
-    (debugf "Stopping execution %s" (:error result))
-    (let [msg (-> result :error :message)]
-      (throw (ex-info
-              (str "Phase stopped on error" (if msg (str " - " msg)))
-              {:error (:error result)
-               :message msg}
-              (get (get result :error) :exception))))))
-
 (ann ^:no-check execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute
   "Execute a plan function on a target.
 
-  Ensures that the session target is set, and that the script
-  environment is set up for the target.
+Ensures that the session target is set, and that the script
+environment is set up for the target.
 
-  Returns a channel, which will yield a result for plan-fn, a map
-  with `:target`, `:return-value` and `:action-results` keys.
+Returns a map with `:target`, `:return-value` and `:action-results`
+keys.
 
-  The result is also written to the recorder in the session."
+The result is also written to the recorder in the session."
   [session target plan-fn]
   {:pre [(map? session)
          (map? target)
          (:node target)
          (fn? plan-fn)
          ;; Reduce preconditions? or reduce magic by not having defaults?
+         ;; TODO allow no recorder in session? default to null recorder?
+         ;; TODO have a default executor?
          (recorder session)
          (executor session)]}
   (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
+        recorder (juxt-recorder [r (recorder session)])
         session (-> session
                     (set-target target)
-                    ;; TODO allow no recorder in session?
-                    ;; default to null recorder?
-                    (set-recorder (juxt-recorder [r (recorder session)])))]
-    (with-script-for-node target (plan-state session) ; we need this
-                                                      ; for script
-                                                      ; blocks in the
-                                                      ; plan functions
-      (let [rv (plan-fn session)]
+                    (set-recorder recorder))]
+    (with-script-for-node target (plan-state session)
+      ;; We need the script context for script blocks in the plan
+      ;; functions.
+
+      (let [rv (try
+                 (plan-fn session)
+                 (catch Exception e
+                   ;; Wrap the exception so we can return the
+                   ;; accumulated results.
+                   (throw (ex-info "Exception in plan-fn"
+                                   {:action-results (results r)
+                                    :return-value rv
+                                    :target target}
+                                   e))))]
         {:action-results (results r)
          :return-value rv
          :target target}))))
 
 
-;; Not sure this is worth having as a wrapper
-;; (ann ^:no-check go-execute
-;;      [BaseSession TargetMap PlanFn -> (ReadOnlyPort PlanResult)])
-;; (defn go-execute
-;;   "Execute a plan function on a target asynchronously.
-
-;;   Ensures that the session target is set, and that the script
-;;   environment is set up for the target.
-
-;;   Returns a channel, which will yield a result for plan-fn, a map
-;;   with `:target`, `:return-value` and `:action-results` keys."
-;;   [session target plan-fn]
-;;   {:pre [(map? session)(map? target)(:node target)(fn? plan-fn)]}
-;;   (go-logged
-;;    (execute session target plan-fn)))
-
-
-
-
-
-
-(ann ^:no-check action-errors?
-  [(Seqable (ReadOnlyPort ActionResult)) -> (Nilable PlanResult)])
-(defn action-errors?
-  "Check for errors reported by the sequence of channels.  This provides
-  a synchronisation point."
-  [chans]
-  (->> chans
-       (mapv (fn> [c :- (ReadOnlyPort ActionResult)]
-               (timeout-chan c (* 5 60 1000))))
-       async/merge
-       (async/reduce
-        (fn> [r :- (Nilable PlanResult)
-              v :- (Nilable ActionResult)]
-          (or r (and (nil? v) {:error {:timeout true}})
-              (and (:error v) (select-keys v [:error]))))
-        nil)))
-
-;;; # Node state tagging
-(ann state-tag-name String)
-(def state-tag-name "pallet/state")
-
-(ann read-or-empty-map [String -> (Map Keyword Any)])
-(defn read-or-empty-map
-  [s]
-  (if (blank? s)
-    {}
-    (assert-type-predicate (read-string s) keyword-map?)))
-
-(ann set-state-for-target [String TargetMap -> nil])
-(defn set-state-for-target
-  "Sets the boolean `state-name` flag on `target`."
-  [state-name target]
-  (debugf "set-state-for-target %s" state-name)
-  (when (taggable? (:node target))
-    (debugf "set-state-for-target taggable")
-    (let [current (read-or-empty-map (tag (:node target) state-tag-name))
-          val (assoc current (keyword (name state-name)) true)]
-      (debugf "set-state-for-target %s %s" state-tag-name (pr-str val))
-      (tag! (:node target) state-tag-name (pr-str val)))))
-
-(ann has-state-flag? [String TargetMap -> boolean])
-(defn has-state-flag?
-  "Return a predicate to test for a state-flag having been set."
-  [state-name target]
-  (debugf "has-state-flag? %s %s" state-name (id (:node target)))
-  (let [v (boolean
-           (get
-            (read-or-empty-map (tag (:node target) state-tag-name))
-            (keyword (name state-name))))]
-    (tracef "has-state-flag? %s" v)
-    v))
+;;; TODO make sure these error reporting functions are relevant and correct
 
 ;;; # Exception reporting
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
-(ann ^:no-check phase-errors-in-results
+(ann ^:no-check errors
      [(Nilable (NonEmptySeqable PlanResult)) ->
       (Nilable (NonEmptySeqable PlanResult))])
-(defn phase-errors-in-results
-  "Return a sequence of phase errors for a sequence of result maps.
+(defn errors
+  "Return a sequence of errors for a sequence of result maps.
    Each element in the sequence represents a failed action, and is a map,
    with :target, :error, :context and all the return value keys for the return
    value of the failed action."
@@ -252,6 +154,102 @@
                         (merge (dissoc ar :result) r))
                    (get ar :result)))))
     (filter (inst :error ActionErrorMap) results))))
+
+
+(ann error-exceptions
+     [(Nilable (NonEmptySeqable PlanResult)) -> (Seqable Throwable)])
+(defn error-exceptions
+  "Return a sequence of exceptions from a sequence of errors for an operation."
+  [errors]
+  (->> errors
+       ((inst map Throwable PlanResult)
+        ((inst comp ActionErrorMap Throwable PlanResult) :exception :error))
+       (filter identity)))
+
+(ann throw-errors [(Nilable (NonEmptySeqable PlanResult)) -> nil])
+(defn throw-phase-errors
+  "Throw an exception if the errors sequence is non-empty."
+  [errors]
+  (when-let [e (seq errors)]
+    (throw
+     (ex-info
+      (str "Errors: "
+           (string/join
+            " "
+            ((inst map (U String nil) PlanResult)
+             ((inst comp ActionErrorMap String PlanResult) :message :error)
+             e)))
+      {:errors e}
+      (first (error-exceptions errors))))))
+
+
+
+
+
+
+
+;;; These should be part of the executor
+
+;; execute-status-fn (execute-status-fn session)
+;; (assert execute-status-fn "No execute-status-fn in session")
+;; (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
+;; (execute-status-fn rv)
+;; session (parse-shell-result session rv)
+;; TODO add retries, timeouts, etc
+
+;;; # Execute a phase on a target node
+;; (ann stop-execution-on-error [ActionResult -> nil])
+;; (defn stop-execution-on-error
+;;   ":execute-status-fn algorithm to stop execution on an error"
+;;   [result]
+;;   (when (:error result)
+;;     (debugf "Stopping execution %s" (:error result))
+;;     (let [msg (-> result :error :message)]
+;;       (throw (ex-info
+;;               (str "Phase stopped on error" (if msg (str " - " msg)))
+;;               {:error (:error result)
+;;                :message msg}
+;;               (get (get result :error) :exception))))))
+
+
+;; ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
+;; (ann ^:no-check phase-errors
+;;      [Session -> (Nilable (NonEmptySeqable PlanResult))])
+;; (defn phase-errors
+;;   "Return a sequence of errors for an operation.
+;;    Each element in the sequence represents a failed action, and is a map,
+;;    with :target, :error, :context and all the return value keys for the return
+;;    value of the failed action."
+;;   [session]
+;;   ;; TO switch back to Keyword invocation when supported in core.typed
+;;   (debugf "phase-errors %s" (vec (:results session)))
+;;   (errors (:results session)))
+
+;; ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
+;; (ann ^:no-check phase-error-exceptions [Session -> (Seqable Throwable)])
+;; (defn phase-error-exceptions
+;;   "Return a sequence of exceptions from phase errors for an operation. "
+;;   [result]
+;;   (->> (phase-errors result)
+;;        ((inst map Throwable PlanResult)
+;;         ((inst comp ActionErrorMap Throwable PlanResult) :exception :error))
+;;        (filter identity)))
+
+;; ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
+;; (ann ^:no-check throw-phase-errors [Session -> nil])
+;; (defn throw-phase-errors
+;;   [result]
+;;   (when-let [e (phase-errors result)]
+;;     (throw
+;;      (ex-info
+;;       (str "Phase errors: "
+;;            (string/join
+;;             " "
+;;             ((inst map (U String nil) PlanResult)
+;;              ((inst comp ActionErrorMap String PlanResult) :message :error)
+;;              e)))
+;;       {:errors e}
+;;       (first (phase-error-exceptions result))))))
 
 
 ;;; # Node creation and removal
@@ -284,43 +282,3 @@
 ;;   (debugf "remove-nodes %s targets" (vector targets))
 ;;   (destroy-nodes compute-service (map (:node target) targets))
 ;;   (remove-system-targets session targets))
-
-
-;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
-(ann ^:no-check phase-errors
-     [Session -> (Nilable (NonEmptySeqable PlanResult))])
-(defn phase-errors
-  "Return a sequence of phase errors for an operation.
-   Each element in the sequence represents a failed action, and is a map,
-   with :target, :error, :context and all the return value keys for the return
-   value of the failed action."
-  [result]
-  ;; TO switch back to Keyword invocation when supported in core.typed
-  (debugf "phase-errors %s" (vec (get result :results)))
-  (phase-errors-in-results (get result :results)))
-
-;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
-(ann ^:no-check phase-error-exceptions [Session -> (Seqable Throwable)])
-(defn phase-error-exceptions
-  "Return a sequence of exceptions from phase errors for an operation. "
-  [result]
-  (->> (phase-errors result)
-       ((inst map Throwable PlanResult)
-        ((inst comp ActionErrorMap Throwable PlanResult) :exception :error))
-       (filter identity)))
-
-;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
-(ann ^:no-check throw-phase-errors [Session -> nil])
-(defn throw-phase-errors
-  [result]
-  (when-let [e (phase-errors result)]
-    (throw
-     (ex-info
-      (str "Phase errors: "
-           (string/join
-            " "
-            ((inst map (U String nil) PlanResult)
-             ((inst comp ActionErrorMap String PlanResult) :message :error)
-             e)))
-      {:errors e}
-      (first (phase-error-exceptions result))))))

@@ -1,5 +1,11 @@
 (ns pallet.core.phase
-  "Everything to do with phases in pallet.")
+  "# Pallet phase maps.
+
+Phase maps provide a way of naming functions at runtime.  A phase map
+is just a hash-map with keys that are keywords (the phases) and values
+that are pallet plan functions.
+
+Phase maps enable composition of operations across heterogenous nodes.")
 
 (ann phase-args [Phase -> (Nilable (Seqable Any))])
 (defn phase-args [phase]

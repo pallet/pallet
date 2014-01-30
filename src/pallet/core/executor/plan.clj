@@ -8,7 +8,7 @@
   (execute [executor target user action]
     (let [rv {:target target
               :user user
-              :action action}]
+              :result action}]
       (swap! actions conj rv)
       rv)))
 

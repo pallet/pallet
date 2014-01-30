@@ -1,5 +1,9 @@
 (ns pallet.core.group
-  "Group functions for adjusting nodes")
+  "Pallet Group functions for adjusting nodes
+
+Provides the node-spec, service-spec and group-spec abstractions.
+
+Provides the lift and converge operations.")
 
 
 (ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
@@ -249,3 +253,54 @@
      (remove-nodes session compute-service (first x) (second x)))
    group-nodes
    (* 5 60 1000)))
+
+
+
+;;; TODO add converge and lift here
+
+
+(ann default-phases [TargetMapSeq -> (Seqable Keword)])
+(defn default-phases
+  "Return a sequence with the default phases for `targets`."
+  [targest]
+  (->> targets
+       (map :default-phases)
+       distinct
+       (apply total-order-merge)))
+
+;;; # Execution helpers
+(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
+                       -> (Seqable (ReadOnlyPort PlanResult))])
+(defn execute-plan-fns
+  "Apply plan functions to targets.  Returns a sequence of channels that
+  will yield phase result maps."
+  [session targets plan-fns]
+  (for> :- (ReadOnlyPort PlanResult)
+        [target :- TargetMap targets
+         plan :-PlanFn plan-fns]
+    (api/execute session target plan)))
+
+(ann execute-plan-fns [BaseSession TargetMapSeq Phase
+                       -> (Seqable (ReadOnlyPort PlanResult))])
+(defn execute-phase
+  "Apply phase to targets.
+  Phase is either a keyword, or a vector of keyword and phase arguments."
+  [session targets phase]
+  (for> :- (ReadOnlyPort PlanResult)
+        [target :- TargetMap targets
+         :let [plan (target-phase-fn )]
+         :when plan]
+    (api/execute session target plan)))
+
+(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
+                       -> (Seqable (ReadOnlyPort PlanResult))])
+(defn execute-phases
+  "Execute the specified `phases` on `targets`."
+  [session targets phases]
+  (go-logged
+   (loop> [phases :- Phase phases]
+     (if-let [p (first phases)]
+       (if (errors? (api/execute-phase session targets phase))
+         (results (recorder session))
+         (recur (rest phases)))
+       (results (recorder session))))))
