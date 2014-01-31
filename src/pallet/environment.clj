@@ -182,7 +182,7 @@
                     (assoc env-map :algorithms (eval-algorithms algorithms)))
                   env-map)
         env-map (if-let [action-options (:action-options env-map)]
-                  (assoc env-map :algorithms (eval-action-options action-options))
+                  (assoc env-map :action-options (eval-action-options action-options))
                   env-map)]
     env-map))
 
