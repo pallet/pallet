@@ -8,7 +8,11 @@ state should look for info keyed by the host, then keyed by the group,
 and does not need to consider a host, group tuple.
 
 - host
-- group"
+- group
+
+
+TODO: add a plan-state? predicate
+"
   (:require
    [clojure.core.typed
     :refer [ann fn> inst tc-ignore

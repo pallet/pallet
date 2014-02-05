@@ -1,18 +1,18 @@
 (ns pallet.action-options
   "Options for controlling the behaviour of actions."
   (:require
-   [pallet.core.session :refer [execution-state]]))
+   [pallet.core.session :as session]))
 
 ;;; # Action Options
 
 ;;; Options for actions can be overridden by setting the options map
 ;;; on the session.
-(def ^{:no-doc true :internal true} action-options-key ::action-options)
+(def ^{:no-doc true :internal true} action-options-key :action-options)
 
 (defn action-options
   "Return any action-options currently defined on the session."
   [session]
-  (action-options-key (execution-state)))
+  (session/action-options session))
 
 ;; (defn get-action-options
 ;;   "Return any action-options currently defined on the session."
@@ -52,10 +52,11 @@ options.
 `:new-login-after-action`
 : Force a new ssh login after the action.  Useful if the action effects the
   login environment and you want the affect to be visible immediately."
-  [m & body]
-  `(let [p# (get-action-options)
+  [session m & body]
+  `(let [session# ~session
+         p# (action-options session#)
          m# ~m]
-     (update-action-options m#)
+     (merge-action-options m#)
      (let [v# (do ~@body)]
        (when (seq p#)
          (assoc-action-options p#))

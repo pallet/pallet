@@ -123,7 +123,7 @@
          ^{:action action#}
          (fn ~action-name
            [~@args]
-           (let [session# (session)]
+           (let [session# ~(first args)]
              (execute-action
               session#
               (action-map

@@ -5,7 +5,7 @@
    [clojure.tools.logging :refer [tracef]]
    [pallet.actions.decl
     :refer [exec-checked-script package-source-changed-flag remote-file-action]]
-   [pallet.crate :refer [packager]]
+   [pallet.core.session :refer [packager]]
    [pallet.script.lib
     :refer [file heredoc install-package list-installed-packages
             package-manager-non-interactive purge-package os-version-name
@@ -276,7 +276,7 @@
      {:os :ubuntu :os-version [[12 10] nil]} "software-properties-common"})))
 
 (defn- package-source-apt
-  [name {:keys [key-id key-server key-url url] :as options}]
+  [session name {:keys [key-id key-server key-url url] :as options}]
   (let [^String key-url url]
     (if (and key-url (.startsWith key-url "ppa:"))
       (let [list-file (str
@@ -300,12 +300,14 @@
   (when key-id
     (let [key-server (or key-server *default-apt-keyserver*)]
       (exec-checked-script
+       session
        "Install repository key from key server"
        ("apt-key" adv "--keyserver" ~key-server "--recv-keys" ~key-id))))
   (when key-url
     (remote-file-action
      "aptkey.tmp" {:url key-url :flag-on-changed package-source-changed-flag})
     (exec-checked-script
+     session
      "Install repository key"
      ("apt-key" add aptkey.tmp))))
 

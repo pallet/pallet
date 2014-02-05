@@ -9,13 +9,11 @@
 
 (ann-datatype NullRecorder [])
 
-(deftype InMemoryRecorder []
+(deftype NullRecorder []
   Record
   (record [_ result])
   Results
   (results [_]))
 
 (ann ^:no-check null-recorder [-> Recorder])
-(defn null-recorder
-  []
-  (NullRecorder. (atom (vector))))
+(defn null-recorder [] (NullRecorder.))

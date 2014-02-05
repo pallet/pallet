@@ -2,7 +2,20 @@
   "Tagging of nodes.
 
 TODO: This should be abstracted at this level, rather than in the
-provider as currently?")
+provider as currently? Or should this be left completely at the node
+level?"
+  (:require
+   [clojure.core.typed
+    :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
+            AnyInteger Map Nilable NilableNonEmptySeq
+            NonEmptySeqable Seq Seqable]]
+   [clojure.tools.logging :refer [debugf tracef]]
+   [clojure.string :refer [blank?]]
+   [pallet.core.types                   ; before any protocols
+    :refer [assert-type-predicate keyword-map?]]
+   [pallet.node
+    :refer [compute-service id image-user group-name node? primary-ip
+            tag tag! taggable? terminated?]]))
 
 ;;; # Node state tagging
 (ann state-tag-name String)

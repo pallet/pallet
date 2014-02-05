@@ -1,12 +1,14 @@
 (ns pallet.core.api
-  "API for execution of pallet plan functions."
+  "API for execution of pallet plan functions.
+
+TODO: consider renaming this to pallet.core.plan, and reserving the
+api namespace for exposing functions from other namespaces, adding
+functions with more defaults, etc."
   (:require
-   [clojure.core.async :as async :refer [chan close! go put! thread <! >!]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
-   [clojure.core.typed.async :refer [ReadOnlyPort]]
    [pallet.core.type-annotations]
    [pallet.core.types                   ; before any protocols
     :refer [assert-not-nil assert-type-predicate keyword-map?
@@ -16,31 +18,22 @@
             PlanFn
             PlanState Result TargetMapSeq Session TargetMap TargetPlanResult
             User]]
-   [clojure.java.io :as io]
    [clojure.string :as string]
-   [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.async :refer [go-logged map-async timeout-chan]]
-   [pallet.common.logging.logutils :as logutils]
-   [pallet.compute
-    :refer [compute-service? destroy-node destroy-nodes nodes run-nodes
-            service-properties]]
-   [pallet.compute.protocols :refer [ComputeService]]
-   [pallet.core.api-impl :refer :all]
+   [pallet.context :refer [with-phase-context]]
    [pallet.core.executor :as executor]
+   [pallet.core.node-os :refer :all]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
    [pallet.core.session
-    :refer [add-system-targets admin-user base-session? execute-status-fn
-            executor plan-state recorder remove-system-targets set-recorder
-            set-target]]
-   [pallet.core.user :refer [*admin-user* obfuscated-passwords user?]]
+    :refer [base-session?
+            executor plan-state recorder remove-system-targets set-node
+            set-executor set-recorder]]
+   [pallet.core.user :refer [obfuscated-passwords user?]]
    [pallet.execute :refer [parse-shell-result]]
-   [pallet.node
-    :refer [compute-service id image-user group-name primary-ip
-            tag tag! taggable? terminated?]])
+   [pallet.node :refer [node?]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
@@ -52,17 +45,14 @@
 ;; TODO - remove tc-gnore when update-in has more smarts
 (defn execute-action
   "Execute an action map within the context of the current session."
-  [session action]
-  (let [executor (executor session)
-        target (:target session)
-        user (:user session)]
-
-    (debugf "execute-action %s" (pr-str action))
-    (assert executor "No executor in session")
+  [{:keys [node user] :as session} action]
+  (debugf "execute-action action %s" (pr-str action))
+  (tracef "execute-action session %s" (pr-str session))
+  (let [executor (executor session)]
     (tracef "execute-action executor %s" (pr-str executor))
-
+    (assert executor "No executor in session")
     (let [[rv e] (try
-                   [(executor/execute executor target user action)]
+                   [(executor/execute executor node user action)]
                    (catch Exception e
                      (let [rv (:result (ex-data e))]
                        (when-not rv
@@ -70,16 +60,16 @@
                          ;; just re-throw it.
                          (throw e))
                        [rv e])))]
-      (debugf "execute-action rv %s" (pr-str rv))
+      (tracef "execute-action rv %s" (pr-str rv))
       (assert (map? rv) (str "Action return value must be a map: " (pr-str rv)))
       (record (recorder session) rv)
       (when e
         (throw e))
       rv)))
 
-(ann ^:no-check execute [BaseSession TargetMap PlanFn -> PlanResult])
+(ann execute [BaseSession Node PlanFn -> PlanResult])
 (defn execute
-  "Execute a plan function on a target.
+  "Execute a plan function on a target node.
 
 Ensures that the session target is set, and that the script
 environment is set up for the target.
@@ -88,22 +78,20 @@ Returns a map with `:target`, `:return-value` and `:action-results`
 keys.
 
 The result is also written to the recorder in the session."
-  [session target plan-fn]
-  {:pre [(map? session)
-         (map? target)
-         (:node target)
+  [session node plan-fn]
+  {:pre [(base-session? session)
+         (node? node)
          (fn? plan-fn)
          ;; Reduce preconditions? or reduce magic by not having defaults?
-         ;; TODO allow no recorder in session? default to null recorder?
          ;; TODO have a default executor?
-         (recorder session)
          (executor session)]}
   (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
-        recorder (juxt-recorder [r (recorder session)])
         session (-> session
-                    (set-target target)
-                    (set-recorder recorder))]
-    (with-script-for-node target (plan-state session)
+                    (set-node node)
+                    (set-recorder (if-let [recorder (recorder session)]
+                                    (juxt-recorder [r recorder])
+                                    r)))]
+    (with-script-for-node node (plan-state session)
       ;; We need the script context for script blocks in the plan
       ;; functions.
 
@@ -114,12 +102,11 @@ The result is also written to the recorder in the session."
                    ;; accumulated results.
                    (throw (ex-info "Exception in plan-fn"
                                    {:action-results (results r)
-                                    :return-value rv
-                                    :target target}
+                                    :node node}
                                    e))))]
         {:action-results (results r)
          :return-value rv
-         :target target}))))
+         :node node}))))
 
 
 ;;; TODO make sure these error reporting functions are relevant and correct
@@ -185,7 +172,44 @@ The result is also written to the recorder in the session."
 
 
 
+;;; ### plan functions
 
+;;; The phase context is used in actions and crate functions. The
+;;; phase context automatically sets up a context, which is available
+;;; (for logging, etc) at phase execution time.
+(defmacro phase-context
+  "Defines a block with a context that is automatically added."
+  {:indent 2}
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(with-phase-context
+       (merge {:kw ~(list 'quote pipeline-name)
+               :msg ~(if (symbol? pipeline-name)
+                       (name pipeline-name)
+                       pipeline-name)
+               :ns ~(list 'quote (ns-name *ns*))
+               :line ~line
+               :log-level :trace}
+              ~event)
+       ~@args)))
+
+
+(defmacro plan-fn
+  "Create a plan function from a sequence of plan function invocations.
+
+   eg. (plan-fn
+         (file \"/some-file\")
+         (file \"/other-file\"))
+
+   This generates a new plan function, and adds code to verify the state
+   around each plan function call."
+  [& body]
+  (let [n? (or (string? (first body)) (and (next body) (symbol? (first body))))
+        n (when n? (name (first body)))
+        body (if n? (rest body) body)]
+    (if n
+      `(fn [] (phase-context ~(gensym n) {} ~@body))
+      `(fn [] (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 
 ;;; These should be part of the executor

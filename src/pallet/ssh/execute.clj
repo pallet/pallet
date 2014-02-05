@@ -13,6 +13,7 @@
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
    [pallet.node :as node]
+   [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [chown env exit mkdir]]
@@ -28,14 +29,13 @@
 (defn authentication
   "Return the user to use for authentication.  This is not necessarily the
   admin user (e.g. when bootstrapping, it is the image user)."
-  [session]
-  (logging/debugf "authentication %s" (obfuscated-passwords (:user session)))
-  {:user (:user session)})
+  [user]
+  (logging/debugf "authentication %s" (obfuscated-passwords user))
+  {:user user})
 
 (defn endpoint
-  [session]
-  (let [target-node (-> session :server :node)
-        proxy (node/proxy target-node)]
+  [target-node]
+  (let [proxy (node/proxy target-node)]
     (if proxy
       {:server (or (:host proxy "localhost"))
        :port (:port proxy)}
@@ -47,33 +47,35 @@
   `prefix`"
   [connection prefix script-env]
   (logging/tracef "ssh-mktemp %s" (bean connection))
-  (let [cmd (stevedore/script
-             ((env ~@(mapcat identity script-env))
-              (println
-               (~lib/make-temp-file
-                ~prefix
-                :tmpdir ~(or (get script-env "TMPDIR") true)))))
-        result (transport/exec connection {:execv [cmd]} {})]
-    (logging/tracef "ssh-mktemp script-env %s" script-env)
-    (logging/tracef "ssh-mktemp %s %s" cmd result)
-    (if (zero? (:exit result))
-      (string/trim (result :out))
-      (throw
-       (ex-info
-        (format "Failed to generate remote temporary file %s" (:err result))
-        {:type :remote-execution-failure
-         :exit (:exit result)
-         :err (:err result)
-         :out (:out result)})))))
+  ;; allow default behaviour if no script context available
+  (with-script-context (conj *script-context* :dummy)
+    (let [cmd (stevedore/script
+               ((env ~@(mapcat identity script-env))
+                (println
+                 (~lib/make-temp-file
+                  ~prefix
+                  :tmpdir ~(or (get script-env "TMPDIR") true)))))
+          result (transport/exec connection {:execv [cmd]} {})]
+      (logging/tracef "ssh-mktemp script-env %s" script-env)
+      (logging/tracef "ssh-mktemp %s %s" cmd result)
+      (if (zero? (:exit result))
+        (string/trim (result :out))
+        (throw
+         (ex-info
+          (format "Failed to generate remote temporary file %s" (:err result))
+          {:type :remote-execution-failure
+           :exit (:exit result)
+           :err (:err result)
+           :out (:out result)}))))))
 
-(defn get-connection [session]
+(defn get-connection [node user]
   (transport/open
-   ssh-connection (endpoint session) (authentication session)
+   ssh-connection (endpoint node) (authentication user)
    {:max-tries 3}))
 
-(defn release-connection [session]
+(defn release-connection [node user]
   (transport/release
-   ssh-connection (endpoint session) (authentication session)
+   ssh-connection (endpoint node) (authentication user)
    {:max-tries 3}))
 
 (defn ^{:internal true} with-connection-exception-handler
@@ -88,15 +90,15 @@
 
 (defn ^{:internal true} with-connection*
   "Execute a function with a connection to the current target node,"
-  [session f]
+  [node user f]
   (loop [retries 1]
-    (let [connection (get-connection session)
+    (let [connection (get-connection node user)
           r (f connection)]
       (if (map? r)
         (cond
          (and (::retriable r) (pos? retries))
          (do
-           (release-connection session)
+           (release-connection node user)
            (recur (dec retries)))
 
          (::retriable r) (throw (::exception r))
@@ -106,27 +108,27 @@
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
-  [session [connection] & body]
-  `(with-connection* ~session (fn [~connection]
-                                (try
-                                  ~@body
-                                  (catch Exception e#
-                                    (with-connection-exception-handler e#))))))
+  [node user [connection] & body]
+  `(with-connection* ~node ~user
+     (fn [~connection]
+       (try
+         ~@body
+         (catch Exception e#
+           (with-connection-exception-handler e#))))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [context] :as action} action-type
-   [options script]]
+  [node user {:keys [context] :as action} [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
-  (let [endpoint (endpoint session)]
+  (let [endpoint (endpoint node)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
        "%s %s %s %s"
        (:server endpoint) (:port endpoint)
        (or (context-string) "")
        (or (:summary options) ""))
-      (with-connection session [connection]
+      (with-connection node user [connection]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)
@@ -148,7 +150,7 @@
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
           (let [clean-f (clean-logs (:user authentication))
-                cmd (script-builder/build-code session action tmpfile)
+                cmd (script-builder/build-code user action tmpfile)
                 _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
@@ -156,7 +158,8 @@
                         {:output-f (log-script-output
                                     (:server endpoint) (:user authentication))
                          :agent-forwarding (:ssh-agent-forwarding action)})
-                [result session] (execute/parse-shell-result session result)
+                ;; TODO fix this by putting the flags into the executor
+                ;; [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
                 result (result-with-error-map
                         (:server endpoint) "Error executing script" result)
@@ -178,7 +181,7 @@
                             (:server endpoint))
             (when (:new-login-after-action action)
               (transport/close connection))
-            [result session]))))))
+            result))))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
@@ -206,53 +209,53 @@
     (transport/send-stream
      connection (io/input-stream file) remote-name {:mode 0600})))
 
-(defn ssh-from-local
-  "Transfer a file from the origin machine to the target via ssh."
-  [session value]
-  (logging/tracef "ssh-from-local %s" value)
-  (logging/tracef "ssh-from-local %s" session)
-  (assert (-> session :server) "Target server in session")
-  (assert (-> session :server :node) "Target node in session")
-  (with-connection session [connection]
-    (let [endpoint (transport/endpoint connection)]
-      (let [{:keys [local-path remote-path remote-md5-path]} value]
-        (logging/debugf
-         "Remote local-path %s:%s from %s"
-         (:server endpoint) remote-md5-path local-path)
-        (let [md5 (try
-                    (filesystem/with-temp-file [md5-copy]
-                      (transport/receive
-                       connection remote-md5-path (.getPath md5-copy))
-                      (slurp md5-copy))
-                    (catch Exception _ nil))]
-          (if md5
-            (filesystem/with-temp-file [local-md5-file]
-              (logging/debugf "Calculating md5 for %s" local-path)
-              (local/local-script
-               ((~lib/md5sum ~local-path) ">" ~(.getPath local-md5-file))
-               (~lib/normalise-md5 ~(.getPath local-md5-file)))
-              (let [local-md5 (slurp local-md5-file)]
-                (logging/debugf
-                 "md5 check - remote: %s local: %s" md5 local-md5)
-                (if (not=
-                     (first (string/split md5 #" "))
-                     (first (string/split local-md5 #" ")) )
-                  (ssh-upload session connection local-path remote-path)
-                  (logging/infof
-                   "%s:%s is already up to date"
-                   (:server endpoint) remote-path))))
-            (ssh-upload session connection local-path remote-path))))
-      [value session])))
+;; (defn ssh-from-local
+;;   "Transfer a file from the origin machine to the target via ssh."
+;;   [session value]
+;;   (logging/tracef "ssh-from-local %s" value)
+;;   (logging/tracef "ssh-from-local %s" session)
+;;   (assert (-> session :server) "Target server in session")
+;;   (assert (-> session :server :node) "Target node in session")
+;;   (with-connection session [connection]
+;;     (let [endpoint (transport/endpoint connection)]
+;;       (let [{:keys [local-path remote-path remote-md5-path]} value]
+;;         (logging/debugf
+;;          "Remote local-path %s:%s from %s"
+;;          (:server endpoint) remote-md5-path local-path)
+;;         (let [md5 (try
+;;                     (filesystem/with-temp-file [md5-copy]
+;;                       (transport/receive
+;;                        connection remote-md5-path (.getPath md5-copy))
+;;                       (slurp md5-copy))
+;;                     (catch Exception _ nil))]
+;;           (if md5
+;;             (filesystem/with-temp-file [local-md5-file]
+;;               (logging/debugf "Calculating md5 for %s" local-path)
+;;               (local/local-script
+;;                ((~lib/md5sum ~local-path) ">" ~(.getPath local-md5-file))
+;;                (~lib/normalise-md5 ~(.getPath local-md5-file)))
+;;               (let [local-md5 (slurp local-md5-file)]
+;;                 (logging/debugf
+;;                  "md5 check - remote: %s local: %s" md5 local-md5)
+;;                 (if (not=
+;;                      (first (string/split md5 #" "))
+;;                      (first (string/split local-md5 #" ")) )
+;;                   (ssh-upload session connection local-path remote-path)
+;;                   (logging/infof
+;;                    "%s:%s is already up to date"
+;;                    (:server endpoint) remote-path))))
+;;             (ssh-upload session connection local-path remote-path))))
+;;       [value session])))
 
-(defn ssh-to-local
-  "Transfer a file from the target machine to the origin via ssh."
-  [session value]
-  (with-connection session [connection]
-    (let [{:keys [remote-path local-path]} value]
-      (logging/infof
-       "Transferring file %s from node to %s" remote-path local-path)
-      (transport/receive connection remote-path local-path))
-    [value session]))
+;; (defn ssh-to-local
+;;   "Transfer a file from the target machine to the origin via ssh."
+;;   [session value]
+;;   (with-connection session [connection]
+;;     (let [{:keys [remote-path local-path]} value]
+;;       (logging/infof
+;;        "Transferring file %s from node to %s" remote-path local-path)
+;;       (transport/receive connection remote-path local-path))
+;;     [value session]))
 
 
 (defmacro with-ssh-tunnel

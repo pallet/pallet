@@ -185,21 +185,6 @@ or executes synchronously with an optional timeout."
   ([state-flag]
      (execute-on-unflagged state-flag execute-phase)))
 
-(def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
-  unbootstrapped-meta
-  {:execution-settings-f (api/environment-image-execution-settings)
-   :phase-execution-f (execute-on-unflagged :bootstrapped)})
-
-(def ^{:doc "Executes on bootstrapped nodes, with admin user credentials."}
-  bootstrapped-meta
-  {:phase-execution-f (execute-on-flagged :bootstrapped)})
-
-(def ^{:doc "The bootstrap phase is executed with the image credentials, and
-only not flagged with a :bootstrapped keyword."}
-  default-phase-meta
-  {:bootstrap {:execution-settings-f (api/environment-image-execution-settings)
-               :phase-execution-f (execute-phase-and-flag :bootstrapped)}})
-
 ;; It's not nice that this can not be in p.core.api
 (defn phases-with-meta
   "Takes a `phases-map` and applies the default phase metadata and the

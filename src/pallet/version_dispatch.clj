@@ -17,7 +17,8 @@ data may provide a version."
    [pallet.versions :refer [version-spec?]]
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
-   [pallet.crate :refer [os-family os-version phase-context]]
+   [pallet.core.api :refer [phase-context]]
+   [pallet.core.session :refer [os-family os-version]]
    [pallet.versions :refer [as-version-vector version-matches?]]))
 
 (defn ^{:internal true} hierarchy-vals

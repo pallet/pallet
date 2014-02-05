@@ -4,7 +4,9 @@
    [clojure.string :as string :refer [blank? lower-case]]
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-script]]
-   [pallet.crate :refer [assoc-settings defplan]]
+   [pallet.core.node-os :refer [node-os node-os!]]
+   [pallet.core.session :refer [target-node plan-state]]
+   [pallet.crate :refer [defplan]]
    [pallet.stevedore :refer [script]]
    [pallet.utils :refer [maybe-assoc]]))
 
@@ -63,25 +65,28 @@
 
 (defplan infer-os
   "Infer the OS family and version from a node"
-  []
-  (let [os (exec-script (os-detection))]
+  [session]
+  (let [os (exec-script session (os-detection))]
     (when (and (number? (:exit os)) (zero? (:exit os)))
       (let [out (string/replace-first (:out os) pre-map-output "{")
             os (read-string out)]
-        (->> (-> os
+        (->> (-> {}
                  (maybe-assoc :os-family
                               (when-not (blank? (:os os))
                                 (keyword (lower-case (:os os)))))
                  (maybe-assoc :os-version
                               (when-not (blank? (:rev os))
-                                (lower-case (:rev os)))))
+                                (lower-case (:rev os))))
+                 (maybe-assoc :arch
+                              (when-not (blank? (:mach os))
+                                (lower-case (:mach os)))))
              (remove #(#{:unknown "unknown"} (val %)))
              (into {}))))))
 
 (defplan infer-distro
   "Infer the linux distribution from a node"
-  []
-  (let [distro (exec-script (distro-detection))]
+  [session]
+  (let [distro (exec-script session (distro-detection))]
     (when (and (number? (:exit distro)) (zero? (:exit distro)))
       (let [out (string/replace-first (:out distro) pre-map-output "{")
             distro (read-string out)]
@@ -98,9 +103,9 @@
 (defplan os
   "Infer OS and distribution.  Puts a map into the settings' :pallet/os
   facility."
-  []
-  (let [os (infer-os)
-        distro (infer-distro)
+  [session]
+  (let [os (infer-os session)
+        distro (infer-distro session)
         m (dissoc (merge os distro) :action-symbol :context)]
     (debugf "os %s %s %s" os distro m)
-    (assoc-settings :pallet/os m)))
+    (node-os! (target-node session) (plan-state session) m)))

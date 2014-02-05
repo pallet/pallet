@@ -14,8 +14,8 @@
    [pallet.actions.decl :as decl
     :refer [if-action remote-file-action remote-directory-action]]
    [pallet.contracts :refer [any-value check-spec]]
-   [pallet.crate :refer [admin-user packager phase-context role->nodes-map
-                         target]]
+   [pallet.core.api :refer [phase-context]]
+   [pallet.core.session :refer [admin-user packager]]
    [pallet.environment :refer [get-environment]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
@@ -308,22 +308,22 @@ Content can also be copied from a blobstore.
 
     (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
-  [path & {:keys [action url local-file remote-file link
-                  content literal
-                  template values
-                  md5 md5-url
-                  owner group mode force
-                  blob blobstore
-                  install-new-files
-                  overwrite-changes no-versioning max-versions
-                  flag-on-changed
-                  local-file-options
-                  verify]
-           :as options}]
+  [session path & {:keys [action url local-file remote-file link
+                          content literal
+                          template values
+                          md5 md5-url
+                          owner group mode force
+                          blob blobstore
+                          install-new-files
+                          overwrite-changes no-versioning max-versions
+                          flag-on-changed
+                          local-file-options
+                          verify]
+                   :as options}]
   {:pre [path]}
   (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
-  (let [action-options (get-action-options)
+  (let [action-options (action-options session)
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
@@ -445,20 +445,20 @@ only specified files or directories, use the :extract-files option.
        :unpack :jar
        :extract-files [\"dir/file\" \"file2\"])"
   {:pallet/plan-fn true}
-  [path & {:keys [action url local-file remote-file
-                  unpack tar-options unzip-options jar-options
-                  strip-components md5 md5-url owner group recursive
-                  force-overwrite
-                  local-file-options]
-           :or {action :create
-                tar-options "xz"
-                unzip-options "-o"
-                jar-options "xf"
-                strip-components 1
-                recursive true}
-           :as options}]
+  [session path & {:keys [action url local-file remote-file
+                          unpack tar-options unzip-options jar-options
+                          strip-components md5 md5-url owner group recursive
+                          force-overwrite
+                          local-file-options]
+                   :or {action :create
+                        tar-options "xz"
+                        unzip-options "-o"
+                        jar-options "xf"
+                        strip-components 1
+                        recursive true}
+                   :as options}]
   (verify-local-file-exists local-file)
-  (let [action-options (get-action-options)
+  (let [action-options (action-options session)
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
@@ -792,8 +792,9 @@ Deprecated in favour of pallet.crate.service/service."
 (defn loop-until
   {:no-doc true
    :pallet/plan-fn true}
-  [service-name condition max-retries standoff]
+  [session service-name condition max-retries standoff]
   (exec-checked-script
+   session
    (format "Wait for %s" service-name)
    (group (chain-or (let x 0) true))
    (while (not ~condition)

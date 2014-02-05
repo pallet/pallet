@@ -1,5 +1,15 @@
 (ns pallet.core.async
-  "Asynchronous execution of pallet plan functions.")
+  "Asynchronous execution of pallet plan functions."
+  (:require
+   [clojure.core.async :as async :refer [go <!]]
+   [clojure.core.typed
+    :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
+            inst tc-ignore
+            AnyInteger Map Nilable NilableNonEmptySeq
+            NonEmptySeqable Seq Seqable]]
+   [clojure.tools.logging :refer [debugf]]
+   [pallet.async :refer [go-logged map-async timeout-chan]]
+   [pallet.utils :refer [deep-merge]]))
 
 ;; Not sure this is worth having as a wrapper
 ;; (ann ^:no-check go-execute
@@ -17,12 +27,6 @@
 ;;   (go-logged
 ;;    (execute session target plan-fn)))
 
-
-
-
-
-
-
 (ann ^:no-check action-errors?
   [(Seqable (ReadOnlyPort ActionResult)) -> (Nilable PlanResult)])
 (defn action-errors?
@@ -39,3 +43,16 @@
           (or r (and (nil? v) {:error {:timeout true}})
               (and (:error v) (select-keys v [:error]))))
         nil)))
+
+(defn- map-targets
+  "Returns a channel which will return the result of applying f to
+  targets, reducing the results into a tuple containing a result
+  vector and a plan-state."
+  [f targets plan-state]
+  (debugf "map-targets on %s targets" (count targets))
+  (->> (map f targets)
+       (async/merge)
+       (async/reduce
+        (fn [[results plan-state] r]
+          [(conj results r) (deep-merge plan-state (:plan-state r))])
+        [[] plan-state])))

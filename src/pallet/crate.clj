@@ -179,221 +179,221 @@
      ~@body
      [nil ~sym]))
 
-;;; ## Session Accessors
-(defn target
-  "The target-node map."
-  []
-  (session/target (session)))
+;; ## Session Accessors
+;; (defn target
+;;   "The target-node map."
+;;   []
+;;   (session/target (session)))
 
-(defn target-node
-  "The target-node instance (the :node in the target-node map)."
-  []
-  (session/target-node (session)))
+;; (defn target-node
+;;   "The target-node instance (the :node in the target-node map)."
+;;   []
+;;   (session/target-node (session)))
 
-(defn targets
-  "All targets."
-  []
-  (session/targets (session)))
+;; (defn targets
+;;   "All targets."
+;;   []
+;;   (session/targets (session)))
 
-(defn target-nodes
-  "All target-nodes."
-  []
-  (session/target-nodes (session)))
+;; (defn target-nodes
+;;   "All target-nodes."
+;;   []
+;;   (session/target-nodes (session)))
 
-(defn target-id
-  "Id of the target-node (unique for provider)."
-  []
-  (session/target-id (session)))
+;; (defn target-id
+;;   "Id of the target-node (unique for provider)."
+;;   []
+;;   (session/target-id (session)))
 
-(defn target-name
-  "Name of the target-node."
-  []
-  (node/hostname (session/target-node (session))))
+;; (defn target-name
+;;   "Name of the target-node."
+;;   []
+;;   (node/hostname (session/target-node (session))))
 
-(defn admin-user
-  "Id of the target-node."
-  []
-  (clojure.tools.logging/debugf "session is %s" (pr-str (session)))
-  (session/admin-user (session)))
+;; (defn admin-user
+;;   "Id of the target-node."
+;;   []
+;;   (clojure.tools.logging/debugf "session is %s" (pr-str (session)))
+;;   (session/admin-user (session)))
 
-(defn os-family
-  "OS-Family of the target-node."
-  []
-  (session/os-family (session)))
+;; (defn os-family
+;;   "OS-Family of the target-node."
+;;   []
+;;   (session/os-family (session)))
 
-(defn os-version
-  "OS-Family of the target-node."
-  []
-  (session/os-version (session)))
+;; (defn os-version
+;;   "OS-Family of the target-node."
+;;   []
+;;   (session/os-version (session)))
 
-(defn group-name
-  "Group-Name of the target-node."
-  []
-  (session/group-name (session)))
+;; (defn group-name
+;;   "Group-Name of the target-node."
+;;   []
+;;   (session/group-name (session)))
 
-(defn nodes-in-group
-  "All nodes in the same tag as the target-node, or with the specified
-  group-name."
-  ([group-name]
-     (session/nodes-in-group (session) group-name))
-  ([]
-     (nodes-in-group (group-name))))
+;; (defn nodes-in-group
+;;   "All nodes in the same tag as the target-node, or with the specified
+;;   group-name."
+;;   ([group-name]
+;;      (session/nodes-in-group (session) group-name))
+;;   ([]
+;;      (nodes-in-group (group-name))))
 
-(defn groups-with-role
-  "All target groups with the specified role."
-  [role]
-  (session/groups-with-role (session) role))
+;; (defn groups-with-role
+;;   "All target groups with the specified role."
+;;   [role]
+;;   (session/groups-with-role (session) role))
 
-(defn nodes-with-role
-  "All target nodes with the specified role."
-  [role]
-  (session/nodes-with-role (session) role))
+;; (defn nodes-with-role
+;;   "All target nodes with the specified role."
+;;   [role]
+;;   (session/nodes-with-role (session) role))
 
-(defn role->nodes-map
-  "A map from role to nodes."
-  []
-  (session/role->nodes-map (session)))
+;; (defn role->nodes-map
+;;   "A map from role to nodes."
+;;   []
+;;   (session/role->nodes-map (session)))
 
-(defn packager
-  []
-  (session/packager (session)))
+;; (defn packager
+;;   []
+;;   (session/packager (session)))
 
-(defn admin-group
-  "User that remote commands are run under"
-  []
-  (session/admin-group (session)))
+;; (defn admin-group
+;;   "User that remote commands are run under"
+;;   []
+;;   (session/admin-group (session)))
 
-(defn is-64bit?
-  "Predicate for a 64 bit target"
-  []
-  (session/is-64bit? (session)))
+;; (defn is-64bit?
+;;   "Predicate for a 64 bit target"
+;;   []
+;;   (session/is-64bit? (session)))
 
-(defn compute-service
-  "Returns the current compute service"
-  []
-  (if-let [node (session/target-node (session))]
-    (node/compute-service node)
-    (-> (session) :environment :compute)))
+;; (defn compute-service
+;;   "Returns the current compute service"
+;;   []
+;;   (if-let [node (session/target-node (session))]
+;;     (node/compute-service node)
+;;     (-> (session) :environment :compute)))
 
-(defn blobstore
-  "Returns the current blobstore."
-  []
-  (-> (session) :environment :blobstore))
+;; (defn blobstore
+;;   "Returns the current blobstore."
+;;   []
+;;   (-> (session) :environment :blobstore))
 
-(defn target-flag?
-  "A predicate for whether the flag is set"
-  {:pallet/plan-fn true}
-  [flag]
-  (execute/target-flag? (session) (keyword (name flag))))
+;; (defn target-flag?
+;;   "A predicate for whether the flag is set"
+;;   {:pallet/plan-fn true}
+;;   [flag]
+;;   (execute/target-flag? (session) (keyword (name flag))))
 
-;;; ## Settings
-(defn get-settings
-  "Retrieve the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility. If passed a nil
-   `instance-id`, then `:default` is used"
-  ([facility {:keys [instance-id default] :as options}]
-     (plan-state/get-settings
-      (:plan-state (session)) (session/target-id (session)) facility options))
-  ([facility]
-     (get-settings facility {})))
+;; ;;; ## Settings
+;; (defn get-settings
+;;   "Retrieve the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility. If passed a nil
+;;    `instance-id`, then `:default` is used"
+;;   ([facility {:keys [instance-id default] :as options}]
+;;      (plan-state/get-settings
+;;       (:plan-state (session)) (session/target-id (session)) facility options))
+;;   ([facility]
+;;      (get-settings facility {})))
 
-(defn get-node-settings
-  "Retrieve the settings for the `facility` on the `node`. The instance-id
-   allows the specification of specific instance of the facility. If passed a
-   nil `instance-id`, then `:default` is used"
-  ([node facility {:keys [instance-id default] :as options}]
-     (plan-state/get-settings
-      (:plan-state (session)) (node/id node) facility options))
-  ([node facility]
-     (get-node-settings node facility {})))
+;; (defn get-node-settings
+;;   "Retrieve the settings for the `facility` on the `node`. The instance-id
+;;    allows the specification of specific instance of the facility. If passed a
+;;    nil `instance-id`, then `:default` is used"
+;;   ([node facility {:keys [instance-id default] :as options}]
+;;      (plan-state/get-settings
+;;       (:plan-state (session)) (node/id node) facility options))
+;;   ([node facility]
+;;      (get-node-settings node facility {})))
 
-(defn assoc-settings
-  "Set the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
-  ([facility kv-pairs {:keys [instance-id] :as options}]
-     (plan-state/assoc-settings
-      (:plan-state (session))
-      (session/target-id (session))
-      facility
-      kv-pairs
-      options)
-     ;; (session!
-     ;;  (update-in
-     ;;   (session) [:plan-state]
-     ;;   plan-state/assoc-settings
-     ;;   (session/target-id (session)) facility kv-pairs options))
-     )
-  ([facility kv-pairs]
-     (assoc-settings facility kv-pairs {})))
+;; (defn assoc-settings
+;;   "Set the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility (the default is
+;;    :default)."
+;;   ([facility kv-pairs {:keys [instance-id] :as options}]
+;;      (plan-state/assoc-settings
+;;       (:plan-state (session))
+;;       (session/target-id (session))
+;;       facility
+;;       kv-pairs
+;;       options)
+;;      ;; (session!
+;;      ;;  (update-in
+;;      ;;   (session) [:plan-state]
+;;      ;;   plan-state/assoc-settings
+;;      ;;   (session/target-id (session)) facility kv-pairs options))
+;;      )
+;;   ([facility kv-pairs]
+;;      (assoc-settings facility kv-pairs {})))
 
-(defn assoc-in-settings
-  "Set the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
-  ([facility path value {:keys [instance-id] :as options}]
-     (plan-state/update-settings
-      (:plan-state (session))
-      (session/target-id (session))
-      facility
-      assoc-in [path value] options)
-     ;; (session!
-     ;;  (update-in
-     ;;   (session) [:plan-state]
-     ;;   plan-state/update-settings
-     ;;   (session/target-id (session)) facility assoc-in [path value] options))
-     )
-  ([facility path value]
-     (assoc-in-settings facility path value {})))
+;; (defn assoc-in-settings
+;;   "Set the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility (the default is
+;;    :default)."
+;;   ([facility path value {:keys [instance-id] :as options}]
+;;      (plan-state/update-settings
+;;       (:plan-state (session))
+;;       (session/target-id (session))
+;;       facility
+;;       assoc-in [path value] options)
+;;      ;; (session!
+;;      ;;  (update-in
+;;      ;;   (session) [:plan-state]
+;;      ;;   plan-state/update-settings
+;;      ;;   (session/target-id (session)) facility assoc-in [path value] options))
+;;      )
+;;   ([facility path value]
+;;      (assoc-in-settings facility path value {})))
 
-(defn update-settings
-  "Update the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
-  {:arglists '[[facility f & args][facility options f & args]]}
-  [facility f-or-opts & args]
-  (let [[options f args] (if (or (map? f-or-opts) (nil? f-or-opts))
-                           [f-or-opts (first args) (rest args)]
-                           [nil f-or-opts args])]
-    (assert f "nil update function")
-    (plan-state/update-settings
-     (:plan-state (session))
-     (session/target-id (session))
-     facility
-     f args options)
-    ;; (session!
-    ;;  (update-in
-    ;;   (session) [:plan-state]
-    ;;   plan-state/update-settings
-    ;;   (session/target-id (session)) facility f args options))
-    ))
+;; (defn update-settings
+;;   "Update the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility (the default is
+;;    :default)."
+;;   {:arglists '[[facility f & args][facility options f & args]]}
+;;   [facility f-or-opts & args]
+;;   (let [[options f args] (if (or (map? f-or-opts) (nil? f-or-opts))
+;;                            [f-or-opts (first args) (rest args)]
+;;                            [nil f-or-opts args])]
+;;     (assert f "nil update function")
+;;     (plan-state/update-settings
+;;      (:plan-state (session))
+;;      (session/target-id (session))
+;;      facility
+;;      f args options)
+;;     ;; (session!
+;;     ;;  (update-in
+;;     ;;   (session) [:plan-state]
+;;     ;;   plan-state/update-settings
+;;     ;;   (session/target-id (session)) facility f args options))
+;;     ))
 
-(defn service-phases
-  "Return a map of service phases for the specified facility, options and
-  service function.  Optionally, specify :actions with a sequence of keywords
-  for the actions you wish to generate service control phases for."
-  [facility options service-f
-   & {:keys [actions] :or {actions [:start :stop :restart]}}]
-  (letfn [(service-phases [action]
-            (let [f #(apply-map service-f :action action options)]
-              [[action f]
-               [(keyword (str (name action) "-" (name facility))) f]]))]
-    (into {} (mapcat service-phases actions))))
+;; (defn service-phases
+;;   "Return a map of service phases for the specified facility, options and
+;;   service function.  Optionally, specify :actions with a sequence of keywords
+;;   for the actions you wish to generate service control phases for."
+;;   [facility options service-f
+;;    & {:keys [actions] :or {actions [:start :stop :restart]}}]
+;;   (letfn [(service-phases [action]
+;;             (let [f #(apply-map service-f :action action options)]
+;;               [[action f]
+;;                [(keyword (str (name action) "-" (name facility))) f]]))]
+;;     (into {} (mapcat service-phases actions))))
 
-(defmacro sync-phase
-  [[phase-name & {:keys [] :as options}] & body]
-  `(let [s# (session/session)
-         sl# pallet.stevedore/*script-language*
-         sc# pallet.script/*script-context*]
-     (<!! (sync-phase*
-           (:sync-service (session))
-           ~phase-name
-           (target) ~options
-           (fn []
-             (session/with-session s#
-               (pallet.stevedore/with-script-language sl#
-                 (pallet.script/with-script-context sc#
-                   ~@body))))))))
+;; (defmacro sync-phase
+;;   [[phase-name & {:keys [] :as options}] & body]
+;;   `(let [s# (session/session)
+;;          sl# pallet.stevedore/*script-language*
+;;          sc# pallet.script/*script-context*]
+;;      (<!! (sync-phase*
+;;            (:sync-service (session))
+;;            ~phase-name
+;;            (target) ~options
+;;            (fn []
+;;              (session/with-session s#
+;;                (pallet.stevedore/with-script-language sl#
+;;                  (pallet.script/with-script-context sc#
+;;                    ~@body))))))))
 
 ;; Local Variables:
 ;; mode: clojure

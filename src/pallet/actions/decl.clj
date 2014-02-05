@@ -16,18 +16,18 @@
   "Execute script on the target node. The `script` is a plain string. `type`
    specifies the script language (default :bash). You can override the
    interpreter path using the `:interpreter` option."
-  [{:keys [language interpreter version] :or {language :bash}} script])
+  [session {:keys [language interpreter version] :or {language :bash}} script])
 
 
 (defaction exec-script*
   "Execute script on the target node. The script is a plain string."
-  [script])
+  [session script])
 
 (defmacro exec-script
   "Execute a bash script remotely. The script is expressed in stevedore."
   {:pallet/plan-fn true}
-  [& script]
-  `(exec-script* (stevedore/script ~@script)))
+  [session & script]
+  `(exec-script* ~session (stevedore/script ~@script)))
 
 (defn context-string
   "The string that is used to represent the phase context for :in-sequence
@@ -64,10 +64,11 @@
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
   {:pallet/plan-fn true}
-  [script-name & script]
+  [session script-name & script]
   (let [file (.getName (io/file *file*))
         line (:line (meta &form))]
     `(exec-script*
+      ~session
       (checked-script
        ~(if *script-location-info*
           `(str ~script-name " (" ~file ":" ~line ")")
@@ -82,13 +83,14 @@
 (defaction remote-file-action
   "An action that implements most of remote-file, but requires a helper in order
 to deal with local file transfer."
-  [path {:keys [action url local-file
-                remote-file link content literal template values md5 md5-url
-                owner group mode force blob blobstore overwrite-changes
-                install-new-files no-versioning max-versions
-                flag-on-changed force insecure]
-         :or {action :create max-versions 5}
-         :as options}])
+  [session path
+   {:keys [action url local-file
+           remote-file link content literal template values md5 md5-url
+           owner group mode force blob blobstore overwrite-changes
+           install-new-files no-versioning max-versions
+           flag-on-changed force insecure]
+    :or {action :create max-versions 5}
+    :as options}])
 
 
 (defaction remote-directory-action

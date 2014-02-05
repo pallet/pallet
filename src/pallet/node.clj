@@ -46,17 +46,17 @@
   [node]
   (impl/hostname node))
 
-(ann os-family [Node -> Keyword])
-(defn os-family
-  "Return a node's os-family, or nil if not available."
-  [node]
-  (impl/os-family node))
+;; (ann os-family [Node -> Keyword])
+;; (defn os-family
+;;   "Return a node's os-family, or nil if not available."
+;;   [node]
+;;   (impl/os-family node))
 
-(ann os-version [Node -> String])
-(defn os-version
-  "Return a node's os-version, or nil if not available."
-  [node]
-  (impl/os-version node))
+;; (ann os-version [Node -> String])
+;; (defn os-version
+;;   "Return a node's os-version, or nil if not available."
+;;   [node]
+;;   (impl/os-version node))
 
 (ann running? [Node -> boolean])
 (defn running?
@@ -82,11 +82,11 @@
   [node]
   (impl/compute-service node))
 
-(ann packager [Node -> Keyword])
-(defn packager
- "The packager to use on the node"
- [node]
- (impl/packager node))
+;; (ann packager [Node -> Keyword])
+;; (defn packager
+;;  "The packager to use on the node"
+;;  [node]
+;;  (impl/packager node))
 
 (ann image-user [Node -> User])
 (defn image-user
@@ -163,8 +163,8 @@ keys may be present."
                                           :is-64bit? boolean
                                           :group-name String
                                           :hostname String
-                                          :os-family Keyword
-                                          :os-version String
+                                          ;; :os-family Keyword
+                                          ;; :os-version String
                                           :running? boolean
                                           :terminated? boolean
                                           :id String})
@@ -181,8 +181,8 @@ keys may be present."
      :is-64bit? (is-64bit? node)
      :group-name (name (group-name node))
      :hostname (hostname node)
-     :os-family (os-family node)
-     :os-version (os-version node)
+     ;; :os-family (os-family node)
+     ;; :os-version (os-version node)
      :running? (running? node)
      :terminated? (terminated? node)
      :id (id node)}

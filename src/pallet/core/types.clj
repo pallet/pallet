@@ -10,7 +10,8 @@
    [pallet.compute.protocols :refer [ComputeService Node]]
    [pallet.core.protocols :refer :all]
    [pallet.core.recorder.protocols :refer :all]
-   [pallet.core.plan-state.protocols :refer :all])
+   [pallet.core.plan-state.protocols :refer :all]
+   [pallet.core.system-targets.protocols :refer :all])
   (:import
    clojure.lang.IMapEntry
    clojure.lang.PersistentHashSet))
@@ -289,7 +290,7 @@ a priviledged user."
 (def-alias BaseSession
   (HMap :mandatory {:execution-state ExecutionState
                     :plan-state StateGet
-                    :system-targets (Atom1 (Nilable TargetMapSeq))
+                    :system-targets SystemTargets
                     :type (Value :pallet.core.session/session)}))
 
 (def-alias Session
@@ -359,7 +360,7 @@ a priviledged user."
 
 (def-alias ExecSettingsFn
   "A function type that returns details needed for execution."
-  [EnvironmentMap PhaseTarget -> ExecSettings])
+  [EnvironmentMap Node -> ExecSettings])
 
 (def-alias TargetPlanResult
   "The result of executing a phase on a target."

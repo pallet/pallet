@@ -20,11 +20,11 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
+   [pallet.environment]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.contracts :refer [check-spec]]
-   [pallet.core.protocols :as impl :refer
-    [node-tag]]
+   [pallet.compute.protocols :as impl :refer [node-tag]]
    [pallet.environment :as environment]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map]])
@@ -34,7 +34,7 @@
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
      running service hardware proxy image-user]
-  pallet.core.protocols.Node
+  pallet.compute.protocols.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
@@ -47,15 +47,15 @@
   (hostname [node] name)
   (id [node] id)
   (compute-service [node] service)
-  pallet.core.protocols.NodePackager
+  pallet.compute.protocols.NodePackager
   (packager [node]
     (when os-family
       (compute/packager-for-os os-family os-version)))
-  pallet.core.protocols.NodeHardware
+  pallet.compute.protocols.NodeHardware
   (hardware [node] hardware)
-  pallet.core.protocols.NodeImage
+  pallet.compute.protocols.NodeImage
   (image-user [node] image-user)
-  pallet.core.protocols.NodeProxy
+  pallet.compute.protocols.NodeProxy
   (proxy [node] proxy))
 
 ;;; Node utilities
@@ -78,9 +78,9 @@
   "Returns a node, suitable for use in a node-list."
   {:deprecated true}
   [name group-name ip os-family
-   & {:keys [id ssh-port private-ip is-64bit running os-version service
-             hardware proxy image-user]
-      :or {ssh-port 22 is-64bit true running true}}]
+   {:keys [id ssh-port private-ip is-64bit running os-version service
+           hardware proxy image-user]
+    :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
    (keyword (clojure.core/name group-name))
@@ -106,8 +106,8 @@
    (optional-path [:private-ip]) String
    (optional-path [:is-64bit]) wild
    (optional-path [:running]) wild
-   (optional-path [:proxy]) pallet.core.protocols.NodeProxy
-   (optional-path [:image-user]) pallet.core.protocols.NodeImage])
+   (optional-path [:proxy]) pallet.compute.protocols.NodeProxy
+   (optional-path [:image-user]) pallet.compute.protocols.NodeImage])
 
 (defmacro check-node-args-spec
   [m]
@@ -141,14 +141,14 @@
 
 (deftype NodeTagStatic
     [static-tags]
-  pallet.core.protocols.NodeTagReader
+  pallet.compute.protocols.NodeTagReader
   (node-tag [_ node tag-name]
     (get static-tags tag-name))
   (node-tag [_ node tag-name default-value]
     (or (get static-tags tag-name) default-value))
   (node-tags [_ node]
     static-tags)
-  pallet.core.protocols.NodeTagWriter
+  pallet.compute.protocols.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (throw
      (ex-info
@@ -161,7 +161,7 @@ support."
 
 (deftype NodeList
     [node-list environment tag-provider]
-  pallet.core.protocols.ComputeService
+  pallet.compute.protocols.ComputeService
   (nodes [compute-service] @node-list)
   (ensure-os-family
     [compute-service group-spec]
@@ -171,33 +171,33 @@ support."
         "Node list contains a node without os-family"
         {:type :no-os-family-specified}))))
   ;; Not implemented
-  (run-nodes [compute group-spec node-count user init-script options]
+  (run-nodes [compute node-spec user node-count]
     nil)
   ;; (reboot "Reboot the specified nodes")
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
 
-  ;; this forgets about the nodes
-  (destroy-nodes-in-group [_ group]
-    (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
+  ;; ;; this forgets about the nodes
+  ;; (destroy-nodes-in-group [_ group]
+  ;;   (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
 
   (close [compute])
   pallet.core.protocols.Environment
   (environment [_] environment)
-  pallet.core.protocols.NodeTagReader
+  pallet.compute.protocols.NodeTagReader
   (node-tag [compute node tag-name]
     (impl/node-tag tag-provider node tag-name))
   (node-tag [compute node tag-name default-value]
     (impl/node-tag tag-provider node tag-name default-value))
   (node-tags [compute node]
     (impl/node-tags tag-provider node))
-  pallet.core.protocols.NodeTagWriter
+  pallet.compute.protocols.NodeTagWriter
   (tag-node! [compute node tag-name value]
     (impl/tag-node! tag-provider node tag-name value))
   (node-taggable? [compute node]
     (impl/node-taggable? tag-provider node))
-  pallet.core.protocols.ComputeServiceProperties
+  pallet.compute.protocols.ComputeServiceProperties
   (service-properties [_]
     {:provider :node-list
      :nodes @node-list
@@ -224,22 +224,20 @@ support."
        :group-name \"local\"
        :ip \"127.0.0.1\"
        :os-family (pallet.compute.jvm/os-family)"
-  [& {:keys [name group-name ip os-family id]
-      :or {name "localhost"
-           group-name :local
-           ip "127.0.0.1"
-           os-family (jvm/os-family)}
-      :as options}]
-  (apply
-   make-node name group-name ip os-family
-   (apply concat (merge {:id "localhost"} options))))
+  [{:keys [name group-name ip os-family id]
+    :or {name "localhost"
+         group-name :local
+         ip "127.0.0.1"
+         os-family (jvm/os-family)}
+    :as options}]
+  (make-node name group-name ip os-family (merge {:id "localhost"} options)))
 
 (defn node-data->node
   "Convert an external node data specification to a node."
   ([node-data]
      (if (vector? node-data)
        (if (and (second node-data) (string? (second node-data)))
-         (apply make-node node-data)    ; backwards compatible
+         (make-node node-data)    ; backwards compatible
          (apply node node-data))
        (if (string? node-data)
          (node node-data)

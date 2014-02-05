@@ -7,15 +7,16 @@
 (deftype InMemoryPlanState [state]
   impl/StateGet
   (get-state [_ scope-map path default]
-    (->> scope-map
-         (map #(vector % (get-in state (concat % path) default)))))
+    (let [s @state]
+      (->> scope-map
+           (map #(vector % (get-in s (concat % path) default))))))
   impl/StateUpdate
   (update-state [_ scope-kw scope-val f args]
-    (apply update-in state [scope-kw scope-val] f args)))
+    (apply swap! state update-in [scope-kw scope-val] f args)))
 
 (defn in-memory-plan-state
   "Return an in-memory plan-state."
   ([initial-state]
-     (InMemoryPlanState. initial-state))
+     (InMemoryPlanState. (atom initial-state)))
   ([]
      (in-memory-plan-state {})))

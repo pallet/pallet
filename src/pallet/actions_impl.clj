@@ -5,7 +5,7 @@
    [clojure.string :as string]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
-   [pallet.crate :refer [admin-user]]
+   [pallet.core.session :refer [admin-user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
    [pallet.stevedore :refer [fragment script]]))

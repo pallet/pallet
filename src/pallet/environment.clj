@@ -21,9 +21,8 @@
   (:require
    [clojure.core.incubator :refer [-?>]]
    [clojure.walk :as walk]
-   [pallet.core.primitives :refer [phases-with-meta]]
+   [pallet.core.phase :refer [phases-with-meta]]
    [pallet.core.protocols :as impl]
-   [pallet.core.session :refer [session]]
    [pallet.core.user :refer [make-user]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.local.execute :as local]
@@ -161,10 +160,10 @@
 
 (defn get-environment
   "Environment accessor."
-  ([keys]
-     (get-for (session) keys))
-  ([keys default]
-     (get-for (session) keys default)))
+  ([session keys]
+     (get-for session keys))
+  ([session keys default]
+     (get-for session keys default)))
 
 (defn group-with-environment
   "Add the environment to a group."
