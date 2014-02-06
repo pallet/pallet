@@ -833,9 +833,58 @@ flag.
 
 
 
+(defn async-lift-op
+  "Execute phases on targets.  Returns a channel containing a tuple of
+ a sequence of the results and a sequence of any exceptions thrown.
+
+## Options
+
+`:phase-execution-f`
+: specifies the function used to execute a phase on the targets.  Defaults
+  to `pallet.core.primitives/execute-phase`.
+
+`:post-phase-f`
+: specifies an optional function that is run after a phase is applied.  It is
+  passed `targets`, `phase` and `results` arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.
+
+`:execution-settings-f`
+: specifies a function that will be called with a node argument, and which
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  [session phases targets {:keys [execution-settings-f phase-execution-f
+                                  post-phase-f]
+                           :or {targets service-state
+                                ;; TODO
+                                ;; phase-execution-f #'primitives/execute-phase
+                                ;; execution-settings-f (api/environment-execution-settings)
+                                }}]
+  (logging/debugf "async-lift-op :phases %s :targets %s"
+                  (vec phases) (vec (map :group-name targets)))
+  ;; TODO support post-phase, partitioning middleware, etc
+  (go-logged
+   (loop [phases phases
+          res []]
+     (if-let [phase (first phases)]
+       (let [c (lift-phase-with-middleware session phase targets)
+             [results exceptions] (loop [results []
+                                         exceptions []]
+                                    (let [[r e :as res] (<! c)]
+                                      (if res
+                                        (if e
+                                          (recur results (conj exceptions e))
+                                          (recur (conj results r) exceptions))
+                                        [results exceptions])))
+             phase-name (phase/phase-kw phase)
+             res (concat res (->> results (map #(assoc % :phase phase-name))))]
+         (if (or (some #(some :error (:action-results %)) results)
+                 (seq exceptions))
+           [res exceptions]
+           (recur (rest phases) res)))
+       [res nil]))))
+
 (defn lift-op
-  "Lift nodes (`targets` which defaults to `service-state`), given a
-`plan-state`, `environment` and the `phases` to apply.
+  "Execute phases on targets.  Returns a sequence of results.
 
 ## Options
 
@@ -868,28 +917,20 @@ flag.
                                 ;; TODO
                                 ;; phase-execution-f #'primitives/execute-phase
                                 ;; execution-settings-f (api/environment-execution-settings)
-                                }}]
+                                }
+                           :as options}]
   (logging/debugf "lift-op :phases %s :targets %s"
                   (vec phases) (vec (map :group-name targets)))
-  (loop [phases phases
-         res []]
-    (if-let [phase (first phases)]
-      (let [c (->> (lift-phase-with-middleware session phase targets)
-                   from-chan)
-            exceptions (->> c (map second) (remove nil?))
-            phase-name (phase/phase-kw phase)
-            res (concat res (->> c (map first) (remove nil?)
-                                 (map #(assoc % :phase phase-name))))]
-        (when (seq exceptions)
-          (throw (ex-info "Exception in phase"
-                          {:phase phase-name
-                           :results res
-                           :execptions exceptions}
-                          (first exceptions))))
-        (if (some :error c)
-          res
-          (recur (rest phases) res)))
-      res)))
+  (let [c (async-lift-op session phases targets options)
+        [results exceptions] (<!! c)]
+    (when (seq exceptions)
+      (throw (ex-info "Exception in phase"
+                      {:results results
+                       :execptions exceptions}
+                      (first exceptions))))
+    results))
+
+
 
 ;; (defn ^:internal partition-targets
 ;;   "Partition targets using the, possibly nil, default partitioning function f.

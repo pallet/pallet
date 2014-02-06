@@ -20,7 +20,7 @@ unprecedented level of customization."
                  [org.clojure/tools.macro "0.1.1"]
                  ; [org.clojure/tools.cli "0.2.4"]
                  [org.clojure/algo.monads "0.1.0"]
-                 [org.clojure/core.async "0.1.267.0-0d7780-alpha" 
+                 [org.clojure/core.async "0.1.267.0-0d7780-alpha"
                   :exclusions [org.clojure/clojurescript]]
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/thread-expr "1.3.0"]
@@ -28,7 +28,7 @@ unprecedented level of customization."
                  [com.palletops/pallet-repl "0.8.0-beta.2"
                   :exclusions [com.palletops/pallet]]
                  [com.palletops/script-exec "0.4.0"]
-                 [com.palletops/stevedore "0.8.0-beta.4"]
+                 [com.palletops/stevedore "0.8.0-beta.5"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
                  [pallet-map-merge "0.1.0"]
