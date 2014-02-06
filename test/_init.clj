@@ -10,7 +10,7 @@
    [pallet.core.api :refer [phase-errors]]
    [pallet.crate :refer [admin-user]]
    [pallet.script.lib
-    :refer [chown file mkdir path-owner state-root user-home]]
+    :refer [chown file mkdir path-owner state-root tmp-dir user-home]]
    [pallet.stevedore :refer [fragment]]
    [pallet.test-utils :refer [make-localhost-compute]]))
 
@@ -22,12 +22,7 @@
             (group-spec "local")
             :phase (plan-fn
                     (with-action-options {:script-prefix :sudo
-                                          :script-env-fwd [:TMPDIR]}
-                      ;; (exec-checked-script
-                      ;;  (str "Ensure " (state-root) " exists")
-                      ;;  (if-not (directory? ~(state-root))
-                      ;;    (do
-                      ;;      (mkdir -p ~(state-root)))))
+                                          :script-env-fwd [:TMP :TEMP :TMPDIR]}
                       (directory
                        (fragment (file (state-root) "pallet")))
                       (directory
@@ -36,14 +31,14 @@
                        :owner (:username (admin-user))
                        :recursive false)
                       (exec-checked-script
-                       "Ensure TMPDIR"
-                       (if (&& (directory? @TMPDIR)
-                               (== @(path-owner @TMPDIR)
-                                   ~(:username (admin-user))))
+                       "Ensure tmp"
+                       (if (directory? (tmp-dir))
                          (do
                            (set! tpath (file (state-root) "pallet" @TMPDIR))
                            (mkdir @tpath :path true)
-                           (chown ~(:username (admin-user)) @tpath))))))
+                           (if (== @(path-owner @TMPDIR)
+                                   ~(:username (admin-user)))
+                             (chown ~(:username (admin-user)) @tpath)))))))
             :compute compute
             :async true)
         session @op]
