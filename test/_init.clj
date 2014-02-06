@@ -34,9 +34,9 @@
                        "Ensure tmp"
                        (if (directory? (tmp-dir))
                          (do
-                           (set! tpath (file (state-root) "pallet" @TMPDIR))
+                           (set! tpath (file (state-root) "pallet" (tmp-dir)))
                            (mkdir @tpath :path true)
-                           (if (== @(path-owner @TMPDIR)
+                           (if (== @(path-owner (tmp-dir))
                                    ~(:username (admin-user)))
                              (chown ~(:username (admin-user)) @tpath)))))))
             :compute compute
