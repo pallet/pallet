@@ -1,7 +1,7 @@
 (ns pallet.core.async
   "Asynchronous execution of pallet plan functions."
   (:require
-   [clojure.core.async :as async :refer [go <!]]
+   [clojure.core.async :as async :refer [go <! thread]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
             inst tc-ignore
@@ -56,3 +56,20 @@
         (fn [[results plan-state] r]
           [(conj results r) (deep-merge plan-state (:plan-state r))])
         [[] plan-state])))
+
+(defn thread-fn
+  "Execute function f in a new thread, return a channel for the result.
+Return a tuple of [function return value, exception], where only one
+of the values will be non-nil."
+  [f]
+  (thread
+   (try
+     [(f) nil]
+     (catch Throwable t
+       [nil t]))))
+
+(defn map-thread
+  "Apply f to each element of coll, using a separate thread for each element.
+  Return a non-lazy sequence of channels for the results."
+  [f coll]
+  (doall (map thread-fn coll)))

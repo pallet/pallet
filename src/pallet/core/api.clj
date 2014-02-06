@@ -197,19 +197,22 @@ The result is also written to the recorder in the session."
 (defmacro plan-fn
   "Create a plan function from a sequence of plan function invocations.
 
-   eg. (plan-fn
-         (file \"/some-file\")
-         (file \"/other-file\"))
+   eg. (plan-fn [session]
+         (file session \"/some-file\")
+         (file session \"/other-file\"))
 
    This generates a new plan function, and adds code to verify the state
-   around each plan function call."
-  [& body]
-  (let [n? (or (string? (first body)) (and (next body) (symbol? (first body))))
-        n (when n? (name (first body)))
+   around each plan function call.
+
+  The plan-fn can be optionally named, as for `fn`."
+  [args & body]
+  (let [n? (symbol? args)
+        n (if n? args)
+        args (if n? (first body) args)
         body (if n? (rest body) body)]
     (if n
-      `(fn [] (phase-context ~(gensym n) {} ~@body))
-      `(fn [] (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
+      `(fn ~n ~args (phase-context ~(gensym (name n)) {} ~@body))
+      `(fn ~args (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 
 ;;; These should be part of the executor

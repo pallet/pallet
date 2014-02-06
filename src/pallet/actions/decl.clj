@@ -18,7 +18,6 @@
    interpreter path using the `:interpreter` option."
   [session {:keys [language interpreter version] :or {language :bash}} script])
 
-
 (defaction exec-script*
   "Execute script on the target node. The script is a plain string."
   [session script])

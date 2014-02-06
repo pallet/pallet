@@ -3,7 +3,8 @@
   (:require
    [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
    [clojure.core.typed.async :refer [go> ReadOnlyPort]]
-   [clojure.core.async :refer [alts! chan close! go put! thread timeout]]
+   [clojure.core.async
+    :refer [<!! alts! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [errorf]]
    [pallet.core.types :refer [ErrorMap]]))
 
@@ -33,6 +34,26 @@
         ;; (errorf e# "Unexpected exception terminating go block")
         (errorf (clojure.stacktrace/root-cause e#)
                 "Unexpected exception terminating go block")))))
+
+
+
+(defn thread-fn
+  "Execute function f in a new thread, return a channel for the result.
+Return a tuple of [function return value, exception], where only one
+of the values will be non-nil."
+  [f]
+  (thread
+   (try
+     [(f) nil]
+     (catch Throwable t
+       [nil t]))))
+
+(defn map-thread
+  "Apply f to each element of coll, using a separate thread for each element.
+  Return a non-lazy sequence of channels for the results."
+  [f coll]
+  (doall (map #(thread-fn (fn [] (f %))) coll)))
+
 
 (ann map-async
   (All [x y]
@@ -73,3 +94,43 @@ element."
           [(f i) nil]
           (catch Throwable e [nil {:error {:exception e} :target i}])))
        timeout-ms))))
+
+(defn from-chan
+  "Return a lazy sequence which contains all values from a channel, c."
+  [c]
+  (lazy-seq
+   (let [v (<!! c)]
+     (if-not (nil? v)
+       (cons v (from-chan c))))))
+
+;; like core.async/pipe, but returns the channel for the go-loop
+;; in the pipe, so we can synchronise on the pipe completing
+(defn pipe
+  "Takes elements from the from channel and supplies them to the to
+  channel. By default, the to channel will be closed when the
+  from channel closes, but can be determined by the close?
+  parameter."
+  ([from to] (pipe from to true))
+  ([from to close?]
+     (go-loop []
+      (let [v (<! from)]
+        (if (nil? v)
+          (when close? (close! to))
+          (do (>! to v)
+              (recur)))))))
+
+(defn concat-chans
+  "Concatenate values from all of the channels, chans, onto the to channel.
+  By default, the to channel will be closed when all values have been
+  written, but this can be controlled by the close? argument.
+  Ordering of values is from a single chan is preserved, but the channels
+  may be sampled in any order."
+  ([chans to close?]
+     (go-logged
+      (doseq [i (for [c chans] (pipe c to false))]
+
+        (<! i))
+      (when close?
+        (close! to))))
+  ([chans to]
+     (concat-chans chans to true)))
