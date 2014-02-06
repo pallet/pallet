@@ -24,7 +24,7 @@ unprecedented level of customization."
                  [com.palletops/pallet-repl "0.8.0-beta.2"
                   :exclusions [com.palletops/pallet]]
                  [com.palletops/script-exec "0.4.0"]
-                 [com.palletops/stevedore "0.8.0-beta.5"]
+                 [com.palletops/stevedore "0.8.0-beta.6"]
                  [clj-ssh "0.5.7"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
