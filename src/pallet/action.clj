@@ -13,6 +13,7 @@
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
    [pallet.core.api :refer [execute-action]]
+   [pallet.core.session :refer [target-session?]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [compiler-exception]]))
 
@@ -124,6 +125,7 @@
          (fn ~action-name
            [~@args]
            (let [session# ~(first args)]
+             (assert (target-session? session#) "Invalid session")
              (execute-action
               session#
               (action-map

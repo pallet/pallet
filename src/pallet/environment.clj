@@ -169,8 +169,9 @@
   "Add the environment to a group."
   [environment group]
   (merge-environments
-   (maybe-update-in (select-keys environment node-keys)
-                    [:phases] phases-with-meta {})
+   ;; (maybe-update-in (select-keys environment node-keys)
+   ;;                  [:phases] phases-with-meta {})
    group
-   (maybe-update-in (-?> environment :groups group)
-                    [:phases] phases-with-meta {})))
+   ;; (maybe-update-in (-?> environment :groups group)
+   ;;                  [:phases] phases-with-meta {})
+   ))

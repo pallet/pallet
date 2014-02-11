@@ -30,7 +30,7 @@ functions with more defaults, etc."
    [pallet.core.session
     :refer [base-session?
             executor plan-state recorder remove-system-targets set-node
-            set-executor set-recorder]]
+            set-executor set-recorder target-session?]]
    [pallet.core.user :refer [obfuscated-passwords user?]]
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node :refer [node?]])
@@ -46,6 +46,7 @@ functions with more defaults, etc."
 (defn execute-action
   "Execute an action map within the context of the current session."
   [{:keys [node user] :as session} action]
+  {:pre [(target-session? session)]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
   (let [executor (executor session)]
@@ -91,6 +92,7 @@ The result is also written to the recorder in the session."
                     (set-recorder (if-let [recorder (recorder session)]
                                     (juxt-recorder [r recorder])
                                     r)))]
+    (assert (target-session? session) "target session created correctly")
     (with-script-for-node node (plan-state session)
       ;; We need the script context for script blocks in the plan
       ;; functions.

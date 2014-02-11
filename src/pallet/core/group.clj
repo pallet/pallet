@@ -3,19 +3,25 @@
 
 Provides the node-spec, service-spec and group-spec abstractions.
 
-Provides the lift and converge operations."
+Provides the lift and converge operations.
+
+Uses a TargetMap to describe a node with its group-spec info.
+
+Uses :system-targets to track all nodes to be considered.
+TODO: put :system-targets into plan-state?"
   (:require
-   [clojure.core.async :as async :refer [<! <!! alts!! chan timeout]]
+   [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
             inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.set :refer [union]]
-   [clojure.string :refer [blank?]]
+   [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
-   [pallet.async :refer [concat-chans from-chan go-logged map-async map-thread]]
-   [pallet.compute :refer [destroy-node nodes run-nodes service-properties]]
+   [pallet.async
+    :refer [concat-chans from-chan go-logged go-tuple map-async map-thread]]
+   [pallet.compute :refer [create-nodes destroy-nodes nodes service-properties]]
    [pallet.contracts
     :refer [check-converge-options
             check-group-spec
@@ -23,13 +29,15 @@ Provides the lift and converge operations."
             check-node-spec
             check-server-spec
             check-user]]
-   [pallet.core.api :as api :refer [plan-fn]]
+   [pallet.core.api :as api :refer [errors plan-fn]]
    [pallet.core.async :refer [action-errors?]]
+   [pallet.core.executor.ssh :as ssh]
    [pallet.core.middleware :as middleware]
    [pallet.core.phase :as phase :refer [phases-with-meta]]
    [pallet.core.plan-state :refer :all]
+   [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
-   [pallet.core.session
+   [pallet.core.session :as session
     :refer [admin-user add-system-targets plan-state recorder
             remove-system-targets]]
    [pallet.core.user :as user :refer [obfuscated-passwords]]
@@ -302,7 +310,7 @@ specified in the `:extends` argument."
   "Check if a node satisfies a group's node-filter."
   {:internal true}
   [node group]
-  {:pre [(:group-name group)]}
+  {:pre [(check-group-spec group)]}
   ((:node-filter group (node-has-group-name? (:group-name group)))
    node))
 
@@ -317,17 +325,19 @@ specified in the `:extends` argument."
     (when-let [groups (seq (->>
                             groups
                             (filter (fn> [group :- GroupSpec]
-                                         (node-in-group? node group)))
+                                      (check-group-spec group)
+                                      (node-in-group? node group)))
                             (map (fn> [group :- GroupSpec]
-                                      (assoc-in
-                                       group [:group-names]
-                                       (set [(:group-name group)]))))))]
+                                   (check-group-spec group)
+                                   (assoc-in
+                                    group [:group-names]
+                                    (set [(:group-name group)]))))))]
       (let [group
             (reduce
              (fn> [target :- GroupSpec group :- GroupSpec]
-                  (merge-specs merge-spec-algorithm target group))
+               (merge-specs merge-spec-algorithm target group))
              groups)]
-       (assoc group :node node)))))
+        (assoc group :node node)))))
 
 (ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
                     -> IncompleteGroupTargetMapSeq])
@@ -336,6 +346,7 @@ specified in the `:extends` argument."
   specified `groups`. Returns a sequence that contains a node-map for each
   matching node."
   [compute-service groups]
+  {:pre [(every? #(check-group-spec %) groups)]}
   (let [nodes (remove terminated? (nodes compute-service))
         _ (tracef "service-state %s" (vec nodes))
         targets (seq (remove nil? (map (node->node-map groups) nodes)))]
@@ -517,41 +528,42 @@ specified in the `:extends` argument."
 ;;; ## Node creation and removal
 ;; TODO remove :no-check when core.type understands assoc
 
-(ann ^:no-check create-nodes
+(ann ^:no-check add-group-nodes
      [Session ComputeService GroupSpec AnyInteger -> (Seq TargetMap)])
-(defn create-nodes
+(defn add-group-nodes
   "Create `count` nodes for a `group`."
-  [session compute-service group count]
-  ((inst map TargetMap Node)
-   (fn> [node :- Node] (assoc group :node node))
-   (let [targets (run-nodes
-                  compute-service group count
-                  (admin-user session)
-                  nil
-                  (get-scopes
-                   (plan-state session)
-                   {:provider (:provider (service-properties compute-service))
-                    ;; :service ()
-                    }
-                   [:provider-options]))]
-     (add-system-targets session targets)
-     targets)))
+  [session compute-service group count ch]
+  (go-tuple ch
+    (let [c (chan)
+          _ (create-nodes
+             compute-service
+             group
+             (admin-user session)
+             count
+             c)
+          [targets e] (<! c)
+          targets ((inst map TargetMap Node)
+                   (fn> [node :- Node] (assoc group :node node))
+                   targets)]
+      (add-system-targets session targets)
+      [targets e])))
 
 (ann remove-nodes [Session ComputeService GroupSpec GroupNodesForRemoval
                    -> nil])
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
-  [session compute-service group removals]
-  (let [all (:all removals)
-        targets (:targets removals)]
-    (debugf "remove-nodes all %s targets %s" all (vector targets))
-    (remove-system-targets session targets)
-    (do
-     ;; if all
-     ;;  (destroy-nodes-in-group compute-service (:group-name group))
-      (doseq> [node :- TargetMap targets]
-        (destroy-node compute-service (:node node))))))
+  [session compute-service group removals ch]
+  (go-tuple ch
+   (let [all (:all removals)
+         targets (:targets removals)]
+     (debugf "remove-nodes all %s targets %s" all (vector targets))
+     (remove-system-targets session targets)
+     (let [c (chan)]
+       ;; if all
+       ;;  (destroy-nodes-in-group compute-service (:group-name group))
+       (destroy-nodes compute-service (map :node targets) c)
+       (<! c)))))
 
 (ann create-group-nodes
   [Session ComputeService (Seqable '[GroupSpec NodeDeltaMap]) ->
@@ -559,26 +571,36 @@ specified in the `:extends` argument."
                             (Nilable (ErrorMap '[GroupSpec NodeDeltaMap]))]))])
 (defn create-group-nodes
   "Create nodes for groups."
-  [session compute-service group-counts]
+  [session compute-service group-counts ch]
   (debugf "create-group-nodes %s %s" compute-service (vec group-counts))
-  (map-async
-   (fn> [v :- '[GroupSpec NodeDeltaMap]]
-     (create-nodes session compute-service (first v) (:delta (second v))))
-   group-counts
-   (* 5 60 1000)))
+  (go-tuple ch
+    (let [c (chan)]
+      (->>
+       (for [[group-spec delta-map] group-counts]
+         (add-group-nodes
+          session compute-service group-spec (:delta delta-map) c))
+       doall
+       (map #(<! %)))
+      (close! c)
+      (reduce-results c))))
 
 (ann remove-group-nodes
   [Session ComputeService (Seqable '[GroupSpec GroupNodesForRemoval]) -> Any])
 (defn remove-group-nodes
   "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
-  nodes"
-  [session compute-service group-nodes]
+  nodes.  The result is written to the channel, ch."
+  [session compute-service group-nodes ch]
   (debugf "remove-group-nodes %s" group-nodes)
-  (map-async
-   (fn> [x :- '[GroupSpec GroupNodesForRemoval]]
-     (remove-nodes session compute-service (first x) (second x)))
-   group-nodes
-   (* 5 60 1000)))
+  (go-tuple ch
+    (let [c (chan)]
+      (doseq [[g n] group-nodes]
+        (remove-nodes session compute-service g n c))
+      (loop [n (count group-nodes)
+             res []
+             exceptions []]
+        (if-let [[r e] (and (pos? n) (<! c))]
+          (recur (dec n) (conj res r) (conj exceptions e))
+          [res (seq exceptions)])))))
 
 (ann default-phases [TargetMapSeq -> (Seqable Keword)])
 (defn default-phases
@@ -589,31 +611,193 @@ specified in the `:extends` argument."
        distinct
        (apply total-order-merge)))
 
-;;; # Execution helpers
-(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
-                       -> (Seqable (ReadOnlyPort PlanResult))])
-(defn execute-plan-fns
-  "Apply plan functions to targets.  Returns a sequence of channels that
-  will yield phase result maps."
-  [session targets plan-fns]
-  (for> :- (ReadOnlyPort PlanResult)
-        [target :- TargetMap targets
-         plan :- PlanFn plan-fns]
-    (phase/execute-phase session target plan)))
+;; ;;; # Execution helpers
+;; (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
+;;                        -> (Seqable (ReadOnlyPort PlanResult))])
+;; (defn execute-plan-fns
+;;   "Apply plan functions to targets.  Returns a sequence of channels that
+;;   will yield phase result maps."
+;;   [session targets plan-fns]
+;;   (for> :- (ReadOnlyPort PlanResult)
+;;         [target :- TargetMap targets
+;;          plan :- PlanFn plan-fns]
+;;     (phase/execute-phase session target plan)))
 
 
-(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
-                       -> (Seqable (ReadOnlyPort PlanResult))])
-(defn execute-phases
-  "Execute the specified `phases` on `targets`."
-  [session targets phases]
-  (go-logged
-   (loop> [phases :- Phase phases]
-     (if-let [p (first phases)]
-       (if (action-errors? (phase/execute-phase session targets p))
-         (results (recorder session))
-         (recur (rest phases)))
-       (results (recorder session))))))
+;; (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
+;;                        -> (Seqable (ReadOnlyPort PlanResult))])
+;; (defn execute-phases
+;;   "Execute the specified `phases` on `targets`."
+;;   [session targets phases]
+;;   (go-logged
+;;    (loop> [phases :- Phase phases]
+;;      (if-let [p (first phases)]
+;;        (if (action-errors? (phase/execute-phase session targets p))
+;;          (results (recorder session))
+;;          (recur (rest phases)))
+;;        (results (recorder session))))))
+
+
+(defn execute-target-phase
+  "Using the session, execute phase on target."
+  [session phase {:keys [node phases target-type] :as target}]
+  {:pre [(or node (= target-type :group))]}
+  (phase/execute-phase session node phases phase))
+
+(defn lift-phase
+  "Execute phase on all targets, returning a sequence of channels."
+  [session phase targets]
+  (map-thread #(execute-target-phase session phase %) targets))
+
+(defn lift-phase-with-middleware
+  "Execute phase on all targets, using phase middleware.  Return a channel
+  with the results."
+  [session phase targets]
+  (let [mw-targets (group-by (comp :phase-middleware meta) targets)
+        c (chan)]
+    (->
+     (apply concat
+            (for [[mw targets] mw-targets]
+              (if mw
+                (mw session phase targets)
+                (lift-phase session phase targets))))
+     doall
+     (concat-chans c))
+    c))
+
+
+(defn async-result->action-result
+  "Convert an async result tuple to an action result map."
+  [[r e]]
+  (if r
+    r
+    {:error e}))
+
+(defn combine-exceptions
+  [exceptions]
+  (if (seq exceptions)
+    ;; always wrap, so we get a full stacktrace, not just a threadpool
+    ;; trace.
+    (ex-info
+     (string/join ". " (map #(str %) exceptions))
+     {:exceptions exceptions}
+     (first exceptions))))
+
+(defn reduce-results
+  "Reduce the results of a sequence of [result exception] tuples read
+  from channel ch."
+  [ch]
+  (loop [results []
+         exceptions []]
+    (if-let [[r e] (<!! ch)]
+      (if e
+        (recur results (conj exceptions e))
+        (recur (conj results r) exceptions))
+      [results (if-let [e (seq exceptions)]
+                 (combine-exceptions e))])))
+
+(defn execute-phase
+  [session phase targets ch]
+  {:pre [(every? (some-fn :node #(= :group (:target-type %))) targets)]}
+  (go-tuple ch
+    (let [c (lift-phase-with-middleware session phase targets)
+          [results exceptions] (reduce-results c)
+          phase-name (phase/phase-kw phase)
+          res (->> results (mapv #(assoc % :phase phase-name)))]
+      [res exceptions])))
+
+(defn async-lift-op
+  "Execute phases on targets.  Returns a channel containing a tuple of
+ a sequence of the results and a sequence of any exceptions thrown.
+
+## Options
+
+`:phase-execution-f`
+: specifies the function used to execute a phase on the targets.  Defaults
+  to `pallet.core.primitives/execute-phase`.
+
+`:post-phase-f`
+: specifies an optional function that is run after a phase is applied.  It is
+  passed `targets`, `phase` and `results` arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.
+
+`:execution-settings-f`
+: specifies a function that will be called with a node argument, and which
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  [session phases targets {:keys [execution-settings-f phase-execution-f
+                                  post-phase-f]
+                           :or {targets service-state
+                                ;; TODO
+                                ;; phase-execution-f #'primitives/execute-phase
+                                ;; execution-settings-f (api/environment-execution-settings)
+                                }}
+   ch]
+  (logging/debugf "async-lift-op :phases %s :targets %s"
+                  (vec phases) (vec (map :group-name targets)))
+  ;; TODO support post-phase, partitioning middleware, etc
+  (go-tuple ch
+   (loop [phases phases
+          res []]
+     (if-let [phase (first phases)]
+       (let [c (chan)
+             _ (execute-phase session phase targets c)
+             [results exceptions] (<! c)
+             res (concat res results)]
+         (if (or (some #(some :error (:action-results %)) results)
+                 (seq exceptions))
+           [res (seq exceptions)]
+           (recur (rest phases) res)))
+       [res nil]))))
+
+(defn lift-op
+  "Execute phases on targets.  Returns a sequence of results.
+
+## Options
+
+`:targets`
+: used to restrict the nodes on which the phases are run to a subset of
+  `service-state`.  Defaults to `service-state`.
+
+`:phase-execution-f`
+: specifies the function used to execute a phase on the targets.  Defaults
+  to `pallet.core.primitives/execute-phase`.
+
+`:post-phase-f`
+: specifies an optional function that is run after a phase is applied.  It is
+  passed `targets`, `phase` and `results` arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.
+
+`:post-phase-fsm`
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed `targets`, `phase` and `results` arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.
+
+`:execution-settings-f`
+: specifies a function that will be called with a node argument, and which
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  [session phases targets {:keys [execution-settings-f phase-execution-f
+                                  post-phase-f]
+                           :or {targets service-state
+                                ;; TODO
+                                ;; phase-execution-f #'primitives/execute-phase
+                                ;; execution-settings-f (api/environment-execution-settings)
+                                }
+                           :as options}]
+  (logging/debugf "lift-op :phases %s :targets %s"
+                  (vec phases) (vec (map :group-name targets)))
+  (let [c (chan)
+        _ (async-lift-op session phases targets options c)
+        [results exceptions] (<!! c)]
+    (when (seq exceptions)
+      (throw (ex-info "Exception in phase"
+                      {:results results
+                       :execptions exceptions}
+                      (first exceptions))))
+    results))
+
 
 
 ;;; TODO add converge and lift here
@@ -641,31 +825,70 @@ specified in the `:extends` argument."
 ;;   [target phase]
 ;;   (execute target (target-phase-fn target phase)))
 
+
 ;;; Node count adjuster
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
-  [compute-service groups targets]
-  {:pre [compute-service]}
-  (let [group-deltas (group-deltas targets groups)
-        nodes-to-remove (nodes-to-remove targets group-deltas)
-        nodes-to-add (nodes-to-add group-deltas)
-        old-nodes (->>
-                   (vals nodes-to-remove)
-                   (mapcat :nodes)
-                   (map (comp node-map :node)))]
+  [session compute-service groups targets ch]
+  {:pre [compute-service
+         (every? :count groups)
+         (every? (some-fn :node :group) targets)]}
+  (go-tuple ch
+    (let [group-deltas (group-deltas targets groups)
+          nodes-to-remove (nodes-to-remove targets group-deltas)
+          nodes-to-add (nodes-to-add group-deltas)
+          old-nodes (->>
+                     (vals nodes-to-remove)
+                     (mapcat :nodes)
+                     (map (comp node-map :node)))
+          c (chan)
+          _ (execute-phase session :destroy-server (vals nodes-to-remove) c)
+          [res-ds exceptions] (<! c)]
 
-    (when-not (action-errors?
-               (map #(phase/execute-phase % :destroy-server)
-                    (vals nodes-to-remove)))
-      (remove-group-nodes compute-service nodes-to-remove)
-
-      (map #(phase/execute-phase % :destroy-group)
-           (groups-to-remove group-deltas)))
-
-    (when-not (action-errors?
-               (map #(phase/execute-phase % :create-group)
-                    (groups-to-create group-deltas)))
-      (create-group-nodes compute-service nodes-to-add))))
+      (if exceptions
+        [res-ds exceptions]
+        (do
+          (if-let [errs (errors res-ds)]
+            [res-ds (ex-info "destroy-server phase failed" {:errors errs})]
+            (do
+              (remove-group-nodes session compute-service nodes-to-remove c)
+              (let [[res-rg es] (<! c)]
+                (if es
+                  [(concat res-ds res-rg) es]
+                  (do
+                    (execute-phase
+                     session :destroy-group (groups-to-remove group-deltas) c)
+                    (let [[res-dg es] (<! c)]
+                      (if es
+                        [(concat res-ds res-rg res-dg) es]
+                        (if-let [errs (errors res-dg)]
+                          [(concat res-ds res-rg res-dg)
+                           (ex-info
+                            "destroy-group phase failed" {:errors errs})]
+                          (do
+                            (execute-phase
+                             session :create-group
+                             (groups-to-create group-deltas) c)
+                            (let [[res-cg es] (<! c)]
+                              (if es
+                                [(concat res-ds res-rg res-dg res-cg) es]
+                                (if-let [errs (errors res-cg)]
+                                  [(concat res-ds res-rg res-dg res-cg)
+                                   (ex-info
+                                    "create-group phase failed" {:errors errs})]
+                                  (do
+                                    (create-group-nodes
+                                     session compute-service nodes-to-add c)
+                                    (let [[res-cn es] (<! c)]
+                                      (if es
+                                        [{:new-nodes res-cn
+                                          :old-nodes res-ds
+                                          :results (concat
+                                                    res-rg res-dg res-cg)}
+                                         es]
+                                        [{:results (concat res-rg res-dg res-cg)
+                                          :new-nodes res-cn
+                                          :old-nodes res-ds}]))))))))))))))))))))
 
 
 ;;; ## Operations
@@ -734,7 +957,7 @@ specified in the `:extends` argument."
          m))
       %))))
 
-(defn- all-group-nodes
+(defn all-group-nodes
   "Returns the service state for the specified groups"
   [compute groups all-node-set]
   (service-state
@@ -776,160 +999,22 @@ flag.
 `:targets`
 : used to restrict the nodes on which the phases are run to a subset of
   `service-state`.  Defaults to `service-state`."
-  [operation compute groups service-state plan-state environment phases
+  [session compute groups service-state phases
    {:keys [targets execution-settings-f]
     :or {targets service-state
          ;; execution-settings-f (api/environment-execution-settings)
          }
-    :as options}]
-  ;; {:pre [(:user environment)]}
-  ;; (logging/debugf
-  ;;  "converge :phase %s :groups %s :settings-groups %s"
-  ;;  (vec phases)
-  ;;  (vec (map :group-name groups))
-  ;;  (vec (map :group-name targets)))
-  ;; (let [{:keys [new-nodes old-nodes targets service-state plan-state results]
-  ;;        :as result}
-  ;;       (node-count-adjuster
-  ;;        operation
-  ;;        compute groups service-state plan-state environment targets
-  ;;        execution-settings-f)]
-  ;;   result)
-  )
-
-(defn execute-target-phase
-  "Using the session, execute phase on target."
-  [session phase {:keys [node phases] :as target}]
-  (phase/execute-phase session node phases phase))
-
-(defn lift-phase
-  "Execute phase on all targets, returning a sequence of channels."
-  [session phase targets]
-  (map-thread #(execute-target-phase session phase %) targets))
-
-(defn lift-phase-with-middleware
-  "Execute phase on all targets, using phase middleware.  Return a channel
-  with the results."
-  [session phase targets]
-  (let [mw-targets (group-by (comp :phase-middleware meta) targets)
-        c (chan)]
-    (->
-     (apply concat
-            (for [[mw targets] mw-targets]
-              (if mw
-                (mw session phase targets)
-                (lift-phase session phase targets))))
-     doall
-     (concat-chans c))
-    c))
-
-
-(defn async-result->action-result
-  "Convert an async result tuple to an action result map."
-  [[r e]]
-  (if r
-    r
-    {:error e}))
-
-
-
-(defn async-lift-op
-  "Execute phases on targets.  Returns a channel containing a tuple of
- a sequence of the results and a sequence of any exceptions thrown.
-
-## Options
-
-`:phase-execution-f`
-: specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/execute-phase`.
-
-`:post-phase-f`
-: specifies an optional function that is run after a phase is applied.  It is
-  passed `targets`, `phase` and `results` arguments, and is called before any
-  error checking is done.  The return value is ignored, so this is for side
-  affect only.
-
-`:execution-settings-f`
-: specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
-  [session phases targets {:keys [execution-settings-f phase-execution-f
-                                  post-phase-f]
-                           :or {targets service-state
-                                ;; TODO
-                                ;; phase-execution-f #'primitives/execute-phase
-                                ;; execution-settings-f (api/environment-execution-settings)
-                                }}]
-  (logging/debugf "async-lift-op :phases %s :targets %s"
-                  (vec phases) (vec (map :group-name targets)))
-  ;; TODO support post-phase, partitioning middleware, etc
-  (go-logged
-   (loop [phases phases
-          res []]
-     (if-let [phase (first phases)]
-       (let [c (lift-phase-with-middleware session phase targets)
-             [results exceptions] (loop [results []
-                                         exceptions []]
-                                    (let [[r e :as res] (<! c)]
-                                      (if res
-                                        (if e
-                                          (recur results (conj exceptions e))
-                                          (recur (conj results r) exceptions))
-                                        [results exceptions])))
-             phase-name (phase/phase-kw phase)
-             res (concat res (->> results (map #(assoc % :phase phase-name))))]
-         (if (or (some #(some :error (:action-results %)) results)
-                 (seq exceptions))
-           [res exceptions]
-           (recur (rest phases) res)))
-       [res nil]))))
-
-(defn lift-op
-  "Execute phases on targets.  Returns a sequence of results.
-
-## Options
-
-`:targets`
-: used to restrict the nodes on which the phases are run to a subset of
-  `service-state`.  Defaults to `service-state`.
-
-`:phase-execution-f`
-: specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/execute-phase`.
-
-`:post-phase-f`
-: specifies an optional function that is run after a phase is applied.  It is
-  passed `targets`, `phase` and `results` arguments, and is called before any
-  error checking is done.  The return value is ignored, so this is for side
-  affect only.
-
-`:post-phase-fsm`
-: specifies an optional fsm returning function that is run after a phase is
-  applied.  It is passed `targets`, `phase` and `results` arguments, and is
-  called before any error checking is done.  The return value is ignored, so
-  this is for side affect only.
-
-`:execution-settings-f`
-: specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
-  [session phases targets {:keys [execution-settings-f phase-execution-f
-                                  post-phase-f]
-                           :or {targets service-state
-                                ;; TODO
-                                ;; phase-execution-f #'primitives/execute-phase
-                                ;; execution-settings-f (api/environment-execution-settings)
-                                }
-                           :as options}]
-  (logging/debugf "lift-op :phases %s :targets %s"
-                  (vec phases) (vec (map :group-name targets)))
-  (let [c (async-lift-op session phases targets options)
-        [results exceptions] (<!! c)]
-    (when (seq exceptions)
-      (throw (ex-info "Exception in phase"
-                      {:results results
-                       :execptions exceptions}
-                      (first exceptions))))
-    results))
-
+    :as options}
+   ch]
+  (logging/debugf
+   "converge :phase %s :groups %s :settings-groups %s"
+   (vec phases)
+   (vec (map :group-name groups))
+   (vec (map :group-name targets)))
+  (go-tuple ch
+    (let [c (chan)]
+      (node-count-adjuster session compute groups targets c)
+      (<! c))))
 
 
 ;; (defn ^:internal partition-targets
@@ -1023,81 +1108,84 @@ flag.
 ;;        :plan-state plan-state})))
 
 (defn converge*
-  "Returns a channel to converge the existing compute resources with the counts
-   specified in `group-spec->count`.  Options are as for `converge`."
-  [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment
-                               plan-state debug os-detect]
-                        :or {os-detect true}
-                        :as options}]
+  "Converge the existing compute resources with the counts
+   specified in `group-spec->count`.  Options are as for `converge`.
+   The result is written to the channel, ch."
+  [group-spec->count ch & {:keys [compute blobstore user phase
+                                  all-nodes all-node-set environment
+                                  plan-state debug os-detect]
+                           :or {os-detect true}
+                           :as options}]
   (do ;; go-logged
-   (check-converge-options options)
-   (logging/tracef "environment %s" environment)
-   (let [[phases phase-map] (process-phases phase)
-         phase-map (if os-detect
-                     (assoc phase-map
-                       :pallet/os (vary-meta
-                                   (plan-fn [session] (os session))
-                                   merge unbootstrapped-meta)
-                       :pallet/os-bs (vary-meta
-                                      (plan-fn [session] (os session))
-                                      merge bootstrapped-meta))
-                     phase-map)
-         groups (if (map? group-spec->count)
-                  [group-spec->count]
-                  group-spec->count)
-         groups (expand-group-spec-with-counts group-spec->count)
-         {:keys [groups targets]} (-> groups
-                                      expand-cluster-groups
-                                      split-groups-and-targets)
-         _ (logging/tracef "groups %s" (vec groups))
-         _ (logging/tracef "targets %s" (vec targets))
-         _ (logging/tracef "environment keys %s"
-                           (select-keys options environment-args))
-         environment (merge-environments
-                      {:user user/*admin-user*}
-                      (pallet.environment/environment compute)
-                      environment
-                      (select-keys options environment-args))
-         groups (groups-with-phases groups phase-map)
-         targets (groups-with-phases targets phase-map)
-         groups (map (partial group-with-environment environment) groups)
-         targets (map (partial group-with-environment environment) targets)
-         lift-options (select-keys options lift-options)
-         initial-plan-state (or plan-state {})
-         ;; initial-plan-state (assoc (or plan-state {})
-         ;;                      action-options-key
-         ;;                      (select-keys debug
-         ;;                                   [:script-comments :script-trace]))
-         phases (or (seq phases)
-                    (apply total-order-merge
-                           (map :default-phases (concat groups targets))))]
-     (doseq [group groups] (check-group-spec group))
-     (let [nodes-set (all-group-nodes compute groups all-node-set)
-           nodes-set (concat nodes-set targets)
-           _ (when-not (or compute (seq nodes-set))
-               (throw (ex-info
-                       "No source of nodes"
-                       {:error :no-nodes-and-no-compute-service})))
+    (check-converge-options options)
+    (logging/tracef "environment %s" environment)
+    (let [[phases phase-map] (process-phases phase)
+          phase-map (if os-detect
+                      (assoc phase-map
+                        :pallet/os (vary-meta
+                                    (plan-fn [session] (os session))
+                                    merge unbootstrapped-meta)
+                        :pallet/os-bs (vary-meta
+                                       (plan-fn [session] (os session))
+                                       merge bootstrapped-meta))
+                      phase-map)
+          groups (if (map? group-spec->count)
+                   [group-spec->count]
+                   group-spec->count)
+          groups (expand-group-spec-with-counts group-spec->count)
+          {:keys [groups targets]} (-> groups
+                                       expand-cluster-groups
+                                       split-groups-and-targets)
+          _ (logging/tracef "groups %s" (vec groups))
+          _ (logging/tracef "targets %s" (vec targets))
+          _ (logging/tracef "environment keys %s"
+                            (select-keys options environment-args))
+          environment (merge-environments
+                       {:user user/*admin-user*}
+                       (pallet.environment/environment compute)
+                       environment
+                       (select-keys options environment-args))
+          groups (groups-with-phases groups phase-map)
+          targets (groups-with-phases targets phase-map)
+          groups (map (partial group-with-environment environment) groups)
+          targets (map (partial group-with-environment environment) targets)
+          lift-options (select-keys options lift-options)
+          initial-plan-state (or plan-state {})
+          ;; initial-plan-state (assoc (or plan-state {})
+          ;;                      action-options-key
+          ;;                      (select-keys debug
+          ;;                                   [:script-comments :script-trace]))
+          phases (or (seq phases)
+                     (apply total-order-merge
+                            (map :default-phases (concat groups targets))))]
+      (doseq [group groups] (check-group-spec group))
+      (go-tuple ch
+        (let [session (session/create {:executor (ssh/ssh-executor)
+                                       :plan-state (in-memory-plan-state initial-plan-state)})
+              nodes-set (all-group-nodes compute groups all-node-set)
+              nodes-set (concat nodes-set targets)
+              _ (when-not (or compute (seq nodes-set))
+                  (throw (ex-info
+                          "No source of nodes"
+                          {:error :no-nodes-and-no-compute-service})))
+              c (chan)
+              _ (converge-op session compute groups nodes-set phases lift-options c)
+              [converge-result e] (<! c)]
+          (if e
+            [converge-result e]
+            (do
 
-           {:keys [new-nodes plan-state targets service-state]
-            :as converge-result}
-           (converge-op
-                        compute groups nodes-set initial-plan-state
-                        environment phases lift-options)
+              ;; (lift-partitions
+              ;;  service-state plan-state environment
+              ;;  (concat (when os-detect [:pallet/os-bs :pallet/os])
+              ;;          [:settings :bootstrap] phases)
+              ;;  (assoc lift-options :targets targets))
 
-           {:keys [plan-state results]}
-           (lift-partitions
-            service-state plan-state environment
-            (concat (when os-detect [:pallet/os-bs :pallet/os])
-                    [:settings :bootstrap] phases)
-            (assoc lift-options :targets targets))]
-
-       (-> converge-result
-           (update-in [:results] concat results)
-           (assoc :plan-state (dissoc plan-state :node-values)
-                  :environment environment
-                  :initial-plan-state initial-plan-state))))))
+              (async-lift-op session phases targets lift-options c)
+              (let [[result e] (<! c)]
+                [(-> converge-result
+                     (update-in [:results] concat result))
+                 e]))))))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -1246,13 +1334,14 @@ the admin-user on the nodes.
                            {})]
       (if false ;; TODO (phase-errors settings-result)
         settings-result
-        (let [results (lift-partitions
-                       operation
-                       nodes-set
-                       (:plan-state settings-result)
-                       environment
-                       (remove #{:settings} phases)
-                       lift-options)]
+        (let [results :todo ;; (lift-partitions
+                      ;;  operation
+                      ;;  nodes-set
+                      ;;  (:plan-state settings-result)
+                      ;;  environment
+                      ;;  (remove #{:settings} phases)
+                      ;;  lift-options)
+              ]
           (assoc results
             :environment environment
             :initial-plan-state initial-plan-state))))))
@@ -1393,12 +1482,13 @@ insufficient.
                      environment
                      (select-keys options environment-args))]
     (letfn [(lift-nodes* [operation]
-              (lift-partitions
-               operation
-               targets plan-state environment phases
-               (dissoc options
-                       :environment :plan-state :async
-                       :timeout-val :timeout-ms)))]
+              ;; (lift-partitions
+              ;;  operation
+              ;;  targets plan-state environment phases
+              ;;  (dissoc options
+              ;;          :environment :plan-state :async
+              ;;          :timeout-val :timeout-ms))
+              )]
       (exec-operation lift-nodes* options))))
 
 (defn group-nodes

@@ -1,9 +1,12 @@
 (ns pallet.core.group-test
   (:require
+   [clojure.core.async :refer [<!! chan]]
+   [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.actions.test-actions :refer [fail]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute.node-list :as node-list]
    [pallet.core.api :refer :all]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.executor.plan :as plan]
@@ -14,7 +17,8 @@
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.session :as session :refer [executor plan-state recorder]]
-   [pallet.crate.os :refer [os]]))
+   [pallet.crate.os :refer [os]]
+   [pallet.test-utils :refer [make-localhost-compute]]))
 
 ;; (deftest service-state-test
 ;;   (testing "default groups"
@@ -233,3 +237,75 @@
                 :phases {:x (plan-fn [session] (throw (ex-info "Test" {})))})
             t (assoc g :node host)]
         (is (thrown? Exception (group/lift-op session [:x] [t] {})))))))
+
+(deftest service-state-test
+  (testing "service state"
+    (let [service (make-localhost-compute :group-name :local)
+          ss (group/service-state service [(group/group-spec :local)])]
+      (is (= 1 (count ss)))
+      (is (= :local (:group-name (first ss))))
+      (is (= (dissoc (localhost) :service)
+             (dissoc (:node (first ss)) :service)))
+      (is (every? :node ss)))))
+
+(deftest all-group-nodes-test
+  (testing "all-group-nodes"
+    (let [service (make-localhost-compute :group-name :local)
+          ss (group/all-group-nodes
+              service
+              [(group/group-spec :local)]
+              [(group/group-spec :other)])]
+      (is (= 1 (count ss)))
+      (is (= :local (:group-name (first ss))))
+      (is (= (dissoc (localhost) :service)
+             (dissoc (:node (first ss)) :service))))))
+
+(deftest node-count-adjuster-test
+  (testing "node-count-adjuster"
+    (let [session (session/create {:executor (ssh/ssh-executor)
+                                   :plan-state (in-memory-plan-state)})
+          service (make-localhost-compute :group-name :local)
+          g (group/group-spec :g
+              :count 1
+              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+          c (chan)
+          targets (group/service-state service [(group/group-spec :local)])
+          _ (is (every? :node targets))
+          r (group/node-count-adjuster
+             session
+             service [g]
+             targets
+             c)
+          [res e] (<!! c)]
+      (is (map? res) "Result is a map")
+      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+          "Result has the correct keys")
+      (is (empty (:new-nodes res)) "Result has no new nodes")
+      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (seq (:results res)) "Has phase results")
+      (is (nil? e) "No exception thrown")
+      (when e
+        (print-cause-trace e)))))
+
+(deftest converge*-test
+  (testing "converge*"
+    (let [session (session/create {:executor (ssh/ssh-executor)
+                                   :plan-state (in-memory-plan-state)})
+          service (make-localhost-compute :group-name :local)
+          g (group/group-spec :g
+              :count 1
+              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+          c (chan)
+          targets (group/service-state service [(group/group-spec :local)])
+          _ (is (every? :node targets))
+          r (group/converge* [g] c :compute service)
+          [res e] (<!! c)]
+      (is (map? res) "Result is a map")
+      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+          "Result has the correct keys")
+      (is (empty (:new-nodes res)) "Result has no new nodes")
+      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (seq (:results res)) "Has phase results")
+      (is (nil? e) "No exception thrown")
+      (when e
+        (print-cause-trace e)))))

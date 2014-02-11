@@ -6,11 +6,10 @@
    [clojure.tools.logging]
    [pallet.action :refer [declare-action implement-action]]
    [pallet.actions-impl :as actions-impl]
-   [pallet.api :refer [group-spec server-spec]]
+   [pallet.core.group :refer [group-spec server-spec]]
    [pallet.common.context :refer [throw-map]]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.session :refer [session]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.execute :as execute]
    [pallet.execute :refer [target-flag?]]
@@ -115,7 +114,7 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn make-localhost-node
   "Simple localhost node for testing"
   [& {:as options}]
-  (apply-map node-list/make-localhost-node options))
+  (node-list/make-localhost-node options))
 
 (defn make-localhost-compute
   [& {:as options}]
@@ -181,21 +180,21 @@ list, Alan Dipert and MeikelBrandmeyer."
          ~@impl)
        action#)))
 
-(defn verify-flag-set
-  "Verify that the specified flag is set for the current target."
-  [flag]
-  (when-not (target-flag? (session) flag)
-    (throw-map
-     (format "Verification that flag %s was set failed" flag)
-     {:flag flag})))
+;; (defn verify-flag-set
+;;   "Verify that the specified flag is set for the current target."
+;;   [flag]
+;;   (when-not (target-flag? (session) flag)
+;;     (throw-map
+;;      (format "Verification that flag %s was set failed" flag)
+;;      {:flag flag})))
 
-(defn verify-flag-not-set
-  "Verify that the specified flag is not set for the current target."
-  [flag]
-  (when (target-flag? (session) flag)
-    (throw-map
-     (format "Verification that flag %s was not set failed" flag)
-     {:flag flag})))
+;; (defn verify-flag-not-set
+;;   "Verify that the specified flag is not set for the current target."
+;;   [flag]
+;;   (when (target-flag? (session) flag)
+;;     (throw-map
+;;      (format "Verification that flag %s was not set failed" flag)
+;;      {:flag flag})))
 
 (defn bash
   "Create a bash literal string as returned by an action function"

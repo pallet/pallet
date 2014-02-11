@@ -1,15 +1,17 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
+   [clojure.core.async :refer [<!! chan]]
    [clojure.core.typed
     :refer [ann
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
             Seq]]
-   [pallet.core.type-annotations]
+   [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.core.types                   ; before any protocols
     :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
             User]]
-   [pallet.compute.protocols :as impl :refer [ComputeService Node]]
+   [pallet.compute.protocols :as impl :refer [Node]]
+   [pallet.core.protocols :as core-impl]
    [pallet.compute.implementation :as implementation]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.utils :refer [maybe-assoc]]
@@ -68,87 +70,112 @@ Provider specific options may also be passed."
                    :cause cause})))
         (throw e)))))
 
-;;; Actions
-
-;; TODO
-;; the executor should be passed to the compute service to allow remote
-;; execution of the init script using the executor abstraction.
-
-;; However, the executor uses the session abstraction, so that would need
-;; passing too
-(ann nodes [ComputeService -> (Nilable (NonEmptySeqable Node))])
-(defn nodes [compute]
-  (impl/nodes compute))
-
-(ann run-nodes [ComputeService NodeSpec User AnyInteger
-                -> (Nilable (NonEmptySeqable Node))])
-(defn run-nodes
-  "Start node-count nodes for group-spec, executing an init-script on
-  each, using the specified user and options."
-  [compute node-spec user node-count]
-  (impl/run-nodes compute node-spec user node-count))
-
-(ann tag-nodes [ComputeService (Seqable Node) Tags ->
-                (Nilable (NonEmptySeqable Node))])
-(defn tag-nodes
-  "Set the `tags` on all `nodes`."
-  [compute nodes tags]
-  (impl/tag-nodes compute nodes tags))
-
-(ann reboot [ComputeService (Seq Node) -> nil])
-(defn reboot
-  "Reboot the specified nodes"
-  [compute nodes]
-  (impl/reboot compute nodes))
-
-(ann boot-if-down [ComputeService (Seq Node) -> nil])
-(defn boot-if-down
-  "Boot the specified nodes, if they are not running."
-  [compute nodes]
-  (impl/boot-if-down compute nodes))
-
-(ann shutdown-node [ComputeService Node User -> nil])
-(defn shutdown-node
-  "Shutdown a node."
-  [compute node user]
-  (impl/shutdown-node compute node user))
-
-(ann shutdown [ComputeService (Seq Node) User -> nil])
-(defn shutdown
-  "Shutdown specified nodes"
-  [compute nodes user]
-  (impl/shutdown compute nodes user))
-
-(ann ensure-os-family [ComputeService GroupSpec -> nil])
-(defn ensure-os-family
- "Called on startup of a new node to ensure group-spec has an os-family
-   attached to it."
- [compute group-spec]
- (impl/ensure-os-family compute group-spec))
-
-(ann destroy-nodes [ComputeService Nodes -> nil])
-(defn destroy-nodes
-  [compute nodes]
-  (impl/destroy-nodes compute nodes))
-
-(ann destroy-node [ComputeService Node -> nil])
-(defn destroy-node
-  [compute node]
-  (impl/destroy-node compute node))
-
-(ann images [ComputeService -> (Seq Map)])
-(defn images [compute]
-  (impl/images compute))
-
-(ann close [ComputeService -> nil])
-(defn close [compute]
-  (impl/close compute))
-
 (ann ^:no-check compute-service? [Any -> boolean])
 (defn compute-service?
   "Predicate for the argument satisfying the ComputeService protocol."
   [c]
   (satisfies? pallet.compute.protocols/ComputeService c))
+
+;;; Actions
+
+(defmacro defasync
+  "Define a function with a synchronous and an asynchronous
+  overloading.  The last argument is expected to be a channel, which
+  is removed from the argument list for the synchronous overload. If
+  there is ::protocol metadata, then this is used to implement a
+  run-time check that the first argument satisfies the protocol."
+  {:arglists '[[name doc-string? attr-map? [params*] prepost-map? body]]}
+  [name args & body]
+  (let [[name [args & body]] (name-with-attributes name (concat [args] body))
+        p (-> name meta ::protocol)
+        name (vary-meta name dissoc ::protocol)]
+    `(defn ~name
+       (~(vec (butlast args))
+        (let [ch# (chan)]
+          (~name ~@(butlast args) ch#)
+          (let [[r# e#] (<!! ch#)]
+            (when e#
+              (throw e#))
+            r#)))
+       (~args
+        ~@(if p [`(require-protocol ~p ~(first args) '~name)])
+        ~@body))))
+
+(defn- unsupported-exception [service operation]
+  (ex-info "Unsupported Operation"
+           {:service service
+            :operation operation}))
+
+(defn- require-protocol [protocol service operation]
+  (when-not (satisfies? protocol service)
+    (throw (unsupported-exception service operation))))
+
+(defasync nodes
+  "Return the nodes in the compute service."
+  {::protocol impl/ComputeService}
+  [compute ch]
+  (impl/nodes compute ch))
+
+(defasync create-nodes
+  "Create nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeCreateDestroy}
+  [compute node-spec user node-count options ch]
+  {:pre [(map? node-spec)(map? (:image node-spec))]}
+  (impl/create-nodes compute node-spec user node-count options ch))
+
+(defasync destroy-nodes
+  "Destroy the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeCreateDestroy}
+  [compute nodes ch]
+  (impl/destroy-nodes compute nodes ch))
+
+(defasync images
+  "Return the images available in the compute service."
+  {::protocol impl/ComputeServiceNodeCreateDestroy}
+  [compute ch]
+  (impl/images compute ch))
+
+(defasync restart-nodes
+  "Start the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeStop}
+  [compute nodes ch]
+  (impl/restart-nodes compute nodes ch))
+
+(defasync stop-nodes
+  "Stop the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeStop}
+  [compute nodes ch]
+  (impl/stop-nodes compute nodes ch))
+
+(defasync suspend-nodes
+  "Suspend the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeSuspend}
+  [compute nodes ch]
+  (impl/suspend-nodes compute nodes ch))
+
+(defasync resume-nodes
+  "Resume the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeSuspend}
+  [compute nodes ch]
+  (impl/resume-nodes compute nodes ch))
+
+(ann tag-nodes [ComputeService (Seqable Node) Tags ->
+                (Nilable (NonEmptySeqable Node))])
+(defn tag-nodes
+  "Set the `tags` on all `nodes`."
+  ([compute nodes tags]
+     (let [ch (chan)]
+       (impl/tag-nodes compute nodes tags ch)
+       (<!! ch)))
+  ([compute nodes tags ch]
+     (impl/tag-nodes compute nodes tags ch)))
+
+(ann close [ComputeService -> nil])
+(defn close
+  "Close the compute service, releasing any acquired resources."
+  [compute]
+  (require-protocol core-impl/Closeable compute :close)
+  (core-impl/close compute))
 
 (ann service-properties [ComputeService -> Map])
 (defn service-properties

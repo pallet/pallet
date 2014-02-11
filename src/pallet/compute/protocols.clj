@@ -37,30 +37,72 @@
 (defprotocol> NodeProxy
   (proxy [node] "A map with SSH proxy connection details."))
 
-;;; # Compute Service
+
+;;; Async Compute Service
+;;; Asynchronous compute service protocols.
+
 (defprotocol> ComputeService
-  (nodes [compute] "List nodes")
-  (run-nodes
-   [compute node-spec user node-count]
-   "Start `node-count` nodes using `node-spec`, authorising the public
-   key of the specified `user` if possible.")
+  "Basic asynchronous compute service."
+  (nodes
+   [compute ch]
+   "List nodes. A sequence of node instances will be put onto the
+   channel, ch."))
+
+(defprotocol> ComputeServiceNodeCreateDestroy
+  (images
+   [compute ch]
+   "Writes a sequence of images to the channel, ch.")
+  (create-nodes
+   [compute node-spec user node-count options ch]
+   "Start `node-count` nodes using `node-spec`.  Node instances will
+   be put onto the channel, ch.  The channel will be closed when the
+   command completes.  Not all the requested nodes will necessarily
+   start succesfully.  The options map specifies values that may not
+   be supported on all providers, including `:node-name`, for
+   specifying the node name.")
+  (destroy-nodes
+   [compute nodes ch]
+   "Remove nodes. Any problems will be written to the channel, ch."))
+
+(defprotocol> ComputeServiceNodeStop
+  (stop-nodes [compute nodes ch] "Stop nodes.")
+  (restart-nodes [compute nodes ch] "Restart stopped or suspended nodes."))
+
+(defprotocol> ComputeServiceNodeSuspend
+  (suspend-nodes [compute nodes ch] "Suspend nodes node.")
+  (resume-nodes [compute nodes ch] "Restart stopped or suspended nodes."))
+
+(defprotocol> ComputeServiceTags
   (tag-nodes
-   [compute nodes tags]
-   "Tag the `nodes` in `compute-service` with the `tags`.")
-  (reboot [compute nodes] "Reboot the specified nodes")
-  (boot-if-down
-   [compute nodes]
-   "Boot the specified nodes, if they are not running.")
-  (shutdown-node [compute node user] "Shutdown a node.")
-  (shutdown [compute nodes user] "Shutdown specified nodes")
-  (ensure-os-family
-   [compute group-spec]
-   "Called on startup of a new node to ensure group-spec has an os-family
-   attached to it.")
-  (destroy-nodes [compute nodes])
-  (destroy-node [compute node])
-  (images [compute])
-  (close [compute]))
+   [compute nodes tags ch]
+   "Tag the `nodes` in `compute-service` with the `tags`.  Any
+   problems will be written to the channel, ch."))
+
+;;; # Compute Service
+;;; Synchronous compute service protocols.
+;; (defprotocol> ComputeService
+;;   (nodes [compute] "List nodes")
+;;   (run-nodes
+;;    [compute node-spec user node-count]
+;;    "Start `node-count` nodes using `node-spec`, authorising the public
+;;    key of the specified `user` if possible.")
+;;   (tag-nodes
+;;    [compute nodes tags]
+;;    "Tag the `nodes` in `compute-service` with the `tags`.")
+;;   (reboot [compute nodes] "Reboot the specified nodes")
+;;   (boot-if-down
+;;    [compute nodes]
+;;    "Boot the specified nodes, if they are not running.")
+;;   (shutdown-node [compute node user] "Shutdown a node.")
+;;   (shutdown [compute nodes user] "Shutdown specified nodes")
+;;   (ensure-os-family
+;;    [compute group-spec]
+;;    "Called on startup of a new node to ensure group-spec has an os-family
+;;    attached to it.")
+;;   (destroy-nodes [compute nodes])
+;;   (destroy-node [compute node])
+;;   (images [compute])
+;;   (close [compute]))
 
 (defprotocol> ComputeServiceProperties
   (service-properties [compute]

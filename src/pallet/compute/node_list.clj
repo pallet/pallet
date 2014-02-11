@@ -15,16 +15,19 @@
   (:require
    [clj-schema.schema
     :refer [def-map-schema optional-path seq-schema sequence-of set-of wild]]
+   [clojure.core.async :refer [>! <! close! go]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
+   [pallet.async :refer [go-tuple]]
    [pallet.compute :as compute]
    [pallet.environment]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.contracts :refer [check-spec]]
    [pallet.compute.protocols :as impl :refer [node-tag]]
+   [pallet.core.protocols :as core-impl]
    [pallet.environment :as environment]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map]])
@@ -159,30 +162,51 @@ support."
        :operation :pallet.compute/node-tags})))
   (node-taggable? [_ node] false))
 
+(defn- unsupported-exception [operation]
+  (ex-info "Unsupported Operation"
+           {:provider :node-list
+            :operation operation}))
+
 (deftype NodeList
     [node-list environment tag-provider]
+  pallet.core.protocols.Closeable
+  (close
+    [compute]
+    "Closes the compute service, releasing any acquired resources.")
+
   pallet.compute.protocols.ComputeService
-  (nodes [compute-service] @node-list)
-  (ensure-os-family
-    [compute-service group-spec]
-    (when (not (-> group-spec :image :os-family))
-      (throw
-       (ex-info
-        "Node list contains a node without os-family"
-        {:type :no-os-family-specified}))))
-  ;; Not implemented
-  (run-nodes [compute node-spec user node-count]
-    nil)
-  ;; (reboot "Reboot the specified nodes")
-  (boot-if-down [compute nodes] nil)
-  ;; (shutdown-node "Shutdown a node.")
-  ;; (shutdown "Shutdown specified nodes")
+  (nodes
+    [compute ch]
+    "List nodes. A sequence of node instances will be put onto the channel, ch."
+    (go-tuple ch [@node-list]))
+
+
+                                        ;   pallet.compute.protocols.ComputeService
+  ;;   (nodes [compute-service] @node-list)
+  ;; (ensure-os-family
+  ;;   [compute-service group-spec]
+  ;;   (when (not (-> group-spec :image :os-family))
+  ;;     (throw
+  ;;      (ex-info
+  ;;       "Node list contains a node without os-family"
+  ;;       {:type :no-os-family-specified}))))
+  ;; ;; Not implemented
+  ;; (run-nodes [compute node-spec user node-count]
+  ;;   nil)
+  ;; ;; (reboot "Reboot the specified nodes")
+  ;; (boot-if-down [compute nodes] nil)
+  ;; ;; (shutdown-node "Shutdown a node.")
+  ;; ;; (shutdown "Shutdown specified nodes")
 
   ;; ;; this forgets about the nodes
   ;; (destroy-nodes-in-group [_ group]
   ;;   (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
 
-  (close [compute])
+
+
+
+
+  ;; (close [compute])
   pallet.core.protocols.Environment
   (environment [_] environment)
   pallet.compute.protocols.NodeTagReader

@@ -155,22 +155,22 @@ a priviledged user."
   String or Named value."
   (Map (U String Named) (U String Named)))
 
-(ann-protocol pallet.compute.protocols/ComputeService
-  nodes [ComputeService -> (Nilable (NonEmptySeqable (ReadOnlyPort TargetMap)))]
-  run-nodes [ComputeService NodeSpec User AnyInteger
-             -> (Nilable (NonEmptySeqable Node))]
-  tag-nodes [ComputeService (Seqable Node) Tags
-             -> (ReadOnlyPort
-                 (Map Node (Nilable (HMap :mandatory {:error (ErrorMap)}))))]
-  reboot [ComputeService (Seq Node) -> nil]
-  boot-if-down [ComputeService (Seq Node) -> nil]
-  shutdown-node [ComputeService Node User -> nil]
-  shutdown [ComputeService (Seq Node) User -> nil]
-  ensure-os-family [ComputeService GroupSpec -> nil]
-  destroy-nodes-in-group [ComputeService GroupName -> nil]
-  destroy-node [ComputeService Node -> nil]
-  images [ComputeService -> (Seq Map)]
-  close [ComputeService -> nil])
+;; (ann-protocol pallet.compute.protocols/ComputeService
+;;   nodes [ComputeService -> (Nilable (NonEmptySeqable (ReadOnlyPort TargetMap)))]
+;;   run-nodes [ComputeService NodeSpec User AnyInteger
+;;              -> (Nilable (NonEmptySeqable Node))]
+;;   tag-nodes [ComputeService (Seqable Node) Tags
+;;              -> (ReadOnlyPort
+;;                  (Map Node (Nilable (HMap :mandatory {:error (ErrorMap)}))))]
+;;   reboot [ComputeService (Seq Node) -> nil]
+;;   boot-if-down [ComputeService (Seq Node) -> nil]
+;;   shutdown-node [ComputeService Node User -> nil]
+;;   shutdown [ComputeService (Seq Node) User -> nil]
+;;   ensure-os-family [ComputeService GroupSpec -> nil]
+;;   destroy-nodes-in-group [ComputeService GroupName -> nil]
+;;   destroy-node [ComputeService Node -> nil]
+;;   images [ComputeService -> (Seq Map)]
+;;   close [ComputeService -> nil])
 
 (ann-protocol pallet.compute.protocols/ComputeServiceProperties
   service-properties [ComputeService -> Map])

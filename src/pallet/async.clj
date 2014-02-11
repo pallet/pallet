@@ -4,7 +4,7 @@
    [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
    [clojure.core.typed.async :refer [go> ReadOnlyPort]]
    [clojure.core.async
-    :refer [<!! alts! chan close! go go-loop put! thread timeout]]
+    :refer [<!! >! alts! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [errorf]]
    [pallet.core.types :refer [ErrorMap]]))
 
@@ -35,7 +35,22 @@
         (errorf (clojure.stacktrace/root-cause e#)
                 "Unexpected exception terminating go block")))))
 
-
+(defmacro go-tuple
+  "Provides a go macro which writes the result of it's body the
+  channel, ch.  The body's value is expected to be a tuple. In the
+  case of normal execution the tuple's first value is the normal
+  return value, and the second is nil.  If an exception is thrown by
+  the body, the tuple's first value is nil, and the exception is
+  returned in the second value."
+  [ch & body]
+  `(go>
+    (let [ch# ~ch]
+      (try
+        (let [r# (do ~@body)]
+          (assert (sequential? r#) "Return value should be a tuple")
+          (>! ch# r#))
+        (catch Throwable e#
+          (>! ch# [nil e#]))))))
 
 (defn thread-fn
   "Execute function f in a new thread, return a channel for the result.
@@ -134,3 +149,8 @@ element."
         (close! to))))
   ([chans to]
      (concat-chans chans to true)))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (go-tuple 1))
+;; End:

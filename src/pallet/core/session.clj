@@ -283,7 +283,8 @@ The session is a map with well defined keys:
 (defn set-node
   "Return a session with `:target` as the current target."
   [session node]
-  {:pre [(base-session? session) (node/node? node)]}
+  {:pre [(base-session? session) (node/node? node)]
+   :post [(target-session? %)]}
   (assoc session :node node))
 
 (ann set-system-targets
