@@ -979,8 +979,12 @@ specified in the `:extends` argument."
                 timeout-ms timeout-val]}]
   (cond
    async chan
-   timeout-ms (alts!! [chan (timeout timeout-ms)])
-   :else (<!! chan)))
+   timeout-ms (let [[res e] (alts!! [chan (timeout timeout-ms)])]
+                (when e (throw e))
+                res)
+   :else (let [[res e] (<!! chan)]
+           (when e (throw e))
+           res)))
 
 
 (def ^{:doc "A sequence of keywords, listing the lift-options"}
@@ -1111,11 +1115,11 @@ flag.
   "Converge the existing compute resources with the counts
    specified in `group-spec->count`.  Options are as for `converge`.
    The result is written to the channel, ch."
-  [group-spec->count ch & {:keys [compute blobstore user phase
-                                  all-nodes all-node-set environment
-                                  plan-state debug os-detect]
-                           :or {os-detect true}
-                           :as options}]
+  [group-spec->count ch {:keys [compute blobstore user phase
+                                all-nodes all-node-set environment
+                                plan-state debug os-detect]
+                         :or {os-detect true}
+                         :as options}]
   (do ;; go-logged
     (check-converge-options options)
     (logging/tracef "environment %s" environment)
@@ -1269,13 +1273,14 @@ the admin-user on the nodes.
                                async timeout-ms timeout-val
                                debug plan-state]
                         :as options}]
-;; TODO  (load-plugins)
-  ;; (exec-operation
-  ;;  #(apply-map converge* % group-spec->count options)
-  ;;  (select-keys
-  ;;   options [:async :operation :status-chan :close-status-chan?
-  ;;            :timeout-ms :timeout-val]))
-  )
+  ;; TODO  (load-plugins)
+  (let [ch (chan)]
+    (converge* group-spec->count ch options)
+    (exec-operation
+     ch
+     (select-keys
+      options [:async :operation :status-chan :close-status-chan?
+               :timeout-ms :timeout-val]))))
 
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying

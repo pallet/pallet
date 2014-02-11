@@ -298,7 +298,7 @@
           c (chan)
           targets (group/service-state service [(group/group-spec :local)])
           _ (is (every? :node targets))
-          r (group/converge* [g] c :compute service)
+          r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]
       (is (map? res) "Result is a map")
       (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
@@ -309,3 +309,17 @@
       (is (nil? e) "No exception thrown")
       (when e
         (print-cause-trace e)))))
+
+(deftest converge-test
+  (testing "converge"
+    (let [service (make-localhost-compute :group-name :local)
+          g (group/group-spec :g
+              :count 1
+              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+          res (group/converge [g] :compute service)]
+      (is (map? res) "Result is a map")
+      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+          "Result has the correct keys")
+      (is (empty (:new-nodes res)) "Result has no new nodes")
+      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (seq (:results res)) "Has phase results"))))
