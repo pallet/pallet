@@ -171,19 +171,18 @@
   (tracef "check-spec* %s" spec)
   (when *verify-contracts*
     (if-let [errs (seq (validation-errors spec m))]
-      (do
-        (errorf (str "Invalid " spec-name ":"))
+      (let [e (ex-info
+               (format (str "Invalid " spec-name ": %s") (join " " errs))
+               {:errors errs
+                :m m
+                :spec spec
+                :spec-name spec-name
+                :line line
+                :file file})]
+        (errorf e (str "Invalid " spec-name ":"))
         (doseq [err errs]
           (errorf (str "  " spec-name " error: %s") err))
-        (throw
-         (ex-info
-          (format (str "Invalid " spec-name ": %s") (join " " errs))
-          {:errors errs
-           :m m
-           :spec spec
-           :spec-name spec-name
-           :line line
-           :file file}))))
+        (throw e)))
     m))
 
 (defn ^{:requires [validation-errors #'errorf join]} check-spec

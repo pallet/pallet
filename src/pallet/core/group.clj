@@ -27,8 +27,7 @@ TODO: put :system-targets into plan-state?"
             check-group-spec
             check-lift-options
             check-node-spec
-            check-server-spec
-            check-user]]
+            check-server-spec]]
    [pallet.core.api :as api :refer [errors plan-fn]]
    [pallet.core.async :refer [action-errors?]]
    [pallet.core.executor.ssh :as ssh]
@@ -528,24 +527,59 @@ specified in the `:extends` argument."
 ;;; ## Node creation and removal
 ;; TODO remove :no-check when core.type understands assoc
 
+(defn combine-exceptions
+  [exceptions]
+  (if (seq exceptions)
+    ;; always wrap, so we get a full stacktrace, not just a threadpool
+    ;; trace.
+    (ex-info
+     (let [s (string/join ". " (map #(str %) exceptions))]
+       (if (string/blank? s) (pr-str exceptions) s))
+     {:exceptions exceptions}
+     (first exceptions))))
+
+(defn reduce-results
+  "Reduce the results of a sequence of [result exception] tuples read
+  from channel ch."
+  [ch]
+  (loop [results []
+         exceptions []]
+    (if-let [[r e] (<!! ch)]
+      (if e
+        (recur results (conj exceptions e))
+        (recur (conj results r) exceptions))
+      (do
+        (debugf "reduce-results %s"
+                [results (if-let [e (seq exceptions)]
+                           (combine-exceptions e))])
+        [results (if-let [e (seq exceptions)]
+                   (combine-exceptions e))]))))
+
 (ann ^:no-check add-group-nodes
      [Session ComputeService GroupSpec AnyInteger -> (Seq TargetMap)])
 (defn add-group-nodes
   "Create `count` nodes for a `group`."
   [session compute-service group count ch]
+  (debugf "add-group-nodes %s %s" group count)
   (go-tuple ch
+    (debugf "add-group-nodes in go-tuple")
+    (debugf "add-group-nodes %s" (admin-user session))
     (let [c (chan)
           _ (create-nodes
              compute-service
              group
              (admin-user session)
              count
+             {:node-name (name (:group-name group))}
              c)
+          _ (debugf "add-group-nodes dispatched")
           [targets e] (<! c)
+          _ (debugf "add-group-nodes %s %s" targets e)
           targets ((inst map TargetMap Node)
                    (fn> [node :- Node] (assoc group :node node))
                    targets)]
-      (add-system-targets session targets)
+      ;; (add-system-targets session targets)
+      (debugf "add-group-nodes %s %s" targets e)
       [targets e])))
 
 (ann remove-nodes [Session ComputeService GroupSpec GroupNodesForRemoval
@@ -558,7 +592,7 @@ specified in the `:extends` argument."
    (let [all (:all removals)
          targets (:targets removals)]
      (debugf "remove-nodes all %s targets %s" all (vector targets))
-     (remove-system-targets session targets)
+     ;; (remove-system-targets session targets)
      (let [c (chan)]
        ;; if all
        ;;  (destroy-nodes-in-group compute-service (:group-name group))
@@ -574,15 +608,17 @@ specified in the `:extends` argument."
   [session compute-service group-counts ch]
   (debugf "create-group-nodes %s %s" compute-service (vec group-counts))
   (go-tuple ch
-    (let [c (chan)]
-      (->>
-       (for [[group-spec delta-map] group-counts]
-         (add-group-nodes
-          session compute-service group-spec (:delta delta-map) c))
-       doall
-       (map #(<! %)))
+    ;; We use a buffered channel so as not blocked when we read the
+    ;; channel returned by add-group-nodes
+    (let [c (chan 1)
+          cs (for [[group-spec delta-map] group-counts]
+               (add-group-nodes
+                session compute-service group-spec (:delta delta-map) c))]
+      (doseq [csc cs]
+        (<! csc))              ; sync on completion of add-group-nodes
       (close! c)
-      (reduce-results c))))
+      (let [[targets e] (reduce-results c)]
+        [(apply concat targets) e]))))
 
 (ann remove-group-nodes
   [Session ComputeService (Seqable '[GroupSpec GroupNodesForRemoval]) -> Any])
@@ -599,8 +635,8 @@ specified in the `:extends` argument."
              res []
              exceptions []]
         (if-let [[r e] (and (pos? n) (<! c))]
-          (recur (dec n) (conj res r) (conj exceptions e))
-          [res (seq exceptions)])))))
+          (recur (dec n) (conj res r) (if e (conj exceptions e) exceptions))
+          [res (combine-exceptions exceptions)])))))
 
 (ann default-phases [TargetMapSeq -> (Seqable Keword)])
 (defn default-phases
@@ -673,38 +709,15 @@ specified in the `:extends` argument."
     r
     {:error e}))
 
-(defn combine-exceptions
-  [exceptions]
-  (if (seq exceptions)
-    ;; always wrap, so we get a full stacktrace, not just a threadpool
-    ;; trace.
-    (ex-info
-     (string/join ". " (map #(str %) exceptions))
-     {:exceptions exceptions}
-     (first exceptions))))
-
-(defn reduce-results
-  "Reduce the results of a sequence of [result exception] tuples read
-  from channel ch."
-  [ch]
-  (loop [results []
-         exceptions []]
-    (if-let [[r e] (<!! ch)]
-      (if e
-        (recur results (conj exceptions e))
-        (recur (conj results r) exceptions))
-      [results (if-let [e (seq exceptions)]
-                 (combine-exceptions e))])))
-
 (defn execute-phase
   [session phase targets ch]
   {:pre [(every? (some-fn :node #(= :group (:target-type %))) targets)]}
   (go-tuple ch
     (let [c (lift-phase-with-middleware session phase targets)
-          [results exceptions] (reduce-results c)
+          [results exception] (reduce-results c)
           phase-name (phase/phase-kw phase)
           res (->> results (mapv #(assoc % :phase phase-name)))]
-      [res exceptions])))
+      [res exception])))
 
 (defn async-lift-op
   "Execute phases on targets.  Returns a channel containing a tuple of
@@ -842,15 +855,20 @@ specified in the `:extends` argument."
                      (mapcat :nodes)
                      (map (comp node-map :node)))
           c (chan)
-          _ (execute-phase session :destroy-server (vals nodes-to-remove) c)
-          [res-ds exceptions] (<! c)]
+          _ (execute-phase
+             session :destroy-server
+             (mapcat :targets (vals nodes-to-remove)) c)
+          [res-ds es] (<! c)]
 
-      (if exceptions
-        [res-ds exceptions]
+      (if es
+        [res-ds es]
         (do
           (if-let [errs (errors res-ds)]
             [res-ds (ex-info "destroy-server phase failed" {:errors errs})]
-            (do
+            (let [removed-ids (->>
+                               (mapcat (comp :targets second) nodes-to-remove)
+                               (map :node)
+                               (mapv node/id))]
               (remove-group-nodes session compute-service nodes-to-remove c)
               (let [[res-rg es] (<! c)]
                 (if es
@@ -881,14 +899,14 @@ specified in the `:extends` argument."
                                      session compute-service nodes-to-add c)
                                     (let [[res-cn es] (<! c)]
                                       (if es
-                                        [{:new-nodes res-cn
-                                          :old-nodes res-ds
+                                        [{:new-targets res-cn
+                                          :old-node-ids removed-ids
                                           :results (concat
-                                                    res-rg res-dg res-cg)}
+                                                    res-ds res-dg res-cg)}
                                          es]
-                                        [{:results (concat res-rg res-dg res-cg)
-                                          :new-nodes res-cn
-                                          :old-nodes res-ds}]))))))))))))))))))))
+                                        [{:results (concat res-ds res-dg res-cg)
+                                          :new-targets res-cn
+                                          :old-node-ids removed-ids}]))))))))))))))))))))
 
 
 ;;; ## Operations
@@ -979,7 +997,7 @@ specified in the `:extends` argument."
                 timeout-ms timeout-val]}]
   (cond
    async chan
-   timeout-ms (let [[res e] (alts!! [chan (timeout timeout-ms)])]
+   timeout-ms (let [[[res e] _] (alts!! [chan (timeout timeout-ms)])]
                 (when e (throw e))
                 res)
    :else (let [[res e] (<!! chan)]
@@ -1164,8 +1182,10 @@ flag.
                             (map :default-phases (concat groups targets))))]
       (doseq [group groups] (check-group-spec group))
       (go-tuple ch
-        (let [session (session/create {:executor (ssh/ssh-executor)
-                                       :plan-state (in-memory-plan-state initial-plan-state)})
+        (let [session (session/create
+                       {:executor (ssh/ssh-executor)
+                        :plan-state (in-memory-plan-state initial-plan-state)
+                        :user user/*admin-user*})
               nodes-set (all-group-nodes compute groups all-node-set)
               nodes-set (concat nodes-set targets)
               _ (when-not (or compute (seq nodes-set))

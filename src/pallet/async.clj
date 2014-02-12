@@ -5,7 +5,7 @@
    [clojure.core.typed.async :refer [go> ReadOnlyPort]]
    [clojure.core.async
     :refer [<!! >! alts! chan close! go go-loop put! thread timeout]]
-   [clojure.tools.logging :refer [errorf]]
+   [clojure.tools.logging :refer [debugf errorf]]
    [pallet.core.types :refer [ErrorMap]]))
 
 ;;; # Async
@@ -41,9 +41,12 @@
   case of normal execution the tuple's first value is the normal
   return value, and the second is nil.  If an exception is thrown by
   the body, the tuple's first value is nil, and the exception is
-  returned in the second value."
+  returned in the second value.
+
+  NB. the channel, ch, should be buffered if the caller is going to
+  block on the returned channel before reading ch."
   [ch & body]
-  `(go>
+  `(go
     (let [ch# ~ch]
       (try
         (let [r# (do ~@body)]

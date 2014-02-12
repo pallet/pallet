@@ -45,7 +45,8 @@ The session is a map with well defined keys:
    [pallet.compute.protocols :refer [Node]]
    [pallet.context :refer [with-context]]
    [pallet.core.executor :refer [executor?]]
-   [pallet.core.plan-state :refer [get-settings get-scopes plan-state?]]
+   [pallet.core.plan-state
+    :refer [get-settings get-scopes merge-scopes plan-state?]]
    [pallet.core.plan-state.protocols :refer [StateGet]]
    [pallet.core.recorder :refer [recorder?]]
    [pallet.core.recorder.protocols :refer [Record]]
@@ -74,7 +75,8 @@ The session is a map with well defined keys:
 (def execution-state
   {:executor pallet.core.executor.protocols.ActionExecutor
    (optional-key :recorder) pallet.core.recorder.protocols.Record
-   (optional-key :action-options) {schema/Keyword schema/Any}})
+   (optional-key :action-options) {schema/Keyword schema/Any}
+   (optional-key :user) schema/Any})
 
 
 ;; (def-schema-alias ExecutionState execution-state)
@@ -115,7 +117,7 @@ The session is a map with well defined keys:
              -> BaseSession])
 (defn create
   "Create a session with the specified components."
-  [{:keys [recorder plan-state executor system-targets action-options]
+  [{:keys [recorder plan-state executor system-targets action-options user]
     :or {system-targets (system-targets-list)}
     :as args}]
   {:pre [(or (nil? plan-state) (plan-state? plan-state))
@@ -125,7 +127,8 @@ The session is a map with well defined keys:
    :post [(validate base-session %)]}
   (merge
    {:type ::session
-    :execution-state (select-keys args [:executor :recorder :action-options])
+    :execution-state (select-keys args
+                                  [:executor :recorder :action-options :user])
     :system-targets system-targets}
    (if plan-state
      {:plan-state plan-state})))
@@ -513,13 +516,16 @@ The session is a map with well defined keys:
   "User that remote commands are run under."
   [session]
   {:post [(user? %)]}
-  ;; Note: this is not (:user session), which is set to the actual user used
-  ;; for authentication when executing scripts, and may be different, e.g. when
-  ;; bootstrapping.
+  ;; Note: this is not (-> session :execution-state :user), which is
+  ;; set to the actual user used for authentication when executing
+  ;; scripts, and may be different, e.g. when bootstrapping.
   (assert-type-predicate
-   (get-scopes (:plan-state session)
-               (target-scopes (target-node session))
-               [:user])
+   (or (let [m (merge-scopes
+                (get-scopes (:plan-state session)
+                            (target-scopes (target-node session))
+                            [:user]))]
+         (and (not (empty? m)) m))
+       (-> session :execution-state :user))
    user?))
 
 (ann admin-group [Session -> String])
