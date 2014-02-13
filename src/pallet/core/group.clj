@@ -1127,78 +1127,77 @@ flag.
                                 plan-state debug os-detect]
                          :or {os-detect true}
                          :as options}]
-  (go-logged
-    (check-converge-options options)
-    (logging/tracef "environment %s" environment)
-    (let [[phases phase-map] (process-phases phase)
-          phase-map (if os-detect
-                      (assoc phase-map
-                        :pallet/os (vary-meta
-                                    (plan-fn [session] (os session))
-                                    merge unbootstrapped-meta)
-                        :pallet/os-bs (vary-meta
-                                       (plan-fn [session] (os session))
-                                       merge bootstrapped-meta))
-                      phase-map)
-          _ (debugf "phase-map %s" phase-map)
-          groups (if (map? group-spec->count)
-                   [group-spec->count]
-                   group-spec->count)
-          groups (expand-group-spec-with-counts group-spec->count)
-          {:keys [groups targets]} (-> groups
-                                       expand-cluster-groups
-                                       split-groups-and-targets)
-          _ (logging/tracef "groups %s" (vec groups))
-          _ (logging/tracef "targets %s" (vec targets))
-          _ (logging/tracef "environment keys %s"
-                            (select-keys options environment-args))
-          environment (merge-environments
-                       {:user user/*admin-user*}
-                       (pallet.environment/environment compute)
-                       environment
-                       (select-keys options environment-args))
-          groups (groups-with-phases groups phase-map)
-          targets (groups-with-phases targets phase-map)
-          groups (map (partial group-with-environment environment) groups)
-          targets (map (partial group-with-environment environment) targets)
-          lift-options (select-keys options lift-options)
-          initial-plan-state (or plan-state {})
-          ;; initial-plan-state (assoc (or plan-state {})
-          ;;                      action-options-key
-          ;;                      (select-keys debug
-          ;;                                   [:script-comments :script-trace]))
-          phases (or (seq phases)
-                     (apply total-order-merge
-                            (map :default-phases (concat groups targets))))]
-      (doseq [group groups] (check-group-spec group))
-      (go-tuple ch
-        (let [session (session/create
-                       {:executor (ssh/ssh-executor)
-                        :plan-state (in-memory-plan-state initial-plan-state)
-                        :user user/*admin-user*})
-              nodes-set (all-group-nodes compute groups all-node-set)
-              nodes-set (concat nodes-set targets)
-              _ (when-not (or compute (seq nodes-set))
-                  (throw (ex-info
-                          "No source of nodes"
-                          {:error :no-nodes-and-no-compute-service})))
-              c (chan)
-              _ (converge-op
-                 session compute groups nodes-set phases lift-options c)
-              [converge-result e] (<! c)]
-          (debugf "running nodes-set %s" (vec nodes-set))
-          (if e
-            [converge-result e]
-            (do
-              (debugf "running phases %s" phases)
-              (async-lift-op session
-                             (concat (when os-detect [:pallet/os-bs :pallet/os])
-                                     [:settings :bootstrap] phases)
-                             nodes-set lift-options c)
-              (let [[result e] (<! c)]
-                [(-> converge-result
-                     (update-in [:results] concat result))
-                 e]))))))))
+  (check-converge-options options)
+  (logging/tracef "environment %s" environment)
+  (let [[phases phase-map] (process-phases phase)
+        phase-map (if os-detect
+                    (assoc phase-map
+                      :pallet/os (vary-meta
+                                  (plan-fn [session] (os session))
+                                  merge unbootstrapped-meta)
+                      :pallet/os-bs (vary-meta
+                                     (plan-fn [session] (os session))
+                                     merge bootstrapped-meta))
+                    phase-map)
+        _ (debugf "phase-map %s" phase-map)
+        groups (if (map? group-spec->count)
+                 [group-spec->count]
+                 group-spec->count)
+        groups (expand-group-spec-with-counts group-spec->count)
+        {:keys [groups targets]} (-> groups
+                                     expand-cluster-groups
+                                     split-groups-and-targets)
+        _ (logging/tracef "groups %s" (vec groups))
+        _ (logging/tracef "targets %s" (vec targets))
+        _ (logging/tracef "environment keys %s"
+                          (select-keys options environment-args))
+        environment (merge-environments
+                     {:user user/*admin-user*}
+                     (pallet.environment/environment compute)
+                     environment
+                     (select-keys options environment-args))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        groups (map (partial group-with-environment environment) groups)
+        targets (map (partial group-with-environment environment) targets)
+        lift-options (select-keys options lift-options)
+        initial-plan-state (or plan-state {})
+        ;; initial-plan-state (assoc (or plan-state {})
+        ;;                      action-options-key
+        ;;                      (select-keys debug
+        ;;                                   [:script-comments :script-trace]))
+        phases (or (seq phases)
+                   (apply total-order-merge
+                          (map :default-phases (concat groups targets))))]
+    (doseq [group groups] (check-group-spec group))
+    (go-tuple ch
+      (let [session (session/create
+                     {:executor (ssh/ssh-executor)
+                      :plan-state (in-memory-plan-state initial-plan-state)
+                      :user user/*admin-user*})
+            nodes-set (all-group-nodes compute groups all-node-set)
+            nodes-set (concat nodes-set targets)
+            _ (when-not (or compute (seq nodes-set))
+                (throw (ex-info
+                        "No source of nodes"
+                        {:error :no-nodes-and-no-compute-service})))
+            c (chan)
+            _ (converge-op
+               session compute groups nodes-set phases lift-options c)
+            [converge-result e] (<! c)]
+        (debugf "running nodes-set %s" (vec nodes-set))
+        (if e
+          [converge-result e]
+          (do
+            (debugf "running phases %s" phases)
+            (async-lift-op session
+                           (concat (when os-detect [:pallet/os-bs :pallet/os])
+                                   [:settings :bootstrap] phases)
+                           nodes-set lift-options c)
+            (let [[result e] (<! c)]
+              [(-> converge-result
+                   (update-in [:results] concat result))
+               e])))))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -1292,17 +1291,23 @@ the admin-user on the nodes.
                :timeout-ms :timeout-val]))))
 
 (defn lift*
-  "Returns a FSM to lift the running nodes in the specified node-set by applying
-   the specified phases.  Options as specified in `lift`."
-  [operation node-set & {:keys [compute phase all-node-set environment
-                                debug plan-state os-detect]
-                         :or {os-detect true}
-                         :as options}]
+  "Asynchronously execute a lift of phases on the node-set.  Options
+  as specified in `lift`."
+  [node-set ch {:keys [compute phase all-node-set environment debug plan-state
+                       os-detect]
+                :or {os-detect true}
+                :as options}]
   (logging/trace "Lift*")
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         phase-map (if os-detect
-                    (assoc phase-map :pallet/os (plan-fn [session] (os session)))
+                    (assoc phase-map
+                      :pallet/os (vary-meta
+                                  (plan-fn [session] (os session))
+                                  merge unbootstrapped-meta)
+                      :pallet/os-bs (vary-meta
+                                     (plan-fn [session] (os session))
+                                     merge bootstrapped-meta))
                     phase-map)
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
@@ -1333,32 +1338,41 @@ the admin-user on the nodes.
                           (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
     (logging/trace "Lift ready to start")
-    (let [nodes-set (all-group-nodes operation compute groups all-node-set)
-          nodes-set (concat nodes-set targets)
-          _ (when-not (or compute (seq nodes-set))
-              (throw (ex-info "No source of nodes"
-                              {:error :no-nodes-and-no-compute-service})))
-          _ (logging/trace "Retrieved nodes")
-          settings-result (lift-op
-                           operation
-                           nodes-set initial-plan-state environment
-                           (concat
-                            (when os-detect [:pallet/os])
-                            [:settings])
-                           {})]
-      (if false ;; TODO (phase-errors settings-result)
-        settings-result
-        (let [results :todo ;; (lift-partitions
-                      ;;  operation
-                      ;;  nodes-set
-                      ;;  (:plan-state settings-result)
-                      ;;  environment
-                      ;;  (remove #{:settings} phases)
-                      ;;  lift-options)
-              ]
-          (assoc results
-            :environment environment
-            :initial-plan-state initial-plan-state))))))
+    (go-tuple ch
+      (let [session (session/create
+                     {:executor (ssh/ssh-executor)
+                      :plan-state (in-memory-plan-state initial-plan-state)
+                      :user user/*admin-user*})
+            nodes-set (all-group-nodes compute groups all-node-set)
+            nodes-set (concat nodes-set targets)
+            _ (when-not (or compute (seq nodes-set))
+                (throw (ex-info "No source of nodes"
+                                {:error :no-nodes-and-no-compute-service})))
+            _ (logging/trace "Retrieved nodes")
+            c (chan)
+            _ (async-lift-op
+               session
+               (concat
+                (when os-detect [:pallet/os])
+                [:settings])
+               nodes-set
+               {}
+               c)
+            [settings-results e] (<! c)
+            errs (errors settings-results)
+            result {:results settings-results
+                    :session session}]
+        (cond
+         e [result e]
+         errs [result (ex-info "settings phase failed" {:errors errs})]
+         :else (do
+                 (async-lift-op session phases nodes-set lift-options c)
+                 (let [[lift-results e] (<! c)
+                       errs (errors lift-results)
+                       result (update-in result [:results] concat lift-results)]
+                   [result (or e
+                               (if errs
+                                 (ex-info "phase failed" {:errors errs})))])))))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
@@ -1444,13 +1458,13 @@ the admin-user on the nodes.
                :as options}]
   (logging/trace "Lift")
   ;; TODO (load-plugins)
-  (logging/trace "Plugins loaded")
-  ;; (exec-operation
-  ;;  #(apply-map lift* % node-set options)
-  ;;  (select-keys
-  ;;   options [:async :operation :status-chan :close-status-chan?
-  ;;            :timeout-ms :timeout-val]))
-  )
+  (let [ch (chan)]
+    (lift* node-set ch options)
+    (exec-operation
+     ch
+     (select-keys
+      options [:async :operation :status-chan :close-status-chan?
+               :timeout-ms :timeout-val]))))
 
 (defn lift-nodes
   "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
