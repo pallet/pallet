@@ -6,11 +6,12 @@
 
 (implement-action exec :direct
   {:action-type :script :location :target}
-  [{:keys [language interpreter version] :or {language :bash} :as options}
+  [action-options
+   {:keys [language interpreter version] :or {language :bash} :as options}
    script]
   [options script])
 
 (implement-action exec-script* :direct
   {:action-type :script :location :target}
-  [script]
+  [action-options script]
   [{:language :bash} script])

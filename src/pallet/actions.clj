@@ -15,8 +15,9 @@
     :refer [if-action remote-file-action remote-directory-action]]
    [pallet.contracts :refer [any-value check-spec]]
    [pallet.core.api :refer [phase-context]]
-   [pallet.core.session :refer [admin-user packager]]
+   [pallet.core.session :refer [admin-user packager target-node]]
    [pallet.environment :refer [get-environment]]
+   [pallet.node :refer [primary-ip ssh-port]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
@@ -46,8 +47,8 @@
      - :group     user name or id for group of file
      - :mode      file permissions
      - :force     when deleting, try and force removal"
-  [path & {:keys [action owner group mode force]
-           :or {action :create force true}}])
+  [session path & {:keys [action owner group mode force]
+                   :or {action :create force true}}])
 
 (defaction symbolic-link
   "Symbolic link management.
@@ -57,8 +58,8 @@
      - :group     user name or id for group of symlink
      - :mode      symlink permissions
      - :force     when deleting, try and force removal"
-  [from name & {:keys [action owner group mode force]
-                :or {action :create force true}}])
+  [session from name & {:keys [action owner group mode force]
+                        :or {action :create force true}}])
 
 (defaction fifo
   "FIFO pipe management.
@@ -68,8 +69,8 @@
      - :group     user name or id for group of fifo
      - :mode      fifo permissions
      - :force     when deleting, try and force removal"
-  [path & {:keys [action owner group mode force]
-           :or {action :create}}])
+  [session path & {:keys [action owner group mode force]
+                   :or {action :create}}])
 
 (defaction sed
   "Execute sed on the file at path.  Takes a map of expr to replacement.
@@ -77,7 +78,7 @@
                       will be inferred if not specified.
      - :no-md5        prevent md5 generation for the modified file
      - :restriction   restrict the sed expressions to a particular context."
-  [path exprs-map & {:keys [separator no-md5 restriction]}])
+  [session path exprs-map & {:keys [separator no-md5 restriction]}])
 
 ;;; # Simple Directory Management
 (defaction directory
@@ -93,9 +94,9 @@
     - :owner      set owner
     - :group      set group
     - :mode       set mode"
-  [dir-path & {:keys [action recursive force path mode verbose owner
-                      group]
-               :or {action :create recursive true force true path true}}])
+  [session dir-path & {:keys [action recursive force path mode verbose owner
+                              group]
+                       :or {action :create recursive true force true path true}}])
 
 (defn directories
   "Directory management of multiple directories with the same
@@ -177,11 +178,11 @@
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action."
-  [local-path remote-path remote-md5-path])
+  [session local-path remote-path remote-md5-path])
 
 (defaction transfer-file-to-local
   "Function to transfer a remote file to a local path."
-  [remote-path local-path])
+  [session remote-path local-path])
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
@@ -334,21 +335,23 @@ Content can also be copied from a blobstore.
     (when local-file
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
-    (with-action-options (merge
-                          {:script-prefix :sudo :sudo-user nil}
-                          local-file-options)
+    (with-action-options session (merge
+                                  {:script-prefix :sudo :sudo-user nil}
+                                  local-file-options)
       (remote-file-action
+       session
        path
        (merge
         (maybe-assoc
          {:install-new-files *install-new-files* ; capture bound values
           :overwrite-changes *force-overwrite*
           :owner user
-          :proxy (get-environment [:proxy] nil)
+          :proxy nil ;; TODO (get-environment [:proxy] nil)
           :pallet/new-path new-path
           :pallet/md5-path md5-path
           :pallet/copy-path copy-path}
-         :blobstore (get-environment [:blobstore] nil))
+         :blobstore nil ;; TODO (get-environment [:blobstore] nil)
+         )
         options)))))
 
 (defn with-remote-file
@@ -469,18 +472,19 @@ only specified files or directories, use the :extract-files option.
     (when local-file
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
-    (with-action-options (merge
-                          {:script-prefix :sudo :sudo-user nil}
-                          local-file-options)
+    (with-action-options session (merge
+                                  {:script-prefix :sudo :sudo-user nil}
+                                  local-file-options)
       (directory path :owner owner :group group :recursive false)
       (remote-directory-action
+       session
        path
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
          :owner user
-         :blobstore (get-environment [:blobstore] nil)
-         :proxy (get-environment [:proxy] nil)
+         :blobstore nil ;; TODO (get-environment [:blobstore] nil)
+         :proxy nil     ;; TODO (get-environment [:proxy] nil)
          :pallet/new-path new-path
          :pallet/md5-path md5-path
          :pallet/copy-path copy-path}
@@ -490,10 +494,10 @@ only specified files or directories, use the :extract-files option.
 
 (defaction wait-for-file
   "Wait for a file to exist"
-  [path & {:keys [max-retries standoff service-name]
-           :or {action :create max-versions 5
-                install-new-files true}
-           :as options}])
+  [session path & {:keys [max-retries standoff service-name]
+                   :or {action :create max-versions 5
+                        install-new-files true}
+                   :as options}])
 
 ;;; # Packages
 (defalias package-source-changed-flag decl/package-source-changed-flag)
@@ -511,10 +515,10 @@ only specified files or directories, use the :extract-files option.
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  [package-name & {:keys [action y force purge enable disable priority]
-                   :or {action :install
-                        y true
-                        priority 50}}])
+  [session package-name & {:keys [action y force purge enable disable priority]
+                           :or {action :install
+                                y true
+                                priority 50}}])
 
 (defn packages
   "Install a list of packages keyed on packager.
@@ -522,13 +526,13 @@ only specified files or directories, use the :extract-files option.
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
   {:pallet/plan-fn true}
-  [& {:keys [yum aptitude pacman brew] :as options}]
+  [session & {:keys [yum aptitude pacman brew] :as options}]
   (phase-context packages {}
     (let [packager (packager)]
       (doseq [p (or (options packager)
                     (when (#{:apt :aptitude} packager)
                       (options (first (disj #{:apt :aptitude} packager)))))]
-        (apply-map package p (dissoc options :aptitude :brew :pacman :yum))))))
+        (apply-map package session p (dissoc options :aptitude :brew :pacman :yum))))))
 
 ;; (defn all-packages
 ;;   "Install a list of packages."
@@ -551,7 +555,7 @@ only specified files or directories, use the :extract-files option.
 
    To enable non-free on debian:
        (package-manager session :add-scope :scope :non-free)"
-  [action & options])
+  [session action & options])
 
 
 (defaction package-source
@@ -600,7 +604,7 @@ only specified files or directories, use the :extract-files option.
                  :scopes [\"partner\"]})"
   {:always-before #{package-manager package}
    :execution :aggregated}
-  [name & {:keys [aptitude yum]}])
+  [session name & {:keys [aptitude yum]}])
 
 (defn package-repository
   "Control package repository.
@@ -651,41 +655,51 @@ only specified files or directories, use the :extract-files option.
 
 (defaction add-rpm
   "Add an rpm.  Source options are as for remote file."
-  [rpm-name & {:as options}])
+  [session rpm-name & {:as options}])
 
 (defaction install-deb
   "Add a deb.  Source options are as for remote file."
-  [deb-name & {:as options}])
+  [session deb-name & {:as options}])
 
 (defaction debconf-set-selections
   "Set debconf selections.
 Specify `:line` as a string, or `:package`, `:question`, `:type` and
 `:value` options."
   {:always-before #{package}}
-  [{:keys [line package question type value]}])
+  [session {:keys [line package question type value]}])
 
 (defaction minimal-packages
   "Add minimal packages for pallet to function"
   {:always-before #{package-manager package-source package}}
-  [])
+  [session])
 
 
 ;;; # Synch local file to remote
-(defaction rsync
+(defaction rsync*
   "Use rsync to copy files from local-path to remote-path"
-  [local-path remote-path {:keys [port]}])
+  [session local-path remote-path {:keys [port]}])
+
+(defn rsync
+  "Use rsync to copy files from local-path to remote-path"
+  [session local-path remote-path {:keys [port]
+                                   :as options}]
+  (rsync* session local-path remote-path
+          (merge {:port (ssh-port (target-node session))
+                  :username (:username (admin-user session))
+                  :ip (primary-ip (target-node session))}
+                 options)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   {:pallet/plan-fn true}
-  [from to & {:keys [owner group mode port] :as options}]
+  [session from to & {:keys [owner group mode port] :as options}]
   (phase-context rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
     ;; root permissions, and doesn't work when this is run without
     ;; root permision
     ;; (package "rsync")
-    (directory to :owner owner :group group :mode mode)
-    (rsync from to options)))
+    (directory session to :owner owner :group group :mode mode)
+    (rsync session from to options)))
 
 ;;; # Users and Groups
 (defaction group
@@ -702,9 +716,9 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
 
 `:system`
 : Specify the user as a system user."
-  [groupname & {:keys [action system gid password]
-                :or {action :manage}
-                :as options}])
+  [session groupname & {:keys [action system gid password]
+                        :or {action :manage}
+                        :as options}])
 
 (defaction user
   "User management.
@@ -741,10 +755,11 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
 
 `:force`
 : Force user removal."
-  [username & {:keys [action shell base-dir home system create-home
-                      password shell comment group groups remove force append]
-               :or {action :manage}
-               :as options}])
+  [session username
+   & {:keys [action shell base-dir home system create-home
+             password shell comment group groups remove force append]
+      :or {action :manage}
+      :as options}])
 
 ;;; # Services
 (defaction service
@@ -759,23 +774,24 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
    - :service-impl    either :initd or :upstart
 
 Deprecated in favour of pallet.crate.service/service."
-  [service-name & {:keys [action if-flag if-stopped service-impl]
-                   :or {action :start service-impl :initd}
-                   :as options}])
+  [session service-name & {:keys [action if-flag if-stopped service-impl]
+                           :or {action :start service-impl :initd}
+                           :as options}])
 
 (defmacro with-service-restart
   "Stop the given service, execute the body, and then restart."
-  [service-name & body]
-  `(let [service# ~service-name]
+  [session service-name & body]
+  `(let [session# session
+         service# ~service-name]
      (phase-context with-restart {:service service#}
-       (service service# :action :stop)
+       (service session#  service# :action :stop)
        ~@body
-       (service service# :action :start))))
+       (service session# service# :action :start))))
 
 (defn service-script
   "Install a service script.  Sources as for remote-file."
   {:pallet/plan-fn true}
-  [service-name & {:keys [action url local-file remote-file link
+  [session service-name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url
                           force service-impl]
                    :or {action :create service-impl :initd}
@@ -783,6 +799,7 @@ Deprecated in favour of pallet.crate.service/service."
   (phase-context init-script {}
     (apply-map
      pallet.actions/remote-file
+     session
      (service-script-path service-impl service-name)
      :owner "root" :group "root" :mode "0755"
      (merge {:action action} options))))
@@ -812,11 +829,11 @@ Deprecated in favour of pallet.crate.service/service."
 (defmacro retry-until
   "Repeat an action until it succeeds"
   {:pallet/plan-fn true}
-  [{:keys [max-retries standoff service-name]
-    :or {max-retries 5 standoff 2}}
+  [session {:keys [max-retries standoff service-name]
+            :or {max-retries 5 standoff 2}}
    condition]
   (let [service-name (or service-name "retryable")]
-    `(loop-until ~service-name ~condition ~max-retries ~standoff)))
+    `(loop-until ~session ~service-name ~condition ~max-retries ~standoff)))
 
 ;;; target filters
 
@@ -836,7 +853,7 @@ Deprecated in favour of pallet.crate.service/service."
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
   {:pallet/plan-fn true}
-  [roles & body]
+  [session roles & body]
   `(let [target# (target)
          role->nodes# (role->nodes-map)]
      (when

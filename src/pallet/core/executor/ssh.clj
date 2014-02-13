@@ -3,6 +3,7 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implementation]]
+   pallet.actions.direct
    [pallet.core.executor.protocols :refer :all]
    [pallet.core.user :refer [user?]]
    [pallet.ssh.execute :as ssh]))
@@ -10,10 +11,10 @@
 (defn direct-script
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
-  [{:keys [args script-dir] :as action}]
+  [{:keys [action-options args script-dir] :as action}]
   (let [{:keys [metadata f]} (implementation action :direct)
         {:keys [action-type location]} metadata
-        script-vec (apply f (drop 1 args))]
+        script-vec (apply f action-options (drop 1 args))]
     (logging/tracef "direct-script %s %s" f (vec args))
     (logging/tracef "direct-script %s" script-vec)
     [script-vec action-type location]))

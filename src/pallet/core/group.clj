@@ -1193,7 +1193,8 @@ flag.
             (async-lift-op session
                            (concat (when os-detect [:pallet/os-bs :pallet/os])
                                    [:settings :bootstrap] phases)
-                           nodes-set lift-options c)
+                           (concat (:new-targets converge-result) nodes-set)
+                           lift-options c)
             (let [[result e] (<! c)]
               [(-> converge-result
                    (update-in [:results] concat result))

@@ -65,6 +65,6 @@
 
 (implement-action service :direct
   {:action-type :script :location :target}
-  [service-name & {:as options}]
+  [action-options service-name & {:as options}]
   [{:language :bash}
    (apply-map service-impl service-name options)])

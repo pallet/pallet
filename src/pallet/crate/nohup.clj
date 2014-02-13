@@ -64,11 +64,12 @@
   (update-settings
    :nohup options assoc-in [:jobs (keyword service-name)] service-options))
 
-(defn start-nohup-service [service-name user]
+(defn start-nohup-service [session service-name user]
   (actions/file (service-script-failed-path service-name) :action :delete)
-  (with-action-options {:sudo-user user
-                        :script-dir (service-script-file service-name)}
+  (with-action-options session {:sudo-user user
+                                :script-dir (service-script-file service-name)}
     (exec-checked-script
+     session
      (str "Start " service-name " via nohup")
      ("("
       (chain-or
@@ -79,14 +80,15 @@
      ("sleep" 5)
      (not (file-exists? (service-script-failed-path ~service-name))))))
 
-(defn stop-nohup-service [service-name user]
-  (with-action-options {:sudo-user user}
+(defn stop-nohup-service [session service-name user]
+  (with-action-options session {:sudo-user user}
     (exec-checked-script
+     session
      (str "Kill " service-name " via killall")
      ("killall" (quoted ~service-name)))))
 
 (defmethod service-supervisor :nohup
-  [_
+  [session _
    {:keys [service-name user process-name]}
    {:keys [action if-flag if-stopped instance-id]
     :or {action :start}

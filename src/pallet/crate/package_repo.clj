@@ -18,12 +18,13 @@
 
 (defplan rebuild-repository
   "Rebuild repository indexes for the repository at path"
-  [path]
+  [session path]
   (exec-checked-script
+   session
    (str "Rebuild repository " path)
    (~rebuild-repo ~path)))
 
 (defplan repository-packages
   "Install packages required for building repositories"
-  []
-  (packages :aptitude ["dpkg-dev"]))
+  [session]
+  (packages session :aptitude ["dpkg-dev"]))

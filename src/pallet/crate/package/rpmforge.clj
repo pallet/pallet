@@ -18,10 +18,11 @@
 ;; this is an aggregate so that it can come before the aggragate package-manager
 (defplan add-rpmforge
   "Add the rpmforge repository"
-  [& {:keys [version distro arch]
-      :or {version "0.5.2-2" distro "el5" arch "i386"}}]
-  (with-action-options {:always-before #{package-manager package}}
+  [session & {:keys [version distro arch]
+              :or {version "0.5.2-2" distro "el5" arch "i386"}}]
+  (with-action-options session {:always-before #{package-manager package}}
     (exec-checked-script
+     session
      "Add rpmforge repositories"
      (chain-or
       (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))

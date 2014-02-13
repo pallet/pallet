@@ -3,9 +3,12 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [package remote-file]]
-   [pallet.api :as api :refer [plan-fn]]
-   [pallet.crate :refer [admin-group assoc-settings defplan
-                         get-settings phase-context update-settings]]
+   [pallet.core.api :as api :refer [plan-fn]]
+   [pallet.core.group :as group]
+   [pallet.core.plan-state]
+   [pallet.core.session :refer [admin-group]]
+   [pallet.crate
+    :refer [assoc-settings defplan get-settings phase-context update-settings]]
    [pallet.crate-install :as crate-install]
    [pallet.script.lib :refer [file config-root]]
    [pallet.stevedore :refer [fragment]]
@@ -19,31 +22,32 @@
 (def facility ::sudoers)
 
 (defn default-specs
-  []
-  (let [admin-group (admin-group)]
+  [session]
+  (let [admin-group (admin-group session)]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
      (str "%" admin-group)
      {:ALL {:run-as-user :ALL}})))
 
 (defn default-settings
-  []
+  [session]
   {:sudoers-file (fragment (file (config-root) sudoers))
-   :args [[(array-map) (array-map) (default-specs)]]
+   :args [[(array-map) (array-map) (default-specs session)]]
    :install-strategy :packages
    :packages ["sudo"]})
 
 (defplan settings
-  [settings & {:keys [instance-id] :as options}]
-  (assoc-settings facility (merge (default-settings) settings) options))
+  [session settings & {:keys [instance-id] :as options}]
+  (assoc-settings session facility
+                  (merge (default-settings session) settings) options))
 
 (defplan install
-  [{:keys [instance-id]}]
-  (crate-install/install facility instance-id))
+  [session {:keys [instance-id]}]
+  (crate-install/install session facility instance-id))
 
 (defplan default-specs
-  []
-  (let [admin-group (admin-group)]
+  [session]
+  (let [admin-group (admin-group session)]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
      (str "%" admin-group)
@@ -191,21 +195,23 @@ specs [ { [\"user1\" \"user2\"]
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  [aliases defaults specs & {:keys [instance-id] :as options}]
-  (logging/debugf "sudoers %s" (get-settings facility options))
-  (update-settings facility options
-                   update-in [:args] conj-distinct [aliases defaults specs]))
+  [session aliases defaults specs & {:keys [instance-id] :as options}]
+  (logging/debugf "sudoers %s" (get-settings session facility options))
+  (update-settings
+   session
+   facility options update-in [:args] conj-distinct [aliases defaults specs]))
 
-(defn configure
+(defplan configure
   "Install the sudoers configuration based on settings"
-  [{:keys [instance-id] :as options}]
+  [session {:keys [instance-id] :as options}]
   (let [{:keys [sudoers-file args] :as settings}
-        (get-settings facility options)]
+        (get-settings session facility options)]
     (logging/debugf "Sudoers configure %s" (pr-str settings))
     (assert sudoers-file
             (str "No sudoers-file in settings for sudoers: "
                  settings))
     (remote-file
+     session
      sudoers-file
      :mode "0440"
      :owner "root"
@@ -215,10 +221,13 @@ specs [ { [\"user1\" \"user2\"]
 (defn server-spec
   "Returns a server-spec that installs sudoers in the configure phase."
   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
-  (api/server-spec
-   :phases {:settings (plan-fn (pallet.crate.sudoers/settings settings))
-            :install (plan-fn (install options))
-            :configure (plan-fn (configure options))}))
+  (group/server-spec
+   :phases {:settings (plan-fn [session]
+                        (pallet.crate.sudoers/settings session settings))
+            :install (plan-fn [session]
+                       (install session options))
+            :configure (plan-fn [session]
+                         (configure session options))}))
 
 ;; (defn bootstrap-spec
 ;;   "Returns a server-spec that installs sudoers in the bootstrap phase."

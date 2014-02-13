@@ -52,7 +52,7 @@ The :stop action should not complain if the service is not running."
   "Configure a service implementation based on configuration map.  The `config`
 map is specific to the supervisor.  The initial enabled status of a config is
 supervisor specific."
-  (fn [supervisor config supervisor-options]
+  (fn [session supervisor config supervisor-options]
     {:pre [supervisor]}
     (when-not (service-supervisor-available? supervisor)
       (throw
@@ -90,10 +90,11 @@ Flag to only apply the action only if the specified flag is set.
 `:instance-id`
 Specifies an instance id, should there be more than one instance of the
 supervisor (not the facility)."
-  [{:keys [supervisor service-name] :as settings}
+  [session
+   {:keys [supervisor service-name] :as settings}
    {:keys [action if-flag if-stopped instance-id] :as options}]
   {:pre [supervisor service-name]}
-  (service-supervisor supervisor settings options))
+  (service-supervisor session supervisor settings options))
 
 ;;; ## Service Configuration
 ;;; Provide service supervision helpers for crates.
@@ -102,7 +103,7 @@ supervisor (not the facility)."
 
 A method should be implemented in each crate for each supervisor to be
 supported."
-  (fn [facility {:keys [supervisor] :as settings} options]
+  (fn [session facility {:keys [supervisor] :as settings} options]
     [facility supervisor]))
 
 
@@ -110,7 +111,7 @@ supported."
 ;;; that the crate (facility) has not provided a supervisor configuration
 ;;; for the given supervisor.
 (defmethod supervisor-config-map :default
-  [facility {:keys [supervisor] :as settings} _]
+  [session facility {:keys [supervisor] :as settings} _]
   (throw
    (ex-info
     (str (name supervisor)
@@ -127,8 +128,9 @@ Supervisor specific options are specified under the supervisor key in the
 settings map.
 
 This is intended to be called at the crate level."
-  [facility {:keys [supervisor] :as settings} options]
+  [session facility {:keys [supervisor] :as settings} options]
   (service-supervisor-config
+   session
    supervisor
    (supervisor-config-map facility settings options)
    (get settings supervisor)))

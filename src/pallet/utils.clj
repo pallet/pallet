@@ -432,3 +432,13 @@ value to assoc. The assoc only occurs if the value is non-nil."
        (if (string/blank? s) (pr-str exceptions) s))
      {:exceptions exceptions}
      (first exceptions))))
+
+(defn map-arg-and-ref
+  "Ensure a symbolic argument, arg, can be referred to.
+  Returns a tuple with a modifed argument and an argument reference."
+  [arg]
+  (let [arg (if (and (map? arg) (not (:as arg)))
+              (assoc arg :as (gensym "arg"))
+              arg)
+        arg-ref (if (map? arg) (:as arg) arg)]
+    [arg arg-ref]))

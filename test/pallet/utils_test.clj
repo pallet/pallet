@@ -63,3 +63,13 @@
     (is (thrown-with-msg? Exception #"No total ordering"
                           (total-order-merge
                            [:a :c] [:c :a])))))
+
+(deftest map-arg-and-ref-test
+  (testing "fully specified map"
+    (is (= '[{:keys [a b] :as c} c] (map-arg-and-ref '{:keys [a b] :as c}))))
+  (testing "map with no as"
+    (let [[arg ref] (map-arg-and-ref '{:keys [a b]})]
+      (is ref)
+      (is (= (:as arg) ref))))
+  (testing "plain symbol"
+    (is (= '[a a] (map-arg-and-ref 'a)))))

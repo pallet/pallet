@@ -360,24 +360,29 @@ The session is a map with well defined keys:
 (defn target-node
   "Target compute service node."
   [session]
+  {:pre [(target-session? session)]
+   :post [(node/node? %)]}
   (-> session :node))
 
 (ann target-name [Session -> String])
 (defn target-name
   "Name of the target-node."
   [session]
+  {:pre [(target-session? session)]}
   (node/hostname (target-node session)))
 
 (ann target-id [Session -> String])
 (defn target-id
   "Id of the target-node (unique for provider)."
   [session]
+  {:pre [(target-session? session)]}
   (node/id (target-node session)))
 
 (ann target-ip [Session -> String])
 (defn target-ip
   "IP of the target-node."
   [session]
+  {:pre [(target-session? session)]}
   (node/primary-ip (target-node session)))
 
 (comment
@@ -394,24 +399,28 @@ The session is a map with well defined keys:
 
 (defn os-map
   [session]
+  {:pre [(target-session? session)]}
   (get-settings (:plan-state session) (target-id session) :pallet/os {}))
 
 (ann os-family [Session -> Keyword])
 (defn os-family
   "OS-Family of the target-node."
   [session]
+  {:pre [(target-session? session)]}
   (:os-family (os-map session)))
 
 (ann os-version [Session -> String])
 (defn os-version
   "OS-Family of the target-node."
   [session]
+  {:pre [(target-session? session)]}
   (:os-version (os-map session)))
 
 (ann group-name [Session -> GroupName])
 (defn group-name
   "Group name of the target-node."
   [session]
+  {:pre [(target-session? session)]}
   (-> session :target :group-name))
 
 (comment
@@ -499,10 +508,14 @@ The session is a map with well defined keys:
 
 (ann packager [Session -> Keyword])
 (defn packager
-  [session]
-  (or
-   (:packager (os-map session))
-   (packager-for-os (os-family session) (os-version session))))
+  []
+  ;; (or
+  ;;  (:packager (os-map session))
+  ;;  (packager-for-os (os-family session) (os-version session)))
+
+  ;; TODO fix
+  :apt
+  )
 
 
 ;; TODO mv this to the group abstraction

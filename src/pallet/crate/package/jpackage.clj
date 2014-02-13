@@ -25,15 +25,15 @@
 
    https://bugzilla.redhat.com/show_bug.cgi?id=260161
    https://bugzilla.redhat.com/show_bug.cgi?id=497213"
-  []
-  (let [os-family (os-family)
-        os-version (os-version)]
+  [session]
+  (let [os-family (os-family session)
+        os-version (os-version session)]
     (when (or
            (= :fedora os-family)
            (and
             (#{:rhel :centos} os-family)
             (re-matches #"5\.[0-5]" os-version)))
-      (with-action-options {:action-id ::install-jpackage-compat}
+      (with-action-options session {:action-id ::install-jpackage-compat}
         (add-rpm
          "jpackage-utils-compat-el5-0.0.1-1"
          :url jpackage-utils-compat-rpm

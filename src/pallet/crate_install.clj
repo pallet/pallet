@@ -15,8 +15,8 @@
             remote-directory
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
-   [pallet.crate
-    :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
+   ;; [pallet.execute :refer [target-flag?]]
+   [pallet.crate :refer [get-settings defmethod-plan defmulti-plan]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
    [pallet.utils :refer [apply-map]])
   (:import clojure.lang.IPersistentVector
@@ -38,8 +38,8 @@
 
 ;;; ## Install helpers
 (defmulti-plan install
-  (fn [facility instance-id]
-    (let [settings (get-settings facility {:instance-id instance-id})]
+  (fn [session facility instance-id]
+    (let [settings (get-settings session facility {:instance-id instance-id})]
       (when-not settings
         (throw (ex-info
                 (str "No settings found for facility " facility)
@@ -55,25 +55,25 @@
 
 ;; install based on the setting's :packages key
 (defmethod-plan install :packages
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [packages package-options preseeds] :as settings}
-        (get-settings facility {:instance-id instance-id})]
+        (get-settings session facility {:instance-id instance-id})]
     (check-keys
      settings [:packages]
      (map-schema :strict [[:packages] (sequence-of String)])
      "packages install-strategy settings values")
     (doseq [p preseeds]
-      (debconf-set-selections p))
+      (debconf-set-selections session p))
     (doseq [p packages]
-      (apply-map package p package-options))))
+      (apply-map package session p package-options))))
 
 ;; Install based on the setting's :package-source and :packages keys.
 ;; This will cause a package update if the package source definition
 ;; changes.
 (defmethod-plan install :package-source
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [package-source packages package-options preseeds] :as settings}
-        (get-settings facility {:instance-id instance-id})]
+        (get-settings session facility {:instance-id instance-id})]
     (debugf "package source %s %s" facility package-source)
     (check-keys
      settings [:package-source :packages]
@@ -81,22 +81,23 @@
                  [[:package-source] (map-schema :loose [[:name] String])
                   [:packages] (sequence-of String)])
      "package-source install-strategy settings values")
-    (apply-map actions/package-source (:name package-source) package-source)
-    (let [modified? (target-flag? package-source-changed-flag)]
-      (with-action-options {:always-before #{package}}
+    (apply-map actions/package-source session (:name package-source) package-source)
+    (let [modified? true ;; TODO (target-flag? package-source-changed-flag)
+          ]
+      (with-action-options session {:always-before #{package}}
         (when modified?
-          (package-manager :update)))
+          (package-manager session :update)))
       (tracef "packages %s options %s" (vec packages) package-options)
       (doseq [p preseeds]
-        (debconf-set-selections p))
+        (debconf-set-selections session p))
       (doseq [p packages]
-        (apply-map package p package-options)))))
+        (apply-map package session p package-options)))))
 
 ;; install based on a rpm
 (defmethod-plan install :rpm
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [rpm] :as settings}
-        (get-settings facility {:instance-id instance-id})]
+        (get-settings session facility {:instance-id instance-id})]
     (check-keys
      settings [:rpm]
      (map-schema
@@ -104,14 +105,14 @@
       [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])])
      "packages install-strategy settings values")
 
-    (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))))
+    (with-action-options session {:always-before `package/package}
+      (apply-map add-rpm session (:name rpm) (dissoc rpm :name)))))
 
 ;; install based on a rpm that installs a package repository source
 (defmethod-plan install :rpm-repo
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [rpm packages package-options] :as settings}
-        (get-settings facility {:instance-id instance-id})]
+        (get-settings session facility {:instance-id instance-id})]
     (check-keys
      settings [:rpm :packages]
      (map-schema
@@ -119,43 +120,45 @@
       [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])
        [:packages] (sequence-of String)])
      "packages install-strategy settings values")
-    (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))
-    (doseq [p packages] (apply-map package p package-options))))
+    (with-action-options session {:always-before `package/package}
+      (apply-map add-rpm session (:name rpm) (dissoc rpm :name)))
+    (doseq [p packages] (apply-map package session p package-options))))
 
 ;; Upload a deb archive for. Options for the :debs key are as for
 ;; remote-directory (e.g. a :local-file key with a path to a local tar
 ;; file). Pallet uploads the deb files, creates a repository from them, then
 ;; installs from the repository.
 (defmethod-plan install :deb
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [debs package-source packages]}
-        (get-settings facility {:instance-id instance-id})
+        (get-settings session facility {:instance-id instance-id})
         path (or (-> package-source :apt :path)
                  (-> package-source :aptitude :path))]
     (with-action-options
+      session
       {:action-id ::deb-install
        :always-before #{::update-package-source ::install-package-source}}
       (apply-map
-       remote-directory path
+       remote-directory session path
        (merge
         {:local-file-options
          {:always-before #{::update-package-source ::install-package-source}}
          :mode "755"
          :strip-components 0}
         debs))
-      (repository-packages)
-      (rebuild-repository path))
-    (apply-map actions/package-source (:name package-source) package-source)
-    (doseq [p packages] (package p))))
+      (repository-packages session)
+      (rebuild-repository session path))
+    (apply-map actions/package-source
+               session (:name package-source) package-source)
+    (doseq [p packages] (package session p))))
 
 ;; Install based on an archive
 (defmethod-plan install :archive
-  [facility instance-id]
+  [session facility instance-id]
   (let [{:keys [install-dir install-source] :as settings}
-        (get-settings facility {:instance-id instance-id})]
+        (get-settings session facility {:instance-id instance-id})]
     (check-keys
      settings [:install-dir :install-source]
      (map-schema :strict [[:install-dir] String [:install-source] String])
      "archive install-strategy settings values")
-    (apply-map remote-directory install-dir install-source)))
+    (apply-map remote-directory session install-dir install-source)))

@@ -35,7 +35,8 @@
 
 (implement-action directory :direct
   {:action-type :script :location :target}
-  [dir-path & {:keys [action recursive force path mode verbose owner group]
+  [action-options
+   dir-path & {:keys [action recursive force path mode verbose owner group]
                :or {action :create recursive true force true path true}
                :as options}]
   [{:language :bash}

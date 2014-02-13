@@ -6,7 +6,6 @@
    [pallet.action :refer [action-fn implement-action]]
    [pallet.actions :refer [directory]]
    [pallet.actions-impl :refer [md5-filename new-filename]]
-   [pallet.action-options :refer [get-action-options]]
    [pallet.actions.decl
     :refer [checked-commands remote-directory-action remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
@@ -42,7 +41,8 @@
 
 (implement-action
     remote-directory-action :direct {:action-type :script :location :target}
-  [path {:keys [action url local-file remote-file
+  [action-options
+   path {:keys [action url local-file remote-file
                 unpack tar-options unzip-options jar-options
                 strip-components md5 md5-url owner group recursive
                 install-new-files overwrite-changes extract-files]
@@ -63,7 +63,7 @@
                                :group (fragment @(user-default-group ~owner)))
                              options)]
                (when (and (or url local-file remote-file) unpack)
-                 (let [script-dir (:script-dir (get-action-options))
+                 (let [script-dir (:script-dir action-options)
                        [cmd tarpath tar-md5]
                        (source-to-cmd-and-path
                         path

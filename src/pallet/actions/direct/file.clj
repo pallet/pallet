@@ -37,26 +37,26 @@
    (adjust-file path options)))
 
 (implement-action file :direct
-  {:action-type :script :location :target}
-  [path & {:keys [action owner group mode force]
-           :or {action :create force true}
-           :as options}]
+                  {:action-type :script :location :target}
+  [action-options path & {:keys [action owner group mode force]
+                          :or {action :create force true}
+                          :as options}]
   [{:language :bash}
-    (case action
-      :delete (checked-script
-               (str "delete file " path)
-               (~lib/rm ~path :force ~force))
-      :create (checked-commands
-               (str "file " path)
-               (touch-file path options))
-      :touch (checked-commands
+   (case action
+     :delete (checked-script
+              (str "delete file " path)
+              (~lib/rm ~path :force ~force))
+     :create (checked-commands
+              (str "file " path)
+              (touch-file path options))
+     :touch (checked-commands
              (str "file " path)
              (touch-file path options)))])
 
 (implement-action symbolic-link :direct
-  {:action-type :script :location :target}
-  [from name & {:keys [action owner group mode force]
-                        :or {action :create force true}}]
+                  {:action-type :script :location :target}
+  [action-options from name & {:keys [action owner group mode force]
+                               :or {action :create force true}}]
   [{:language :bash}
    (case action
      :delete (checked-script
@@ -67,9 +67,9 @@
               (~lib/ln ~from ~name :force ~force :symbolic ~true)))])
 
 (implement-action fifo :direct
-  {:action-type :script :location :target}
-  [path & {:keys [action owner group mode force]
-           :or {action :create} :as options}]
+                  {:action-type :script :location :target}
+  [action-options path & {:keys [action owner group mode force]
+                          :or {action :create} :as options}]
   [{:language :bash}
    (case action
      :delete (checked-script
@@ -83,8 +83,8 @@
               (adjust-file path options)))])
 
 (implement-action sed :direct
-  {:action-type :script :location :target}
-  [path exprs-map
+                  {:action-type :script :location :target}
+  [action-options path exprs-map
    & {:keys [seperator no-md5 restriction] :as options}]
   [{:language :bash}
    (checked-script

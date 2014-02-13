@@ -21,7 +21,7 @@
    [pallet.actions.decl :refer [checked-commands
                                 package-repository-action
                                 remote-file-action]]
-   [pallet.crate :refer [os-family packager]]
+   [pallet.core.session :refer [os-family packager]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [checked-script fragment with-source-line-comments]]
@@ -254,7 +254,7 @@
    maintain a consistent view."
   {:action-type :script
    :location :target}
-  [& args]
+  [action-options & args]
   (logging/tracef "package %s" (vec args))
   [{:language :bash
     :summary (str "package " (string/join " " args))}
@@ -398,7 +398,7 @@
       first second))))
 
 (implement-action package-source :direct
-  "Control package sources.
+                  "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
 
@@ -420,14 +420,14 @@
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
   {:action-type :script :location :target}
-  [& args]
+  [action-options & args]
   [{:language :bash
     :summary (str "package-source " (string/join " " args))}
    (apply package-source* args)])
 
 (implement-action package-repository-action :direct
                   {:action-type :script :location :target}
-  [options]
+  [action-options options]
   [{:language :bash
     :summary (str "package-repository " (:repository-name options))}
    (package-source* options)])
@@ -591,15 +591,15 @@
    To enable non-free on debian:
        (package-manager :add-scope :scope :non-free)"
   {:action-type :script :location :target}
-  [& package-manager-args]
+  [action-options & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [{:language :bash
     :summary (str "package-manager " (string/join " " package-manager-args))}
    (apply package-manager* package-manager-args)])
 
 (implement-action add-rpm :direct
-  {:action-type :script :location :target}
-  [rpm-name & {:as options}]
+                  {:action-type :script :location :target}
+  [action-options rpm-name & {:as options}]
   [{:language :bash}
    (stevedore/do-script
     (->
@@ -616,9 +616,9 @@
        (do ("rpm" -U --quiet ~rpm-name)))))])
 
 (implement-action install-deb :direct
-  "Install a deb file.  Source options are as for remote file."
+                  "Install a deb file.  Source options are as for remote file."
   {:action-type :script :location :target}
-  [deb-name & {:as options}]
+  [action-options deb-name & {:as options}]
   [{:language :bash}
    (stevedore/do-script
     (-> (remote-file*
@@ -633,10 +633,10 @@
      ("dpkg" -i --skip-same-version ~deb-name)))])
 
 (implement-action debconf-set-selections :direct
-  "Set debconf selections.
+                  "Set debconf selections.
 Specify :line, or the other options."
   {:action-type :script :location :target}
-  [{:keys [line package question type value]}]
+  [action-options {:keys [line package question type value]}]
   {:pre [(or line (and package question type (not (nil? value))))]}
   [{:language :bash}
    (stevedore/do-script
@@ -653,7 +653,7 @@ Specify :line, or the other options."
 (implement-action minimal-packages :direct
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
-  []
+  [action-options]
   (let [os-family (os-family)]
     [{:language :bash}
      (cond

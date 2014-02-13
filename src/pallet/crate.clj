@@ -7,11 +7,12 @@
    [pallet.action :refer [declare-action]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
-   [pallet.core.session :as session]
+   [pallet.core.session :as session :refer [plan-state target-session?]]
    [pallet.execute :as execute]
    [pallet.node :as node]
    [pallet.sync :refer [sync-phase*]]
-   [pallet.utils :refer [apply-map compiler-exception local-env]]))
+   [pallet.utils
+    :refer [apply-map compiler-exception local-env map-arg-and-ref]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
@@ -49,21 +50,24 @@
    :indent 'defun}
   [sym & body]
   (letfn [(output-body [[args & body]]
-            (let [no-context? (final-fn-sym? sym body)]
-              `(~args
-                ;; if the final function call is recursive, then don't add a
-                ;; phase-context, so that just forwarding different arities only
-                ;; gives one log entry/event, etc.
-                ~@(if no-context?
-                    body
-                    [(let [locals (gensym "locals")]
-                       `(let [~locals (local-env)]
-                          (phase-context
-                              ~(symbol (str (name sym) "-cfn"))
-                              {:msg ~(str sym)
-                               :kw ~(keyword sym)
-                               :locals ~locals}
-                            ~@body)))]))))]
+            (let [no-context? (final-fn-sym? sym body)
+                  [session-arg session-ref] (map-arg-and-ref (first args))]
+              `([~session-arg ~@(rest args)]
+                  ;; if the final function call is recursive, then
+                  ;; don't add a phase-context, so that just
+                  ;; forwarding different arities only gives one log
+                  ;; entry/event, etc.
+                  {:pre [(target-session? ~session-arg)]}
+                  ~@(if no-context?
+                      body
+                      [(let [locals (gensym "locals")]
+                         `(let [~locals (local-env)]
+                            (phase-context
+                                ~(symbol (str (name sym) "-cfn"))
+                                {:msg ~(str sym)
+                                 :kw ~(keyword sym)
+                                 :locals ~locals}
+                              ~@body)))]))))]
     (let [[sym rest] (name-with-attributes sym body)
           sym (vary-meta sym assoc :pallet/plan-fn true)]
       (if (vector? (first rest))
@@ -287,86 +291,89 @@
 ;;   (execute/target-flag? (session) (keyword (name flag))))
 
 ;; ;;; ## Settings
-;; (defn get-settings
-;;   "Retrieve the settings for the specified host facility. The instance-id allows
-;;    the specification of specific instance of the facility. If passed a nil
-;;    `instance-id`, then `:default` is used"
-;;   ([facility {:keys [instance-id default] :as options}]
-;;      (plan-state/get-settings
-;;       (:plan-state (session)) (session/target-id (session)) facility options))
-;;   ([facility]
-;;      (get-settings facility {})))
+(defn get-settings
+  "Retrieve the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  ([session facility {:keys [instance-id default] :as options}]
+     {:pre [(target-session? session)]}
+     (plan-state/get-settings
+      (:plan-state session) (session/target-id session) facility options))
+  ([session facility]
+     (get-settings session facility {})))
 
-;; (defn get-node-settings
-;;   "Retrieve the settings for the `facility` on the `node`. The instance-id
-;;    allows the specification of specific instance of the facility. If passed a
-;;    nil `instance-id`, then `:default` is used"
-;;   ([node facility {:keys [instance-id default] :as options}]
-;;      (plan-state/get-settings
-;;       (:plan-state (session)) (node/id node) facility options))
-;;   ([node facility]
-;;      (get-node-settings node facility {})))
+(defn get-node-settings
+  "Retrieve the settings for the `facility` on the `node`. The instance-id
+   allows the specification of specific instance of the facility. If passed a
+   nil `instance-id`, then `:default` is used"
+  ([session node facility {:keys [instance-id default] :as options}]
+     {:pre [(target-session? session)]}
+     (plan-state/get-settings
+      (:plan-state session) (node/id node) facility options))
+  ([session node facility]
+     (get-node-settings session node facility {})))
 
-;; (defn assoc-settings
-;;   "Set the settings for the specified host facility. The instance-id allows
-;;    the specification of specific instance of the facility (the default is
-;;    :default)."
-;;   ([facility kv-pairs {:keys [instance-id] :as options}]
-;;      (plan-state/assoc-settings
-;;       (:plan-state (session))
-;;       (session/target-id (session))
-;;       facility
-;;       kv-pairs
-;;       options)
-;;      ;; (session!
-;;      ;;  (update-in
-;;      ;;   (session) [:plan-state]
-;;      ;;   plan-state/assoc-settings
-;;      ;;   (session/target-id (session)) facility kv-pairs options))
-;;      )
-;;   ([facility kv-pairs]
-;;      (assoc-settings facility kv-pairs {})))
+(defn assoc-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  ([session facility kv-pairs {:keys [instance-id] :as options}]
+     {:pre [(target-session? session)]}
+     (plan-state/assoc-settings
+      (:plan-state session)
+      (session/target-id session)
+      facility
+      kv-pairs
+      options)
+     ;; (session!
+     ;;  (update-in
+     ;;   (session) [:plan-state]
+     ;;   plan-state/assoc-settings
+     ;;   (session/target-id (session)) facility kv-pairs options))
+     )
+  ([session facility kv-pairs]
+     (assoc-settings session facility kv-pairs {})))
 
-;; (defn assoc-in-settings
-;;   "Set the settings for the specified host facility. The instance-id allows
-;;    the specification of specific instance of the facility (the default is
-;;    :default)."
-;;   ([facility path value {:keys [instance-id] :as options}]
-;;      (plan-state/update-settings
-;;       (:plan-state (session))
-;;       (session/target-id (session))
-;;       facility
-;;       assoc-in [path value] options)
-;;      ;; (session!
-;;      ;;  (update-in
-;;      ;;   (session) [:plan-state]
-;;      ;;   plan-state/update-settings
-;;      ;;   (session/target-id (session)) facility assoc-in [path value] options))
-;;      )
-;;   ([facility path value]
-;;      (assoc-in-settings facility path value {})))
+(defn assoc-in-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  ([session facility path value {:keys [instance-id] :as options}]
+     (plan-state/update-settings
+      (plan-state session)
+      (session/target-id session)
+      facility
+      assoc-in [path value] options)
+     ;; (session!
+     ;;  (update-in
+     ;;   (session) [:plan-state]
+     ;;   plan-state/update-settings
+     ;;   (session/target-id (session)) facility assoc-in [path value] options))
+     )
+  ([session facility path value]
+     (assoc-in-settings session facility path value {})))
 
-;; (defn update-settings
-;;   "Update the settings for the specified host facility. The instance-id allows
-;;    the specification of specific instance of the facility (the default is
-;;    :default)."
-;;   {:arglists '[[facility f & args][facility options f & args]]}
-;;   [facility f-or-opts & args]
-;;   (let [[options f args] (if (or (map? f-or-opts) (nil? f-or-opts))
-;;                            [f-or-opts (first args) (rest args)]
-;;                            [nil f-or-opts args])]
-;;     (assert f "nil update function")
-;;     (plan-state/update-settings
-;;      (:plan-state (session))
-;;      (session/target-id (session))
-;;      facility
-;;      f args options)
-;;     ;; (session!
-;;     ;;  (update-in
-;;     ;;   (session) [:plan-state]
-;;     ;;   plan-state/update-settings
-;;     ;;   (session/target-id (session)) facility f args options))
-;;     ))
+(defn update-settings
+  "Update the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  {:arglists '[[facility f & args][facility options f & args]]}
+  [session facility f-or-opts & args]
+  (let [[options f args] (if (or (map? f-or-opts) (nil? f-or-opts))
+                           [f-or-opts (first args) (rest args)]
+                           [nil f-or-opts args])]
+    (assert f "nil update function")
+    (plan-state/update-settings
+     (:plan-state session)
+     (session/target-id session)
+     facility
+     f args options)
+    ;; (session!
+    ;;  (update-in
+    ;;   (session) [:plan-state]
+    ;;   plan-state/update-settings
+    ;;   (session/target-id (session)) facility f args options))
+    ))
 
 ;; (defn service-phases
 ;;   "Return a map of service phases for the specified facility, options and

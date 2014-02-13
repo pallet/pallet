@@ -9,14 +9,11 @@
             transfer-file
             transfer-file-to-local
             wait-for-file]]
-   [pallet.action-options :refer [get-action-options]]
    [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
    [pallet.actions.decl
     :refer [checked-commands checked-script remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.core.session :refer [session]]
-   [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
             path-owner user-default-group]]
@@ -28,13 +25,13 @@
 
 (implement-action transfer-file-to-local :direct
   {:action-type :transfer/to-local :location :origin}
-  [remote-path local-path]
+  [action-options remote-path local-path]
   {:remote-path (.getPath (io/file remote-path))
    :local-path (.getPath (io/file local-path))})
 
 (implement-action transfer-file :direct
   {:action-type :transfer/from-local :location :origin}
-  [local-path remote-path remote-md5-path]
+  [action-options local-path remote-path remote-md5-path]
   {:local-path (.getPath (io/file local-path))
    :remote-path (.getPath (io/file remote-path))
    :remote-md5-path (.getPath (io/file remote-md5-path))})
@@ -73,22 +70,22 @@ permissions. Note this is not the final directory."
 
 (implement-action remote-file-action :direct
                   {:action-type :script :location :target}
-  [path {:keys [action url local-file remote-file link
-                content literal
-                template values
-                md5 md5-url
-                owner group mode force
-                blob blobstore
-                install-new-files
-                overwrite-changes no-versioning max-versions
-                flag-on-changed
-                force
-                insecure
-                verify
-                proxy]
-         :or {action :create max-versions 5
-              install-new-files true}
-         :as options}]
+  [action-options path {:keys [action url local-file remote-file link
+                               content literal
+                               template values
+                               md5 md5-url
+                               owner group mode force
+                               blob blobstore
+                               install-new-files
+                               overwrite-changes no-versioning max-versions
+                               flag-on-changed
+                               force
+                               insecure
+                               verify
+                               proxy]
+                        :or {action :create max-versions 5
+                             install-new-files true}
+                        :as options}]
   [{:language :bash
     :summary (str "remote-file " path " "
                   (string/join
@@ -97,7 +94,7 @@ permissions. Note this is not the final directory."
                         (summarise-content)
                         (apply concat)
                         (map pr-str))))}
-   (let [script-dir (:script-dir (get-action-options))
+   (let [script-dir (:script-dir action-options)
          new-path (:pallet/new-path options (new-filename script-dir path))
          md5-path (:pallet/md5-path options (md5-filename script-dir path))
          copy-path (:pallet/copy-path options (copy-filename script-dir path))
@@ -157,15 +154,16 @@ permissions. Note this is not the final directory."
          content (stevedore/script
                   (~lib/heredoc
                    ~new-path ~content ~(select-keys options [:literal])))
-         local-file nil       ; already copied in remote-file wrapper
+         local-file nil        ; already copied in remote-file wrapper
          remote-file (stevedore/script
                       (~lib/cp ~remote-file ~new-path :force ~true))
-         template (stevedore/script
-                   (~lib/heredoc
-                    ~new-path
-                    ~(templates/interpolate-template
-                      template (or values {}) (session))
-                    ~(select-keys options [:literal])))
+         ;; TODO make template support use content (ie action independent)
+         ;; template (stevedore/script
+         ;;           (~lib/heredoc
+         ;;            ~new-path
+         ;;            ~(templates/interpolate-template
+         ;;              template (or values {}) (session))
+         ;;            ~(select-keys options [:literal])))
          link (stevedore/script
                (~lib/ln ~link ~path :force ~true :symbolic ~true))
          blob (checked-script
@@ -196,7 +194,7 @@ permissions. Note this is not the final directory."
                 (do
                   ~(stevedore/chain-commands
                     (stevedore/script
-                     (lib/cp      ; copy to copy-path with versioning
+                     (lib/cp       ; copy to copy-path with versioning
                       ~new-path ~copy-path :backup ~versioning :force ~true)
                      (lib/mv ~new-path ~path :force ~true))
                     (if flag-on-changed
@@ -267,11 +265,11 @@ permissions. Note this is not the final directory."
 
 
 (implement-action wait-for-file :direct
-  {:action-type :script :location :target}
-  [path & {:keys [action max-retries standoff service-name]
-           :or {action :create
-                max-retries 5 standoff 2}
-           :as options}]
+                  {:action-type :script :location :target}
+  [action-options path & {:keys [action max-retries standoff service-name]
+                          :or {action :create
+                               max-retries 5 standoff 2}
+                          :as options}]
   [{:language :bash}
    (let [[test-expr waiting-msg failed-msg]
          (case action

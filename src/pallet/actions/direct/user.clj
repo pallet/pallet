@@ -60,17 +60,17 @@
 
 
 (implement-action user :direct
-  {:action-type :script :location :target}
-  [& user-args]
+                  {:action-type :script :location :target}
+  [action-options & user-args]
   [{:language :bash}
    (apply user* user-args)])
 
 
 (implement-action group :direct
-  {:action-type :script :location :target}
-  [groupname & {:keys [action system gid password]
-                :or {action :manage}
-                :as options}]
+                  {:action-type :script :location :target}
+  [action-options groupname & {:keys [action system gid password]
+                               :or {action :manage}
+                               :as options}]
   [{:language :bash}
    (case action
      :create

@@ -22,7 +22,7 @@
 (defn merge-action-options
   "Update any precedence modifiers defined on the session"
   [session m]
-  (update-in session [:execution-state action-options-key] merge [m]))
+  (update-in session [:execution-state action-options-key] merge m))
 
 (defn assoc-action-options
   "Set precedence modifiers defined on the session."
@@ -53,11 +53,5 @@ options.
 : Force a new ssh login after the action.  Useful if the action effects the
   login environment and you want the affect to be visible immediately."
   [session m & body]
-  `(let [session# ~session
-         p# (action-options session#)
-         m# ~m]
-     (merge-action-options m#)
-     (let [v# (do ~@body)]
-       (when (seq p#)
-         (assoc-action-options p#))
-       v#)))
+  `(let [~session (merge-action-options ~session ~m)]
+     ~@body))

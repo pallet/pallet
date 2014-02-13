@@ -7,9 +7,10 @@
 
 (defplan add-epel
   "Add the EPEL repository"
-  [& {:keys [version] :or {version "5-4"}}]
-  (with-action-options {:always-before #{package-manager package}}
+  [session & {:keys [version] :or {version "5-4"}}]
+  (with-action-options session {:always-before #{package-manager package}}
     (exec-checked-script
+     session
      "Add EPEL package repository"
      ("rpm"
       -U --quiet
