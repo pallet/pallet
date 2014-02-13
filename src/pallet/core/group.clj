@@ -853,10 +853,10 @@ specified in the `:extends` argument."
     (let [group-deltas (group-deltas targets groups)
           nodes-to-remove (nodes-to-remove targets group-deltas)
           nodes-to-add (nodes-to-add group-deltas)
-          old-nodes (->>
-                     (vals nodes-to-remove)
-                     (mapcat :nodes)
-                     (map (comp node-map :node)))
+          removed-ids (->>
+                       (mapcat (comp :targets second) nodes-to-remove)
+                       (map :node)
+                       (mapv node/id))
           c (chan)
           _ (execute-phase
              session :destroy-server
@@ -864,26 +864,27 @@ specified in the `:extends` argument."
           [res-ds es] (<! c)]
 
       (if es
-        [res-ds es]
+        [{:results res-ds} es]
         (do
           (if-let [errs (errors res-ds)]
-            [res-ds (ex-info "destroy-server phase failed" {:errors errs})]
-            (let [removed-ids (->>
-                               (mapcat (comp :targets second) nodes-to-remove)
-                               (map :node)
-                               (mapv node/id))]
+            [{:results res-ds}
+             (ex-info "destroy-server phase failed" {:errors errs})]
+            (let []
               (remove-group-nodes session compute-service nodes-to-remove c)
               (let [[res-rg es] (<! c)]
                 (if es
-                  [(concat res-ds res-rg) es]
+                  [{:results (concat res-ds res-rg)} es]
                   (do
                     (execute-phase
                      session :destroy-group (groups-to-remove group-deltas) c)
                     (let [[res-dg es] (<! c)]
                       (if es
-                        [(concat res-ds res-rg res-dg) es]
+                        [{:results (concat res-ds res-rg res-dg)
+                          :old-node-ids removed-ids}
+                         es]
                         (if-let [errs (errors res-dg)]
-                          [(concat res-ds res-rg res-dg)
+                          [{:results (concat res-ds res-rg res-dg)
+                            :old-node-ids removed-ids}
                            (ex-info
                             "destroy-group phase failed" {:errors errs})]
                           (do
@@ -892,9 +893,12 @@ specified in the `:extends` argument."
                              (groups-to-create group-deltas) c)
                             (let [[res-cg es] (<! c)]
                               (if es
-                                [(concat res-ds res-rg res-dg res-cg) es]
+                                [{:results (concat res-ds res-dg res-cg)
+                                  :old-node-ids removed-ids}
+                                 es]
                                 (if-let [errs (errors res-cg)]
-                                  [(concat res-ds res-rg res-dg res-cg)
+                                  [{:results (concat res-ds res-dg res-cg)
+                                    :old-node-ids removed-ids}
                                    (ex-info
                                     "create-group phase failed" {:errors errs})]
                                   (do
