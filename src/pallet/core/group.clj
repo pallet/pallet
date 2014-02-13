@@ -1197,17 +1197,13 @@ flag.
                           "No source of nodes"
                           {:error :no-nodes-and-no-compute-service})))
               c (chan)
-              _ (converge-op session compute groups nodes-set phases lift-options c)
+              _ (converge-op
+                 session compute groups nodes-set phases lift-options c)
               [converge-result e] (<! c)]
           (debugf "running nodes-set %s" (vec nodes-set))
           (if e
             [converge-result e]
             (do
-              ;; (lift-partitions
-              ;;  service-state plan-state environment
-              ;; (concat (when os-detect [:pallet/os-bs :pallet/os])
-              ;;          [:settings :bootstrap] phases)
-              ;;  (assoc lift-options :targets targets))
               (debugf "running phases %s" phases)
               (async-lift-op session
                              (concat (when os-detect [:pallet/os-bs :pallet/os])
