@@ -124,7 +124,8 @@ Provider specific options may also be passed."
   (impl/create-nodes compute node-spec user node-count options ch))
 
 (defasync destroy-nodes
-  "Destroy the nodes running in the compute service."
+  "Destroy the nodes running in the compute service. Return a sequence
+  of node ids that have been destroyed."
   {::protocol impl/ComputeServiceNodeCreateDestroy}
   [compute nodes ch]
   (impl/destroy-nodes compute nodes ch))
