@@ -45,7 +45,8 @@ TODO: put :system-targets into plan-state?"
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :as node :refer [group-name node? node-map terminated?]]
    [pallet.thread-expr :refer [when->]]
-   [pallet.utils :refer [maybe-update-in total-order-merge]]))
+   [pallet.utils
+    :refer [combine-exceptions maybe-update-in total-order-merge]]))
 
 (def-alias KeyAlgorithms (Map Keyword Keyword))
 (ann ^:no-check pallet.map-merge/merge-keys
@@ -529,18 +530,6 @@ specified in the `:extends` argument."
 
 ;;; ## Node creation and removal
 ;; TODO remove :no-check when core.type understands assoc
-
-(defn combine-exceptions
-  [exceptions]
-  (if (seq exceptions)
-    ;; always wrap, so we get a full stacktrace, not just a threadpool
-    ;; trace.
-    (ex-info
-     (let [s (string/join ". " (map #(str %) exceptions))]
-       (if (string/blank? s) (pr-str exceptions) s))
-     {:exceptions exceptions}
-     (first exceptions))))
-
 (defn reduce-results
   "Reduce the results of a sequence of [result exception] tuples read
   from channel ch."

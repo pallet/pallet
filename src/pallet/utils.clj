@@ -418,3 +418,17 @@ value to assoc. The assoc only occurs if the value is non-nil."
   "Conj, returning a vector, removing duplicates in the resulting vector."
   [coll arg]
   (vec (distinct (conj (or coll []) arg))))
+
+(defn combine-exceptions
+  "Wrap a sequence of exceptions into a single exception.  The first
+  element of the sequence is used as the cause of the composite
+  exception."
+  [exceptions]
+  (if (seq exceptions)
+    ;; always wrap, so we get a full stacktrace, not just a threadpool
+    ;; trace.
+    (ex-info
+     (let [s (string/join ". " (map #(str %) exceptions))]
+       (if (string/blank? s) (pr-str exceptions) s))
+     {:exceptions exceptions}
+     (first exceptions))))
