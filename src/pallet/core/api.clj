@@ -312,3 +312,10 @@ The result is also written to the recorder in the session."
 ;;   (debugf "remove-nodes %s targets" (vector targets))
 ;;   (destroy-nodes compute-service (map (:node target) targets))
 ;;   (remove-system-targets session targets))
+
+
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (plan-fn 1))
+;; End:
