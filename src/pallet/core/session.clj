@@ -262,11 +262,18 @@ The session is a map with well defined keys:
   (TFn [[t :variance :contravariant]]
        (All [[x :< BaseSession]] (Fn [x t -> x]))))
 
-(ann ^:no-check set-admin-user [BaseSession User -> BaseSession])
-(defn set-admin-user
+(ann ^:no-check set-user [BaseSession User -> BaseSession])
+(defn user
+  "Return a session with `user` as the known admin user."
+  [session]
+  {:post [(user? %)]}
+  (-> session :execution-state :user))
+
+(ann ^:no-check set-user [BaseSession User -> BaseSession])
+(defn set-user
   "Return a session with `user` as the known admin user."
   [session user]
-  {:post [(user? %)]}
+  {:pre [(user? user)]}
   (assoc-in session [:execution-state :user] user))
 
 (ann ^:no-check set-recorder [BaseSession Recorder -> BaseSession])

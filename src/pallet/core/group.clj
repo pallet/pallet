@@ -119,7 +119,8 @@ TODO: put :system-targets into plan-state?"
 (def ^{:doc "The bootstrap phase is executed with the image credentials, and
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
-  {:bootstrap {:middleware phase/execute-phase}})
+  {:bootstrap {:middleware (-> api/execute
+                               middleware/image-user-middleware)}})
 
 ;;; ### Server Spec
 
@@ -755,11 +756,11 @@ specified in the `:extends` argument."
      (if-let [phase (first phases)]
        (let [c (chan)
              _ (execute-phase session phase targets c)
-             [results exceptions] (<! c)
+             [results exception] (<! c)
              res (concat res results)]
          (if (or (some #(some :error (:action-results %)) results)
-                 (seq exceptions))
-           [res (seq exceptions)]
+                 exception)
+           [res exception]
            (recur (rest phases) res)))
        [res nil]))))
 
@@ -1138,7 +1139,7 @@ flag.
                                 plan-state debug os-detect]
                          :or {os-detect true}
                          :as options}]
-  (do ;; go-logged
+  (go-logged
     (check-converge-options options)
     (logging/tracef "environment %s" environment)
     (let [[phases phase-map] (process-phases phase)
@@ -1151,6 +1152,7 @@ flag.
                                        (plan-fn [session] (os session))
                                        merge bootstrapped-meta))
                       phase-map)
+          _ (debugf "phase-map %s" phase-map)
           groups (if (map? group-spec->count)
                    [group-spec->count]
                    group-spec->count)
@@ -1195,6 +1197,7 @@ flag.
               c (chan)
               _ (converge-op session compute groups nodes-set phases lift-options c)
               [converge-result e] (<! c)]
+          (debugf "running nodes-set %s" (vec nodes-set))
           (if e
             [converge-result e]
             (do
@@ -1204,8 +1207,8 @@ flag.
               ;;  (concat (when os-detect [:pallet/os-bs :pallet/os])
               ;;          [:settings :bootstrap] phases)
               ;;  (assoc lift-options :targets targets))
-
-              (async-lift-op session phases targets lift-options c)
+              (debugf "running phases %s" phases)
+              (async-lift-op session phases nodes-set lift-options c)
               (let [[result e] (<! c)]
                 [(-> converge-result
                      (update-in [:results] concat result))

@@ -30,7 +30,7 @@ functions with more defaults, etc."
    [pallet.core.session
     :refer [base-session?
             executor plan-state recorder remove-system-targets set-node
-            set-executor set-recorder target-session?]]
+            set-executor set-recorder target-session? user]]
    [pallet.core.user :refer [obfuscated-passwords user?]]
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node :refer [node?]])
@@ -45,15 +45,16 @@ functions with more defaults, etc."
 ;; TODO - remove tc-gnore when update-in has more smarts
 (defn execute-action
   "Execute an action map within the context of the current session."
-  [{:keys [node user] :as session} action]
-  {:pre [(target-session? session)]}
+  [{:keys [node] :as session} action]
+  {:pre [(target-session? session)
+         (user? (user session))]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
   (let [executor (executor session)]
     (tracef "execute-action executor %s" (pr-str executor))
     (assert executor "No executor in session")
     (let [[rv e] (try
-                   [(executor/execute executor node user action)]
+                   [(executor/execute executor node (user session) action)]
                    (catch Exception e
                      (let [rv (:result (ex-data e))]
                        (when-not rv

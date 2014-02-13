@@ -4,6 +4,7 @@
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implementation]]
    [pallet.core.executor.protocols :refer :all]
+   [pallet.core.user :refer [user?]]
    [pallet.ssh.execute :as ssh]))
 
 (defn direct-script
@@ -20,6 +21,7 @@
 (deftype SshActionExecutor [result-chan]
   ActionExecutor
   (execute [executor node user action]
+    {:pre [(user? user)]}
     (let [[script action-type location] (direct-script action)]
       (ssh/ssh-script-on-target node user action script))))
 

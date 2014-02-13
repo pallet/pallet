@@ -5,9 +5,9 @@
     :refer [ann ann-form def-alias doseq> fn> for> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
-   [clojure.tools.logging :as logging]
+   [clojure.tools.logging :as logging :refer [debugf]]
    [pallet.core.api :as api]
-   [pallet.core.session :refer [set-executor set-admin-user]]
+   [pallet.core.session :refer [set-executor set-user]]
    [pallet.core.tag :as tag]
    [pallet.node :as node]))
 
@@ -31,7 +31,8 @@
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
                  user)]
-      (handler (set-admin-user session user) node plan-fn))))
+      (debugf "image-user %s" user)
+      (handler (set-user session user) node plan-fn))))
 
 ;;; # Phase Execution Functions
 (defn execute-one-shot-flag
