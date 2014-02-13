@@ -6,7 +6,7 @@
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
-   [pallet.core.api :as api]
+   [pallet.core.api :as api :refer [errors plan-fn]]
    [pallet.core.session :refer [set-executor set-user]]
    [pallet.core.tag :as tag]
    [pallet.node :as node]))
@@ -60,60 +60,16 @@
       (handler session node plan-fn))))
 
 (defn execute-on-flagged
-  "Return a middleware, that will execute a phase on nodes that
-  have the specified state flag set."
+  "Return an action middleware, that will execute a phase on nodes
+  that have the specified state flag set."
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
   (execute-on-filtered handler #(tag/has-state-flag? state-flag %)))
 
 (defn execute-on-unflagged
-  "Return a middleware, that will execute a phase on nodes that
-  have the specified state flag set."
+  "Return an action middleware, that will execute a phase on nodes
+  that have the specified state flag set."
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
-  (execute-on-filtered handler (complement #(tag/has-state-flag? state-flag %))))
-
-;;; # Decorator aware plan execution
-;; (ann execute [BaseSession Node Fn -> PlanResult])
-;; (defn execute
-;;   "Apply a plan function with metadata to the target node."
-;;   [session node plan-fn]
-;;   (let [{:keys [execution-settings-f phase-execution-f]} (meta plan-fn)
-;;         session (if execution-settings-f
-;;                   (execution-settings-f session node)
-;;                   session)]
-;;     (if phase-execution-f
-;;       ;; TODO determin arguments for phase-execution-f
-;;       (phase-execution-f session node plan-fn)
-;;       (api/execute session node plan-fn))))
-
-;;; # Execution Settings Functions
-;; (ann environment-execution-settings [-> ExecSettingsFn])
-;; (defn environment-execution-settings
-;;   "Returns execution settings based purely on the environment"
-;;   []
-;;   (fn> [plan-state :- PlanState
-;;         _ :- Node]
-;;     (let [user (plan-state/get-scope
-;;                 plan-state :action-options :default [:user])
-;;           executor (plan-state/get-scope
-;;                     plan-state :action-options :default [:executor])]
-;;       (debugf "environment-execution-settings %s" plan-state)
-;;       (debugf "Env user %s" (obfuscated-passwords (into {} user)))
-;;       {:user user :executor executor})))
-
-;; (ann environment-image-execution-settings [-> ExecSettingsFn])
-;; (defn environment-image-execution-settings
-;;   "Returns execution settings based on the environment and the image user."
-;;   []
-;;   (fn> [plan-state :- PlanState
-;;         node :- Node]
-;;     (let [user (into {} (filter (inst val Any) (node/image-user node)))
-;;           user (if (or (get user :private-key-path) (get user :private-key))
-;;                  (assoc user :temp-key true)
-;;                  user)
-;;           executor (plan-state/get-scope
-;;                     plan-state :action-options :default [:executor])]
-;;       (tc-ignore
-;;        (debugf "Image-user is %s" (obfuscated-passwords user)))
-;;       {:user user :executor executor})))
+  (execute-on-filtered
+   handler (complement #(tag/has-state-flag? state-flag %))))

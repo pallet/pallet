@@ -6,7 +6,8 @@
    [clojure.core.async
     :refer [<!! >! alts! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [debugf errorf]]
-   [pallet.core.types :refer [ErrorMap]]))
+   [pallet.core.types :refer [ErrorMap]]
+   [pallet.utils :refer [combine-exceptions]]))
 
 ;;; # Async
 (ann timeout-chan (All [x]
@@ -152,6 +153,23 @@ element."
         (close! to))))
   ([chans to]
      (concat-chans chans to true)))
+
+(defn reduce-results
+  "Reduce the results of a sequence of [result exception] tuples read
+  from channel ch."
+  [ch]
+  (loop [results []
+         exceptions []]
+    (if-let [[r e] (<!! ch)]
+      (if e
+        (recur results (conj exceptions e))
+        (recur (conj results r) exceptions))
+      (do
+        (debugf "reduce-results %s"
+                [results (if-let [e (seq exceptions)]
+                           (combine-exceptions e))])
+        [results (if-let [e (seq exceptions)]
+                   (combine-exceptions e))]))))
 
 ;; Local Variables:
 ;; mode: clojure

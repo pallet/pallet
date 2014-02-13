@@ -20,7 +20,8 @@ TODO: put :system-targets into plan-state?"
    [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.async
-    :refer [concat-chans from-chan go-logged go-tuple map-async map-thread]]
+    :refer [concat-chans from-chan go-logged go-tuple map-async map-thread
+            reduce-results]]
    [pallet.compute :refer [create-nodes destroy-nodes nodes service-properties]]
    [pallet.contracts
     :refer [check-converge-options
@@ -530,22 +531,6 @@ specified in the `:extends` argument."
 
 ;;; ## Node creation and removal
 ;; TODO remove :no-check when core.type understands assoc
-(defn reduce-results
-  "Reduce the results of a sequence of [result exception] tuples read
-  from channel ch."
-  [ch]
-  (loop [results []
-         exceptions []]
-    (if-let [[r e] (<!! ch)]
-      (if e
-        (recur results (conj exceptions e))
-        (recur (conj results r) exceptions))
-      (do
-        (debugf "reduce-results %s"
-                [results (if-let [e (seq exceptions)]
-                           (combine-exceptions e))])
-        [results (if-let [e (seq exceptions)]
-                   (combine-exceptions e))]))))
 
 (ann ^:no-check add-group-nodes
      [Session ComputeService GroupSpec AnyInteger -> (Seq TargetMap)])
