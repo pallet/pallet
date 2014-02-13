@@ -38,6 +38,7 @@
 (defn node-os!
   "Set the node os infor map"
   [node plan-state os-details]
+  {:pre [(or (nil? os-details) (os-details-map? os-details))]}
   (assoc-settings plan-state (node/id node) :pallet/os os-details {}))
 
 ;; TODO remove the no-check when building maps in steps is easily typable

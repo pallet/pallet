@@ -27,6 +27,7 @@
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]
   (fn> [session :- BaseSession node :- Node plan-fn :- Fn]
+    {:pre [(node/node? node)]}
     (let [user (into {} (filter (inst val Any) (node/image-user node)))
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
@@ -40,10 +41,11 @@
   don't have the specified state flag set. On successful completion the nodes
   have the state flag set."
   [handler state-flag]
-  (fn [session node plan-fn]
-    (when (tag/has-state-flag? state-flag)
+  (fn execute-one-shot-flag [session node plan-fn]
+    {:pre [(node/node? node)]}
+    (when-not (tag/has-state-flag? state-flag node)
       (let [result (handler session node plan-fn)]
-        (tag/set-state-for-target state-flag node)
+        (tag/set-state-for-node state-flag node)
         result))))
 
 (defn execute-on-filtered
@@ -53,6 +55,7 @@
   (logging/tracef "execute-on-filtered")
   (fn execute-on-filtered
     [session node plan-fn]
+    {:pre [(node/node? node)]}
     (when (filter-f node)
       (handler session node plan-fn))))
 

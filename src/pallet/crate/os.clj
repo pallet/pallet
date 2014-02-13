@@ -90,7 +90,7 @@
     (when (and (number? (:exit distro)) (zero? (:exit distro)))
       (let [out (string/replace-first (:out distro) pre-map-output "{")
             distro (read-string out)]
-        (->> (-> distro
+        (->> (-> {}
                  (maybe-assoc :os-family
                               (when-not (blank? (:id distro))
                                 (keyword (lower-case (:id distro)))))

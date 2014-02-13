@@ -107,20 +107,22 @@ TODO: put :system-targets into plan-state?"
 
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
-  {:middleware (-> phase/execute-phase
-                   (middleware/image-user-middleware)
+  {:middleware (-> api/execute
+                   middleware/image-user-middleware
                    (middleware/execute-on-unflagged :bootstrapped))})
 
 (def ^{:doc "Executes on bootstrapped nodes, with admin user credentials."}
   bootstrapped-meta
-  {:middleware (-> phase/execute-phase
+  {:middleware (-> api/execute
                    (middleware/execute-on-flagged :bootstrapped))})
 
 (def ^{:doc "The bootstrap phase is executed with the image credentials, and
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
-  {:bootstrap {:middleware (-> api/execute
-                               middleware/image-user-middleware)}})
+  {:bootstrap {:middleware (->
+                            api/execute
+                            middleware/image-user-middleware
+                            (middleware/execute-one-shot-flag :bootstrapped))}})
 
 ;;; ### Server Spec
 
@@ -1201,14 +1203,16 @@ flag.
           (if e
             [converge-result e]
             (do
-
               ;; (lift-partitions
               ;;  service-state plan-state environment
-              ;;  (concat (when os-detect [:pallet/os-bs :pallet/os])
+              ;; (concat (when os-detect [:pallet/os-bs :pallet/os])
               ;;          [:settings :bootstrap] phases)
               ;;  (assoc lift-options :targets targets))
               (debugf "running phases %s" phases)
-              (async-lift-op session phases nodes-set lift-options c)
+              (async-lift-op session
+                             (concat (when os-detect [:pallet/os-bs :pallet/os])
+                                     [:settings :bootstrap] phases)
+                             nodes-set lift-options c)
               (let [[result e] (<! c)]
                 [(-> converge-result
                      (update-in [:results] concat result))

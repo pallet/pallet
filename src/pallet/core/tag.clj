@@ -28,26 +28,28 @@ level?"
     {}
     (assert-type-predicate (read-string s) keyword-map?)))
 
-(ann set-state-for-target [String TargetMap -> nil])
-(defn set-state-for-target
+(ann set-state-for-node [String TargetMap -> nil])
+(defn set-state-for-node
   "Sets the boolean `state-name` flag on `target`."
-  [state-name target]
-  (debugf "set-state-for-target %s" state-name)
-  (when (taggable? (:node target))
-    (debugf "set-state-for-target taggable")
-    (let [current (read-or-empty-map (tag (:node target) state-tag-name))
+  [state-name node]
+  {:pre [(node? node)]}
+  (debugf "set-state-for-node %s" state-name)
+  (when (taggable? node)
+    (debugf "set-state-for-node taggable")
+    (let [current (read-or-empty-map (tag node state-tag-name))
           val (assoc current (keyword (name state-name)) true)]
-      (debugf "set-state-for-target %s %s" state-tag-name (pr-str val))
-      (tag! (:node target) state-tag-name (pr-str val)))))
+      (debugf "set-state-for-node %s %s" state-tag-name (pr-str val))
+      (tag! node state-tag-name (pr-str val)))))
 
-(ann has-state-flag? [String TargetMap -> boolean])
+(ann has-state-flag? [String Node -> boolean])
 (defn has-state-flag?
   "Return a predicate to test for a state-flag having been set."
-  [state-name target]
-  (debugf "has-state-flag? %s %s" state-name (id (:node target)))
+  [state-name node]
+  {:pre [(node? node)]}
+  (debugf "has-state-flag? %s %s" state-name (id node))
   (let [v (boolean
            (get
-            (read-or-empty-map (tag (:node target) state-tag-name))
+            (read-or-empty-map (tag node state-tag-name))
             (keyword (name state-name))))]
     (tracef "has-state-flag? %s" v)
     v))
