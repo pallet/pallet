@@ -833,7 +833,11 @@ specified in the `:extends` argument."
 
 ;;; Node count adjuster
 (defn node-count-adjuster
-  "Adjusts node counts. Groups are expected to have node counts on them."
+  "Adjusts node counts. Groups are expected to have node counts on them.
+Return a map.  The :new-targets key will contain a sequence of new
+targets; the :old-node-ids a sequence of removed node-ids,
+and :results a sequence of phase results from
+the :destroy-server, :destroy-group, and :create-group phases."
   [session compute-service groups targets ch]
   {:pre [compute-service
          (every? :count groups)
@@ -842,67 +846,56 @@ specified in the `:extends` argument."
     (let [group-deltas (group-deltas targets groups)
           nodes-to-remove (nodes-to-remove targets group-deltas)
           nodes-to-add (nodes-to-add group-deltas)
-          removed-ids (->>
-                       (mapcat (comp :targets second) nodes-to-remove)
-                       (map :node)
-                       (mapv node/id))
+          fail (fn fail [msg errs]
+                 (ex-info msg {:errors errs}))
+          add-results (fn add-results [result results]
+                        (update-in result [:results] concat results))
           c (chan)
           _ (execute-phase
              session :destroy-server
              (mapcat :targets (vals nodes-to-remove)) c)
-          [res-ds es] (<! c)]
+          [res-ds es] (<! c)
+          result {:results res-ds}]
 
       (if es
-        [{:results res-ds} es]
+        [result es]
         (do
           (if-let [errs (errors res-ds)]
-            [{:results res-ds}
-             (ex-info "destroy-server phase failed" {:errors errs})]
-            (let []
+            [result (fail "destroy-server phase failed" errs)]
+            (do
               (remove-group-nodes session compute-service nodes-to-remove c)
-              (let [[res-rg es] (<! c)]
+              (let [[res-rg es] (<! c)
+                    result (assoc result :old-node-ids res-rg)]
                 (if es
-                  [{:results (concat res-ds res-rg)} es]
+                  [result es]
                   (do
                     (execute-phase
                      session :destroy-group (groups-to-remove group-deltas) c)
-                    (let [[res-dg es] (<! c)]
+                    (let [[res-dg es] (<! c)
+                          result (add-results result res-dg)]
                       (if es
-                        [{:results (concat res-ds res-rg res-dg)
-                          :old-node-ids removed-ids}
-                         es]
+                        [result es]
                         (if-let [errs (errors res-dg)]
-                          [{:results (concat res-ds res-rg res-dg)
-                            :old-node-ids removed-ids}
-                           (ex-info
-                            "destroy-group phase failed" {:errors errs})]
+                          [result (fail "destroy-group phase failed" errs)]
                           (do
                             (execute-phase
                              session :create-group
                              (groups-to-create group-deltas) c)
-                            (let [[res-cg es] (<! c)]
+                            (let [[res-cg es] (<! c)
+                                  result (add-results result res-cg)]
                               (if es
-                                [{:results (concat res-ds res-dg res-cg)
-                                  :old-node-ids removed-ids}
-                                 es]
+                                [result es]
                                 (if-let [errs (errors res-cg)]
-                                  [{:results (concat res-ds res-dg res-cg)
-                                    :old-node-ids removed-ids}
-                                   (ex-info
-                                    "create-group phase failed" {:errors errs})]
+                                  [result
+                                   (fail "create-group phase failed" errs)]
                                   (do
                                     (create-group-nodes
                                      session compute-service nodes-to-add c)
-                                    (let [[res-cn es] (<! c)]
+                                    (let [[res-cn es] (<! c)
+                                          result (assoc result :new-targets res-cn)]
                                       (if es
-                                        [{:new-targets res-cn
-                                          :old-node-ids removed-ids
-                                          :results (concat
-                                                    res-ds res-dg res-cg)}
-                                         es]
-                                        [{:results (concat res-ds res-dg res-cg)
-                                          :new-targets res-cn
-                                          :old-node-ids removed-ids}]))))))))))))))))))))
+                                        [result es]
+                                        [result]))))))))))))))))))))
 
 
 ;;; ## Operations
