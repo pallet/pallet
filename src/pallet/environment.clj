@@ -1,6 +1,11 @@
 (ns pallet.environment
   "The environments provide mechanisms for customising Pallet and
-   Pallet crates according to externally determined criteria.
+   Pallet crates according to externally determined criteria.  It is a
+   protocol, which is implemented on records to return a data map, an
+   algorithm that allows merging these data maps, and access to these
+   values in the plan state.
+
+   In plan-fns, the environment should be considered read-only.
 
    An environment can be specified at the global, service, invocation and tag
    scopes.
@@ -19,37 +24,36 @@
    The merging of values between scopes is key specific, and is determined by
    `merge-key-algorithm`."
   (:require
-   [clojure.core.incubator :refer [-?>]]
    [clojure.walk :as walk]
-   [pallet.core.phase :refer [phases-with-meta]]
-   [pallet.core.protocols :as impl]
+   [pallet.core.session :as session]
    [pallet.core.user :refer [make-user]]
-   [pallet.environment-impl :refer [get-for]]
+   [pallet.environment.protocols :as impl]
    [pallet.local.execute :as local]
-   [pallet.map-merge :as map-merge]
-   [pallet.map-merge :refer [merge-key]]
-   [pallet.utils :as utils :refer [maybe-update-in total-order-merge]]))
+   [pallet.map-merge :as map-merge :refer [merge-key]]
+   [pallet.utils :as utils :refer [total-order-merge]]))
 
-(defn environment [x]
+;;; # Environment maps
+(defn has-environment?
+  "Predicate to test if x is capable of supplying an environment map."
+  [x]
+  (impl/has-environment? x))
+
+(defn environment
+  "Return an environment map from x."
+  [x]
+  {:pre [(has-environment? x)]}
   (impl/environment x))
 
-(defn pipeline
-  [a b]
-  (with-meta
-    (fn merged-phases [& args] (apply a args) (apply b args))
-    (merge (meta a) (meta b))))         ; TODO merge keys properly
 
-(defmethod merge-key :merge-phases
-  [_ _ val-in-result val-in-latter]
-  (merge-with pipeline val-in-result val-in-latter))
+;;; # Environment Merging
 
-(defmethod merge-key :total-ordering
-  [_ _ val-in-result val-in-latter]
-  (total-order-merge val-in-result val-in-latter))
+;;; Merging environments is implemented via map-merge, which looks up
+;;; the key being merged in a map to determine the algorithm to use.
 
 (def
   ^{:doc
-    "Map associating keys to merge algorithms. Specifies how environments are merged."}
+    "Map specifying how environments are merged.  Associates keys to
+  merge algorithms."}
   merge-key-algorithm
   {:phases :merge-phases
    :user :merge
@@ -68,23 +72,32 @@
    ;; :executors :concat
    })
 
-
-(def ^{:doc "node-specific environment keys"}
-  node-keys [:image :phases])
-
-(def standard-pallet-keys (keys merge-key-algorithm))
-
-(def user-keys-to-shell-expand [:public-key-path :private-key-path])
+;; TODO - is this used? (def standard-pallet-keys (keys merge-key-algorithm))
 
 (defn merge-environments
-  "Returns a map that consists of the rest of the maps `conj`-ed onto
-  the first.  If a key occurs in more than one map, the mapping(s)
-  from the latter (left-to-right) will be combined with the mapping in
-  the result by calling `(merge-key key val-in-result val-in-latter)`."
+  "Returns a map that consists of the rest of the maps merged onto the
+  first.  If a key occurs in more than one map, the mapping(s) from
+  the latter (left-to-right) will be combined with the mapping in the
+  result by calling `(merge-key key val-in-result val-in-latter)`."
   [& maps]
   (apply map-merge/merge-keys merge-key-algorithm maps))
 
-(defmethod map-merge/merge-key :merge-environments
+;;; ## Environment Specific Merge Algorithms
+(defn pipeline
+  [a b]
+  (with-meta
+    (fn merged-phases [& args] (apply a args) (apply b args))
+    (merge (meta a) (meta b))))         ; TODO merge keys properly
+
+(defmethod merge-key :merge-phases
+  [_ _ val-in-result val-in-latter]
+  (merge-with pipeline val-in-result val-in-latter))
+
+(defmethod merge-key :total-ordering
+  [_ _ val-in-result val-in-latter]
+  (total-order-merge val-in-result val-in-latter))
+
+(defmethod merge-key :merge-environments
   [key val-in-result val-in-latter]
   (merge-environments val-in-result val-in-latter))
 
@@ -94,6 +107,11 @@
   (if (or (list? phase) (instance? clojure.lang.Cons phase))
     (eval phase)
     phase))
+
+;;; # Eval of Environment Maps
+
+;;; If an environment is read from a data souce, some of the data should be
+;;; processed.
 
 (defn- eval-phases
   "Evaluate a phase map.  This will attempt to require any namespaces mentioned
@@ -130,6 +148,8 @@
        m))
    user-map keys))
 
+(def user-keys-to-shell-expand [:public-key-path :private-key-path])
+
 (defn eval-environment
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
@@ -158,20 +178,36 @@
                   env-map)]
     env-map))
 
-(defn get-environment
-  "Environment accessor."
-  ([session keys]
-     (get-for session keys))
-  ([session keys default]
-     (get-for session keys default)))
+;;; # Environment in the Plan-State
 
-(defn group-with-environment
-  "Add the environment to a group."
-  [environment group]
-  (merge-environments
-   ;; (maybe-update-in (select-keys environment node-keys)
-   ;;                  [:phases] phases-with-meta {})
-   group
-   ;; (maybe-update-in (-?> environment :groups group)
-   ;;                  [:phases] phases-with-meta {})
-   ))
+;;; The effective environment can be set and read.  This is so
+;;; plan-fn's can access the environment with no knowledge about the
+;;; scope at which they are invoked.
+
+(defn ^:internal merge-environment
+  "Merge an environment into the effective environment.  Returns a modified
+  session."
+  [session environment]
+  (session/update-environment session merge-environments environment))
+
+(defn get-environment
+  "Retrieve the effective environment value at the path specified by keys.
+   When no default value is specified, then raise an `:environment-not-found` if
+   no environment value is set.
+
+       (get-environment session [:p :a :d])"
+  ([session keys]
+     {:pre [(sequential? keys)]}
+     (let [result (get-in (session/environment session) keys ::not-set)]
+       (when (= ::not-set result)
+         (throw
+          (ex-info
+           (format
+            "Could not find keys %s in environment"
+            (if (sequential? keys) (vec keys) keys))
+           {:type :environment-not-found
+            :key-not-set keys
+            :environment (session/environment session)})))
+       result))
+  ([session keys default]
+     (get-in (session/environment session) keys default)))

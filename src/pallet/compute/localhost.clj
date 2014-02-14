@@ -52,7 +52,7 @@ Node removal functions are no-ops."
   (destroy-node [compute node])
   (images [compute])
   (close [compute])
-  pallet.compute.protocols.Environment
+  pallet.environment.protocols.Environment
   (environment [_] environment)
   pallet.compute.protocols.NodeTagReader
   (node-tag [compute node tag-name]

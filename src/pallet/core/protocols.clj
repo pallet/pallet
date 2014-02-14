@@ -31,11 +31,6 @@
        (satisfies? StatusUpdate x)
        (satisfies? DeliverValue x)))
 
-;;; # Environment
-(defprotocol> Environment
-  "A protocol for accessing an environment."
-  (environment [_] "Returns an environment map"))
-
 
 
 ;;; # Helpers for external protocols

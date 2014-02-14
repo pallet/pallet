@@ -346,12 +346,11 @@ Content can also be copied from a blobstore.
          {:install-new-files *install-new-files* ; capture bound values
           :overwrite-changes *force-overwrite*
           :owner user
-          :proxy nil ;; TODO (get-environment [:proxy] nil)
+          :proxy (get-environment session [:proxy] nil)
           :pallet/new-path new-path
           :pallet/md5-path md5-path
           :pallet/copy-path copy-path}
-         :blobstore nil ;; TODO (get-environment [:blobstore] nil)
-         )
+         :blobstore (get-environment session [:blobstore] nil))
         options)))))
 
 (defn with-remote-file
@@ -483,8 +482,8 @@ only specified files or directories, use the :extract-files option.
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
          :owner user
-         :blobstore nil ;; TODO (get-environment [:blobstore] nil)
-         :proxy nil     ;; TODO (get-environment [:proxy] nil)
+         :blobstore (get-environment session [:blobstore] nil)
+         :proxy (get-environment session [:proxy] nil)
          :pallet/new-path new-path
          :pallet/md5-path md5-path
          :pallet/copy-path copy-path}

@@ -207,7 +207,7 @@ support."
 
 
   ;; (close [compute])
-  pallet.core.protocols.Environment
+  pallet.environment.protocols.Environment
   (environment [_] environment)
   pallet.compute.protocols.NodeTagReader
   (node-tag [compute node tag-name]

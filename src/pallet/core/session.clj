@@ -5,7 +5,8 @@ The session is a map with well defined keys:
 
 `:execution-state`
 : a map of values used by the pallet implementation to record values
-  while executing.
+  while executing.  The values are not held in mutable state.  The
+  values are:
 
 - `:executor`
   : an function to execute actions.
@@ -22,12 +23,16 @@ The session is a map with well defined keys:
 - `:compute`
   : the default compute service
 
+- `:environment`
+  : the effective environment
+
 `:plan-state`
-: an implementation of the StateGet and StateUpdate protocols.
+: an implementation of the StateGet and StateUpdate protocols.  The
+  data in the plan-state is mutable in plan functions.
 
 `:system-targets`
 : an atom with a sequence of all known targets.  The sequence will be
-  updated when lift and converge are run.  It can be set explixitly.
+  updated when lift and converge are run.  It can be set explicitly.
 
 `:node`
 : the current target node
@@ -76,7 +81,8 @@ The session is a map with well defined keys:
   {:executor pallet.core.executor.protocols.ActionExecutor
    (optional-key :recorder) pallet.core.recorder.protocols.Record
    (optional-key :action-options) {schema/Keyword schema/Any}
-   (optional-key :user) schema/Any})
+   (optional-key :user) schema/Any
+   (optional-key :environment) schema/Any})
 
 
 ;; (def-schema-alias ExecutionState execution-state)
@@ -117,7 +123,8 @@ The session is a map with well defined keys:
              -> BaseSession])
 (defn create
   "Create a session with the specified components."
-  [{:keys [recorder plan-state executor system-targets action-options user]
+  [{:keys [recorder plan-state executor system-targets action-options user
+           environment]
     :or {system-targets (system-targets-list)}
     :as args}]
   {:pre [(or (nil? plan-state) (plan-state? plan-state))
@@ -127,8 +134,9 @@ The session is a map with well defined keys:
    :post [(validate base-session %)]}
   (merge
    {:type ::session
-    :execution-state (select-keys args
-                                  [:executor :recorder :action-options :user])
+    :execution-state (select-keys
+                      args
+                      [:environment :executor :recorder :action-options :user])
     :system-targets system-targets}
    (if plan-state
      {:plan-state plan-state})))
@@ -253,10 +261,26 @@ The session is a map with well defined keys:
 
 (ann action-options [BaseSession -> HMap])
 (defn action-options
-  "Get the action options"
+  "Get the action options."
   [session]
   (-> session :execution-state :action-options))
 
+(ann environment [BaseSession -> HMap])
+(defn ^:internal environment
+  "Get the environment map."
+  [session]
+  (-> session :execution-state :environment))
+
+(ann set-environment [HMap -> BaseSession])
+(defn ^:internal set-environment
+  "Set the environment map."
+  [session environment]
+  (assoc-in session [:execution-state :environment] environment))
+
+(defn ^:internal update-environment
+  "Update the environment map."
+  [session f args]
+  (apply update-in session [:execution-state :environment] f args))
 
 (def-alias SessionModifier
   (TFn [[t :variance :contravariant]]

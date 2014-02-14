@@ -47,7 +47,7 @@
     (pallet.compute/destroy-node (node/compute-service node) node))
   (images [compute] (mapcat pallet.compute/images (services service-map)))
   (close [compute] (mapcat pallet.compute/close (services service-map)))
-  pallet.core.protocols.Environment
+  pallet.environment.protocols.Environment
   (environment [_]
     (apply merge (conj (map pallet.environment/environment
                                      (vals service-map))

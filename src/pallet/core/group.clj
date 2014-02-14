@@ -42,7 +42,7 @@ TODO: put :system-targets into plan-state?"
             remove-system-targets]]
    [pallet.core.user :as user :refer [obfuscated-passwords]]
    [pallet.crate.os :refer [os]]
-   [pallet.environment :refer [group-with-environment merge-environments]]
+   [pallet.environment :refer [merge-environments]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :as node :refer [group-name node? node-map terminated?]]
    [pallet.thread-expr :refer [when->]]
@@ -371,6 +371,20 @@ specified in the `:extends` argument."
                      Keyword Keyword)
                m assoc :type :pallet.api/group-spec)))))
 
+
+
+(def ^{:doc "node-specific environment keys"}
+  node-keys [:image :phases])
+
+(defn group-with-environment
+  "Add the environment to a group."
+  [environment group]
+  (merge-environments
+   (maybe-update-in (select-keys environment node-keys)
+                    [:phases] phases-with-meta {} default-phase-meta)
+   group
+   (maybe-update-in (get-in environment [:groups group])
+                    [:phases] phases-with-meta {} default-phase-meta)))
 
 
 (ann ^:no-check execute
@@ -959,7 +973,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
                    all-node-set))))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
-  environment-args [:compute :blobstore :user :provider-options])
+  environment-args [:compute :blobstore :provider-options])
 
 (defn group-node-maps
   "Return the nodes for the specified groups."
@@ -1137,8 +1151,7 @@ flag.
         _ (logging/tracef "environment keys %s"
                           (select-keys options environment-args))
         environment (merge-environments
-                     {:user user/*admin-user*}
-                     (pallet.environment/environment compute)
+                     (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
         groups (groups-with-phases groups phase-map)
@@ -1304,7 +1317,6 @@ the admin-user on the nodes.
                           (select-keys options environment-args))
         _ (logging/tracef "options %s" options)
         environment (merge-environments
-                     {:user user/*admin-user*}
                      (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
@@ -1492,7 +1504,6 @@ insufficient.
   (let [[phases phase-map] (process-phases phases)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
-                     {:user user/*admin-user*}
                      environment
                      (select-keys options environment-args))]
     (letfn [(lift-nodes* [operation]

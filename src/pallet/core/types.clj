@@ -11,7 +11,8 @@
    [pallet.core.protocols :refer :all]
    [pallet.core.recorder.protocols :refer :all]
    [pallet.core.plan-state.protocols :refer :all]
-   [pallet.core.system-targets.protocols :refer :all])
+   [pallet.core.system-targets.protocols :refer :all]
+   [pallet.environment.protocols :refer :all])
   (:import
    clojure.lang.IMapEntry
    clojure.lang.PersistentHashSet))
@@ -326,7 +327,7 @@ a priviledged user."
                           :execute-status-fn ExecuteStatusFn})
                    :provider-options (Map Any Any)}))
 
-(ann-protocol pallet.core.protocols/Environment
+(ann-protocol pallet.environment.protocols/Environment
   environment [Environment -> EnvironmentMap])
 
 (def-alias Phase
