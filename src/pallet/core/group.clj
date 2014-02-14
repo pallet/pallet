@@ -386,30 +386,6 @@ specified in the `:extends` argument."
    (maybe-update-in (get-in environment [:groups group])
                     [:phases] phases-with-meta {} default-phase-meta)))
 
-
-(ann ^:no-check execute
-     [BaseSession TargetMap PlanFn -> (ReadOnlyPort PhaseResult)])
-(defn execute
-  "Execute a plan function on a target.
-
-  Ensures that the session target is set, and that the script
-  environment is set up for the target.
-
-  Returns a channel, which will yield a result for plan-fn, a map
-  with `:target`, `:return-value` and `:action-results` keys."
-  [session target plan-fn]
-  (go-logged
-   ;; (let [r (in-memory-recorder)     ; a recorder for just this plan-fn
-   ;;       session (-> session
-   ;;                   (set-target target)
-   ;;                   (set-recorder (juxt-recorder [r (recorder session)])))]
-   ;;   (with-script-for-node target (plan-state session)
-   ;;     (let [rv (plan-fn session)]
-   ;;       {:action-results (results r)
-   ;;        :return-value rv
-   ;;        :target target})))
-   ))
-
 ;;; ## Calculation of node count adjustments
 (def-alias NodeDeltaMap (HMap :mandatory {:actual AnyInteger
                                           :target AnyInteger
@@ -639,31 +615,6 @@ specified in the `:extends` argument."
        (apply total-order-merge)))
 
 ;; ;;; # Execution helpers
-;; (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
-;;                        -> (Seqable (ReadOnlyPort PlanResult))])
-;; (defn execute-plan-fns
-;;   "Apply plan functions to targets.  Returns a sequence of channels that
-;;   will yield phase result maps."
-;;   [session targets plan-fns]
-;;   (for> :- (ReadOnlyPort PlanResult)
-;;         [target :- TargetMap targets
-;;          plan :- PlanFn plan-fns]
-;;     (phase/execute-phase session target plan)))
-
-
-;; (ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
-;;                        -> (Seqable (ReadOnlyPort PlanResult))])
-;; (defn execute-phases
-;;   "Execute the specified `phases` on `targets`."
-;;   [session targets phases]
-;;   (go-logged
-;;    (loop> [phases :- Phase phases]
-;;      (if-let [p (first phases)]
-;;        (if (action-errors? (phase/execute-phase session targets p))
-;;          (results (recorder session))
-;;          (recur (rest phases)))
-;;        (results (recorder session))))))
-
 
 (defn execute-target-phase
   "Using the session, execute phase on target."
@@ -801,33 +752,6 @@ specified in the `:extends` argument."
                        :execptions exceptions}
                       (first exceptions))))
     results))
-
-
-
-;;; TODO add converge and lift here
-
-;;; ## Execution modifiers
-(defn apply-target
-  "Apply a plan-fn to a target.
-
-  Examines the metadata on plan-fn to see if it is has a
-  :phase-execution-f, in which case it is called.  Otherwise it calls
-  `execute`."
-  [session target plan-fn]
-  (let [{:keys [phase-execution-f]} (meta plan-fn)]
-    ((or phase-execution-f execute) session target plan-fn)))
-
-(defn guard-execute
-  [session target plan-fn]
-  (let [{:keys [guard-fn]} (meta plan-fn)]
-    (if (or (nil? guard-fn) (guard-fn session target))
-      (execute session target plan-fn))))
-
-;; (defn execute-phase
-;;   "Execute the specified phase on target.
-;;   Return a channel for the result."
-;;   [target phase]
-;;   (execute target (target-phase-fn target phase)))
 
 
 ;;; Node count adjuster
@@ -1025,97 +949,6 @@ flag.
     (let [c (chan)]
       (node-count-adjuster session compute groups targets c)
       (<! c))))
-
-
-;; (defn ^:internal partition-targets
-;;   "Partition targets using the, possibly nil, default partitioning function f.
-
-;; There are three sources of partitioning applied.  The default passed to the
-;; function, a partioning based on the partitioning and post-phase functions in
-;; the target's metadata, and the target's partitioning function from the metadata.
-
-;; The partitioning by metadata is applied so that post-phase functions are applied
-;; to the correct targets in lift."
-;;   [targets phase f]
-;;   (let [fns (comp
-;;              (juxt :partition-f :post-phase-f :post-phase-fsm)
-;;              meta #(phase/target-phase % phase))]
-;;     (->>
-;;      targets
-;;      (clojure.core/partition-by fns)
-;;      (mapcat
-;;       #(let [[pf & _] (fns (first %))]
-;;          (if pf
-;;            (pf %)
-;;            [%]))))))
-
-;; (defn lift-partitions
-;;   "Lift targets by phase, applying partitions for each phase.
-
-;; To apply phases at finer than a group granularity (so for example, a
-;; `:post-phase-f` function is applied to nodes rather than a whole group), we can
-;; use partitioning.
-
-;; The partitioning function takes a sequence of targets, and returns a sequence of
-;; sequences of targets.  The function can filter targets as required.
-
-;; For example, this can be used to implement a rolling restart, or a blue/green
-;; deploy.
-
-;; ## Options
-
-;; Options are as for `lift`, with the addition of:
-
-;; `:partition-f`
-;; : a function that takes a sequence of targets, and returns a sequence of
-;;   sequences of targets.  Used to partition or filter the targets.  Defaults to
-;;   any :partition metadata on the phase, or no partitioning otherwise.
-
-;; Other options as taken by `lift`."
-;;   [operation service-state plan-state environment phases
-;;    {:keys [targets partition-f]
-;;     :or {targets service-state}
-;;     :as options}]
-;;   {:pre [(:user environment)]}
-;;   (logging/debugf
-;;    "lift-partitions :phases %s :targets %s"
-;;    (vec phases) (vec (map :group-name targets)))
-;;   (let [[outer-results plan-state]
-;;         (reduce
-;;          (fn phase-reducer [[acc-results plan-state] phase]
-;;            (let [[lift-results plan-state]
-;;                  (reduce
-;;                   (fn target-reducer [[r plan-state] targets]
-;;                     (let
-;;                         [{:keys [results plan-state]}
-;;                          (lift-op
-;;                           operation
-;;                           service-state plan-state environment [phase]
-;;                           (assoc options :targets targets))]
-;;                       (do
-;;                         (logging/tracef "back from lift")
-;;                         (logging/tracef
-;;                          "lift-partitions (count r) %s (count results) %s"
-;;                          (count r) (count results))
-;;                         [(concat r results) plan-state])))
-;;                   [acc-results plan-state]
-;;                   (let [fns (comp
-;;                              (juxt :partition-f :post-phase-f :post-phase-fsm
-;;                                    :phase-execution-f)
-;;                              meta #(phase/target-phase % phase))]
-;;                     (partition-targets targets phase partition-f)))]
-;;              (do
-;;                (logging/tracef "back from phase loop")
-;;                (logging/tracef "(count lift-results) %s" (count lift-results))
-;;                [lift-results plan-state])))
-;;          [[] plan-state]
-;;          phases)]
-;;     (do
-;;       (logging/tracef "back from partitions")
-;;       (logging/tracef "(count outer-results) %s" (count outer-results))
-;;       {:results outer-results
-;;        :targets targets
-;;        :plan-state plan-state})))
 
 (defn converge*
   "Converge the existing compute resources with the counts
