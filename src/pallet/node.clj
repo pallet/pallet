@@ -4,7 +4,7 @@
   (:require
    [clojure.core.typed :refer [ann AnyInteger Map Nilable]]
    [pallet.core.types ;; before any protocols
-    :refer [GroupName Hardware Keyword Proxy User]]
+    :refer [Hardware Keyword Proxy User]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.logging :refer [trace]]
    [pallet.compute.protocols :as impl :refer [Node ComputeService]]))
@@ -33,12 +33,6 @@
   "64 Bit OS predicate"
   [node]
   (impl/is-64bit? node))
-
-(ann group-name [Node -> GroupName])
-(defn group-name
-  "Returns the group name for the node."
-  [node]
-  (impl/group-name node))
 
 (ann hostname [Node -> String])
 (defn hostname
@@ -116,10 +110,6 @@ keys may be present."
   [obj]
   (satisfies? Node obj))
 
-(ann node-in-group? [GroupName Node -> boolean])
-(defn node-in-group? [grp-name node]
-  (= (name grp-name) (group-name node)))
-
 (ann node-address [Node -> (Nilable String)])
 (defn node-address
   [node]
@@ -155,13 +145,18 @@ keys may be present."
   [node]
   (impl/node-taggable? (compute-service node) node))
 
+(ann has-base-name? [Node String -> Boolean])
+(defn has-base-name?
+  "Predicate for the node name matching the specified base-name"
+  [node base-name]
+  (impl/has-base-name? node base-name))
+
 (ann node-map [Node -> (U
                         (HMap :mandatory {:proxy Proxy
                                           :ssh-port AnyInteger
                                           :primary-ip String
                                           :private-ip (Nilable String)
                                           :is-64bit? boolean
-                                          :group-name String
                                           :hostname String
                                           ;; :os-family Keyword
                                           ;; :os-version String
@@ -179,7 +174,6 @@ keys may be present."
      :primary-ip (primary-ip node)
      :private-ip (private-ip node)
      :is-64bit? (is-64bit? node)
-     :group-name (name (group-name node))
      :hostname (hostname node)
      ;; :os-family (os-family node)
      ;; :os-version (os-version node)

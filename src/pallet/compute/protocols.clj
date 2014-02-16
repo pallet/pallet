@@ -10,7 +10,6 @@
   (primary-ip [node] "Returns the first public IP for the node.")
   (private-ip [node] "Returns the first private IP for the node.")
   (is-64bit? [node] "64 Bit OS predicate")
-  (group-name [node] "Returns the group name for the node.")
   (hostname [node] "TODO make this work on ec2")
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
@@ -109,10 +108,15 @@
     "Return a map of service details.  Contains a :provider key at a minimum.
     May contain current credentials."))
 
+(defprotocol> ComputeServiceNodeBaseName
+  "Nodes names are made unique by the compute service, given a base name."
+  (matches-base-name? [compute node-name base-name]
+    "Predicate to test if the node-name has the given base-name."))
+
 (defprotocol> NodeTagReader
   "Provides a SPI for tagging nodes with values."
   (node-tag [compute node tag-name] [compute node tag-name default-value]
-            "Return the specified tag on the node.")
+    "Return the specified tag on the node.")
   (node-tags [compute node]
     "Return the tags on the node."))
 
@@ -122,3 +126,8 @@
     "Set a value on the given tag-name on the node.")
   (node-taggable? [compute node]
     "Predicate to test the availability of tags on a node."))
+
+(defprotocol> NodeBaseName
+  "Nodes names are made unique by the compute service, given a base name."
+  (has-base-name? [node base-name]
+    "Predicate for a node having the specified base name."))

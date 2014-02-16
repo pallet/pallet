@@ -26,6 +26,11 @@ The session is a map with well defined keys:
 - `:environment`
   : the effective environment
 
+- `:extension`
+  : an extension map for abstractions build on pallet core, and
+  requiring execution state.  Un-namespaced keywords as keys are
+  reserved for pallet's own abstractions.
+
 `:plan-state`
 : an implementation of the StateGet and StateUpdate protocols.  The
   data in the plan-state is mutable in plan functions.
@@ -82,8 +87,8 @@ The session is a map with well defined keys:
    (optional-key :recorder) pallet.core.recorder.protocols.Record
    (optional-key :action-options) {schema/Keyword schema/Any}
    (optional-key :user) schema/Any
-   (optional-key :environment) schema/Any})
-
+   (optional-key :environment) schema/Any
+   (optional-key :extension) {schema/Keyword schema/Any}})
 
 ;; (def-schema-alias ExecutionState execution-state)
 ;; (def-validator validate-execution-state ExecutionState execution-state)
@@ -281,6 +286,19 @@ The session is a map with well defined keys:
   "Update the environment map."
   [session f args]
   (apply update-in session [:execution-state :environment] f args))
+
+
+(defn ^:internal extension
+  "Get the extension data for the specified keyword."
+  [session extension-kw]
+  (get-in session [:execution-state :extension extension-kw]))
+
+(defn ^:internal update-extension
+  "Update the extension."
+  [session extension-kw f args]
+  (apply update-in session [:execution-state :extension extension-kw] f args))
+
+
 
 (def-alias SessionModifier
   (TFn [[t :variance :contravariant]]

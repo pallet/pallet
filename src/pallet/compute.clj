@@ -7,6 +7,7 @@
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
             Seq]]
    [clojure.tools.macro :refer [name-with-attributes]]
+   [pallet.contracts :refer [check-node-spec]]
    [pallet.core.types                   ; before any protocols
     :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
             User]]
@@ -171,6 +172,12 @@ Provider specific options may also be passed."
   ([compute nodes tags ch]
      (impl/tag-nodes compute nodes tags ch)))
 
+(defn matches-base-name?
+  "Resume the nodes running in the compute service."
+  {::protocol impl/ComputeServiceNodeBaseName}
+  [compute node-name base-name]
+  (impl/matches-base-name? compute node-name base-name))
+
 (ann close [ComputeService -> nil])
 (defn close
   "Close the compute service, releasing any acquired resources."
@@ -184,6 +191,38 @@ Provider specific options may also be passed."
   May contain current credentials."
   [compute]
   (impl/service-properties compute))
+
+;;; # Node spec
+(def ^{:doc "Vector of keywords recognised by node-spec"
+       :private true}
+  node-spec-keys [:image :hardware :location :network])
+
+(defn node-spec
+  "Create a node-spec.
+
+   Defines the compute image and hardware selector template.
+
+   This is used to filter a cloud provider's image and hardware list to select
+   an image and hardware for nodes created for this node-spec.
+
+   :image     a map describing a predicate for matching an image:
+              os-family os-name-matches os-version-matches
+              os-description-matches os-64-bit
+              image-version-matches image-name-matches
+              image-description-matches image-id
+
+   :location  a map describing a predicate for matching location:
+              location-id
+   :hardware  a map describing a predicate for matching hardware:
+              min-cores min-ram smallest fastest biggest architecture
+              hardware-id
+   :network   a map for network connectivity options:
+              inbound-ports
+   :qos       a map for quality of service options:
+              spot-price enable-monitoring"
+  [& {:keys [image hardware location network qos] :as options}]
+  {:pre [(or (nil? image) (map? image))]}
+  (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
 
 ;;; Hierarchies
 

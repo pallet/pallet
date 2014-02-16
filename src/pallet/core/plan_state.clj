@@ -1,5 +1,6 @@
 (ns pallet.core.plan-state
-  "Functions to manipulate the plan-state map. The plan-state represents all the
+  "Functions to manipulate the plan-state map. The plan-state is for
+storage of user data.  It used, for example, to represent all the
 cumulative settings information on the nodes in an operation.
 
 The identifiers are globally unique, so a key can not exist in more
@@ -9,9 +10,6 @@ and does not need to consider a host, group tuple.
 
 - host
 - group
-
-
-TODO: add a plan-state? predicate
 "
   (:require
    [clojure.core.typed

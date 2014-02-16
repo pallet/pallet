@@ -38,16 +38,21 @@ TODO: put :system-targets into plan-state?"
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.session :as session
-    :refer [admin-user add-system-targets plan-state recorder
-            remove-system-targets]]
+    :refer [admin-user add-system-targets extension plan-state recorder
+            remove-system-targets update-extension]]
    [pallet.core.user :as user :refer [obfuscated-passwords]]
    [pallet.crate.os :refer [os]]
    [pallet.environment :refer [merge-environments]]
    [pallet.map-merge :refer [merge-keys]]
-   [pallet.node :as node :refer [group-name node? node-map terminated?]]
+   [pallet.node :as node :refer [node? node-map terminated?]]
    [pallet.thread-expr :refer [when->]]
    [pallet.utils
     :refer [combine-exceptions maybe-update-in total-order-merge]]))
+
+;;; # Domain Model
+
+;;; ## Spec Merges
+;;; When extending specs, we need to merge spec defintions.
 
 (def-alias KeyAlgorithms (Map Keyword Keyword))
 (ann ^:no-check pallet.map-merge/merge-keys
@@ -70,43 +75,22 @@ TODO: put :system-targets into plan-state?"
   [algorithms a b]
   (merge-keys algorithms a b))
 
-;;; #### Phase Extension
+(defn extend-specs
+  "Merge in the inherited specs"
+  ([spec inherits algorithms]
+     (if inherits
+       (merge-specs
+        algorithms
+        (if (map? inherits)
+          inherits
+          (reduce #(merge-specs algorithms %1 %2) {} inherits))
+        spec)
+       spec))
+  ([spec inherits]
+     (extend-specs spec inherits merge-spec-algorithm)))
 
-;;; ## Domain Model
-
-;;; ### Node Spec
-(def ^{:doc "Vector of keywords recognised by node-spec"
-       :private true}
-  node-spec-keys [:image :hardware :location :network])
-
-(defn node-spec
-  "Create a node-spec.
-
-   Defines the compute image and hardware selector template.
-
-   This is used to filter a cloud provider's image and hardware list to select
-   an image and hardware for nodes created for this node-spec.
-
-   :image     a map describing a predicate for matching an image:
-              os-family os-name-matches os-version-matches
-              os-description-matches os-64-bit
-              image-version-matches image-name-matches
-              image-description-matches image-id
-
-   :location  a map describing a predicate for matching location:
-              location-id
-   :hardware  a map describing a predicate for matching hardware:
-              min-cores min-ram smallest fastest biggest architecture
-              hardware-id
-   :network   a map for network connectivity options:
-              inbound-ports
-   :qos       a map for quality of service options:
-              spot-price enable-monitoring"
-  [& {:keys [image hardware location network qos] :as options}]
-  {:pre [(or (nil? image) (map? image))]}
-  (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
-
-
+;;; ## Phase Metadata
+;;; Metadata for some phases defined by server-specs
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
   {:middleware (-> api/execute
@@ -126,23 +110,7 @@ only not flagged with a :bootstrapped keyword."}
                             middleware/image-user-middleware
                             (middleware/execute-one-shot-flag :bootstrapped))}})
 
-;;; ### Server Spec
-
-(defn extend-specs
-  "Merge in the inherited specs"
-  ([spec inherits algorithms]
-     (if inherits
-       (merge-specs
-        algorithms
-        (if (map? inherits)
-          inherits
-          (reduce #(merge-specs algorithms %1 %2) {} inherits))
-        spec)
-       spec))
-  ([spec inherits]
-     (extend-specs spec inherits merge-spec-algorithm)))
-
-;;; #### Server-spec
+;;; ## Server-spec
 
 (defn server-spec
   "Create a server-spec.
@@ -221,6 +189,7 @@ specified in the `:extends` argument."
       (assoc :group-name group-name)
       (vary-meta assoc :type ::group-spec)))))
 
+;;; ## Cluster Spec
 (defn expand-cluster-groups
   "Expand a node-set into its groups"
   [node-set]
@@ -300,14 +269,57 @@ specified in the `:extends` argument."
      (vary-meta assoc :type ::cluster-spec))))
 
 
-(ann node-has-group-name? [GroupName -> [Node -> boolean]])
+;;; # Group Extension in Session
+
+;;; In order to lookup group data given just a node, we write the
+;;; target maps to the groups extension in the session.
+(def ^{:doc "Keyword for the groups extension"
+       :private true}
+  groups-extension :groups)
+
+(defn ^:internal record-target
+  "Record the target-map in the session :groups extension."
+  [session target-map]
+  {:pre [(node? (:node target-map))]}
+  (update-extension session groups-extension (fnil conj []) target-map))
+
+(defn session-targets
+  "Return the sequence of target-maps for the current operation.  The
+  targets are recorded in the session groups extension."
+  [session]
+  (extension session groups-extension))
+
+(defn session-target
+  "Return the target-map for the node.  The targets are recorded in
+  the session groups extension."
+  [session node]
+  (first (filter #(= (node/id node) (node/id (:node %))) (session-targets))))
+
+;; (defn target-group-name
+;;   "Return the group name for node, as recorded in the session-targets."
+;;   [session node]
+;;   (:group-name (session-target session node)))
+
+
+;;; # Group Name Functions
+
+;;; We tag nodes with the group-name if possible, else fall back on
+;;; relying on the encoding of the group name into the node name.
+
+(def group-name-tag
+  "The name of the tag used to record the group name on the node."
+  "/pallet/group-name")
+
+(ann node-has-group-name? [Node GroupName -> boolean])
 (defn node-has-group-name?
-  "Returns a predicate to check if a node has the specified group name."
-  {:internal true}
-  [group-name]
-  (fn> has-group-name? [node :- Node]
-    (when-let [node-group (node/group-name node)]
-      (= group-name node-group))))
+  "Return a predicate to check if a node has the specified group name.
+  If the node is taggable, we check the group-name-tag, otherwise we
+  fall back onto checking the whether the node's base-name matches the
+  group name."
+  [node group-name]
+  (if (node/taggable? node)
+    (= group-name (node/tag node group-name-tag))
+    (node/has-base-name? node group-name)))
 
 (ann node-in-group? [Node GroupSpec -> boolean])
 (defn node-in-group?
@@ -315,33 +327,33 @@ specified in the `:extends` argument."
   {:internal true}
   [node group]
   {:pre [(check-group-spec group)]}
-  ((:node-filter group (node-has-group-name? (:group-name group)))
+  ((:node-filter group #(node-has-group-name? % (name (:group-name group))))
    node))
 
+;;; # Map Nodes to Groups Based on Group's Node-Filter
 ;; TODO remove :no-check
-(ann ^:no-check node->node-map [(Nilable (NonEmptySeqable GroupSpec))
-                                -> [Node -> IncompleteGroupTargetMap]])
+(ann ^:no-check node->node-map [(Nilable (NonEmptySeqable GroupSpec)) Node
+                                 -> IncompleteGroupTargetMap])
 (defn node->node-map
   "Build a map entry from a node and a list of groups."
   {:internal true}
-  [groups]
-  (fn> [node :- Node]
-    (when-let [groups (seq (->>
-                            groups
-                            (filter (fn> [group :- GroupSpec]
-                                      (check-group-spec group)
-                                      (node-in-group? node group)))
-                            (map (fn> [group :- GroupSpec]
-                                   (check-group-spec group)
-                                   (assoc-in
-                                    group [:group-names]
-                                    (set [(:group-name group)]))))))]
-      (let [group
-            (reduce
-             (fn> [target :- GroupSpec group :- GroupSpec]
-               (merge-specs merge-spec-algorithm target group))
-             groups)]
-        (assoc group :node node)))))
+  [groups node]
+  (when-let [groups (seq (->>
+                          groups
+                          (filter (fn> [group :- GroupSpec]
+                                    (check-group-spec group)
+                                    (node-in-group? node group)))
+                          (map (fn> [group :- GroupSpec]
+                                 (check-group-spec group)
+                                 (assoc-in
+                                  group [:group-names]
+                                  (set [(:group-name group)]))))))]
+    (let [group
+          (reduce
+           (fn> [target :- GroupSpec group :- GroupSpec]
+             (merge-specs merge-spec-algorithm target group))
+           groups)]
+      (assoc group :node node))))
 
 (ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
                     -> IncompleteGroupTargetMapSeq])
@@ -353,24 +365,25 @@ specified in the `:extends` argument."
   {:pre [(every? #(check-group-spec %) groups)]}
   (let [nodes (remove terminated? (nodes compute-service))
         _ (tracef "service-state %s" (vec nodes))
-        targets (seq (remove nil? (map (node->node-map groups) nodes)))]
+        targets (seq (remove nil? (map #(node->node-map groups %) nodes)))]
     targets))
 
-(ann ^:no-check service-groups [ComputeService -> (Seqable GroupSpec)])
-(defn service-groups
-  "Query the available nodes in a `compute-service`, returning a group-spec
-  for each group found."
-  [compute-service]
-  (->> (nodes compute-service)
-       (remove terminated?)
-       (map group-name)
-       (map (fn> [gn :- GroupName] {:group-name gn}))
-       (map (fn> [m :- (HMap :mandatory {:group-name GroupName})]
-              ((inst vary-meta
-                     (HMap :mandatory {:group-name GroupName})
-                     Keyword Keyword)
-               m assoc :type :pallet.api/group-spec)))))
+;; (ann ^:no-check service-groups [ComputeService -> (Seqable GroupSpec)])
+;; (defn service-groups
+;;   "Query the available nodes in a `compute-service`, returning a group-spec
+;;   for each group found."
+;;   [compute-service]
+;;   (->> (nodes compute-service)
+;;        (remove terminated?)
+;;        (map group-name)
+;;        (map (fn> [gn :- GroupName] {:group-name gn}))
+;;        (map (fn> [m :- (HMap :mandatory {:group-name GroupName})]
+;;               ((inst vary-meta
+;;                      (HMap :mandatory {:group-name GroupName})
+;;                      Keyword Keyword)
+;;                m assoc :type :pallet.api/group-spec)))))
 
+;;; # Operations
 
 
 (def ^{:doc "node-specific environment keys"}
@@ -1008,6 +1021,7 @@ flag.
                       :user user/*admin-user*})
             nodes-set (all-group-nodes compute groups all-node-set)
             nodes-set (concat nodes-set targets)
+            session (reduce record-target session nodes-set)
             _ (when-not (or compute (seq nodes-set))
                 (throw (ex-info
                         "No source of nodes"
@@ -1016,16 +1030,15 @@ flag.
             _ (converge-op
                session compute groups nodes-set phases lift-options c)
             [converge-result e] (<! c)]
-        (debugf "running nodes-set %s" (vec nodes-set))
         (if e
           [converge-result e]
-          (do
+          (let [nodes-set (concat (:new-targets converge-result) nodes-set)
+                session (reduce record-target session nodes-set)
+                phases (concat (when os-detect [:pallet/os-bs :pallet/os])
+                               [:settings :bootstrap] phases)]
+            (debugf "running nodes-set %s" (vec nodes-set))
             (debugf "running phases %s" phases)
-            (async-lift-op session
-                           (concat (when os-detect [:pallet/os-bs :pallet/os])
-                                   [:settings :bootstrap] phases)
-                           (concat (:new-targets converge-result) nodes-set)
-                           lift-options c)
+            (async-lift-op session phases nodes-set lift-options c)
             (let [[result e] (<! c)]
               [(-> converge-result
                    (update-in [:results] concat result))
@@ -1176,6 +1189,8 @@ the admin-user on the nodes.
                       :user user/*admin-user*})
             nodes-set (all-group-nodes compute groups all-node-set)
             nodes-set (concat nodes-set targets)
+            session (reduce record-target session nodes-set)
+            ;; TODO put nodes-set target maps into :extensions
             _ (when-not (or compute (seq nodes-set))
                 (throw (ex-info "No source of nodes"
                                 {:error :no-nodes-and-no-compute-service})))
