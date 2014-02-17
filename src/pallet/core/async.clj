@@ -11,22 +11,6 @@
    [pallet.async :refer [go-logged map-async timeout-chan]]
    [pallet.utils :refer [deep-merge]]))
 
-;; Not sure this is worth having as a wrapper
-;; (ann ^:no-check go-execute
-;;      [BaseSession TargetMap PlanFn -> (ReadOnlyPort PlanResult)])
-;; (defn go-execute
-;;   "Execute a plan function on a target asynchronously.
-
-;;   Ensures that the session target is set, and that the script
-;;   environment is set up for the target.
-
-;;   Returns a channel, which will yield a result for plan-fn, a map
-;;   with `:target`, `:return-value` and `:action-results` keys."
-;;   [session target plan-fn]
-;;   {:pre [(map? session)(map? target)(:node target)(fn? plan-fn)]}
-;;   (go-logged
-;;    (execute session target plan-fn)))
-
 (ann ^:no-check action-errors?
   [(Seqable (ReadOnlyPort ActionResult)) -> (Nilable PlanResult)])
 (defn action-errors?

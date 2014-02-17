@@ -279,6 +279,19 @@ specified in the `:extends` argument."
      (vary-meta assoc :type ::cluster-spec))))
 
 
+;;; # Plan-state scopes
+(ann target-scopes [TargetMap -> ScopeMap])
+(defn target-scopes
+  [target]
+  (merge {:group (:group-name target)
+          :universe true}
+         (if-let [node (:node target)]
+           {:host (node/id node)
+            :service (node/compute-service node)
+            :provider (:provider
+                       (compute/service-properties
+                        (node/compute-service node)))})))
+
 ;;; # Group Extension in Session
 
 ;;; In order to lookup group data given just a node, we write the
@@ -299,6 +312,14 @@ specified in the `:extends` argument."
   targets are recorded in the session groups extension."
   [session]
   (extension session groups-extension))
+
+
+;; (ann group-name [Session -> GroupName])
+;; (defn group-name
+;;   "Group name of the target-node."
+;;   [session]
+;;   {:pre [(target-session? session)]}
+;;   (-> session :target :group-name))
 
 ;; (defn target
 ;;   "Return the target-map for the node.  The targets are recorded in

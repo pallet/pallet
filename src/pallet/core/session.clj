@@ -44,9 +44,8 @@ The session is a map with well defined keys:
             Atom1 Map Nilable NilableNonEmptySeq NonEmptySeqable Seqable]]
    [pallet.core.types ;; before anything that uses the protocols this annotates
     :refer [assert-type-predicate
-            ActionOptions BaseSession Executor ExecuteStatusFn GroupName
-            GroupSpec Keyword PlanState Recorder ScopeMap TargetMapSeq
-            Session TargetMap User]]
+            ActionOptions BaseSession Executor ExecuteStatusFn Keyword PlanState
+            Recorder ScopeMap Session User]]
    [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.compute.protocols :refer [Node]]
    [pallet.context :refer [with-context]]
@@ -309,12 +308,6 @@ The session is a map with well defined keys:
   {:post [(recorder? (pallet.core.session/recorder %))]}
   (assoc-in session [:execution-state :recorder] recorder))
 
-;; (ann set-target [BaseSession TargetMap -> Session])
-;; (defn set-target
-;;   "Return a session with `:target` as the current target."
-;;   [session target]
-;;   (assoc session :target target))
-
 (ann set-node [BaseSession Node -> Session])
 (defn set-node
   "Return a session with `:target` as the current target."
@@ -347,17 +340,6 @@ The session is a map with well defined keys:
   potentially unsafe ID"
   [^String unsafe-id]
   (utils/base64-md5 unsafe-id))
-
-;; (defn phase
-;;   "Current phase"
-;;   [session]
-;;   (:phase session))
-
-;; (ann target [Session -> TargetMap])
-;; (defn target
-;;   "Target server."
-;;   [session]
-;;   (-> session :target))
 
 (ann target-node [Session -> Node])
 (defn target-node
@@ -419,25 +401,6 @@ The session is a map with well defined keys:
   {:pre [(target-session? session)]}
   (:os-version (os-map session)))
 
-(ann group-name [Session -> GroupName])
-(defn group-name
-  "Group name of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (-> session :target :group-name))
-
-(comment
-   (defn safe-name
-     "Safe name for target machine.
-   Some providers don't allow for node names, only node ids, and there is
-   no guarantee on the id format."
-     [session]
-     [(format
-       "%s%s"
-       (name (group-name session)) (safe-id (name (target-id session))))
-      session])
-   )
-
 (ann packager [Session -> Keyword])
 (defn packager
   []
@@ -448,20 +411,6 @@ The session is a map with well defined keys:
   ;; TODO fix
   :apt
   )
-
-
-;; TODO mv this to the group abstraction
-(ann target-scopes [TargetMap -> ScopeMap])
-(defn target-scopes
-  [target]
-  (merge {:group (:group-name target)
-          :universe true}
-         (if-let [node (:node target)]
-           {:host (node/id node)
-            :service (node/compute-service node)
-            :provider (:provider
-                       (compute/service-properties
-                        (node/compute-service node)))})))
 
 (ann admin-user [Session -> User])
 (defn admin-user

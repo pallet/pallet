@@ -13,11 +13,8 @@ functions with more defaults, etc."
    [pallet.core.types                   ; before any protocols
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult BaseSession EnvironmentMap
-            ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
-            IncompleteGroupTargetMapSeq Keyword Phase PlanResult PhaseTarget
-            PlanFn
-            PlanState Result TargetMapSeq Session TargetMap TargetPlanResult
-            User]]
+            ErrorMap ExecSettings ExecSettingsFn Keyword Phase PlanResult
+            PlanFn PlanState Result Session User]]
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]

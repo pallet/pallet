@@ -28,7 +28,7 @@ level?"
     {}
     (assert-type-predicate (read-string s) keyword-map?)))
 
-(ann set-state-for-node [String TargetMap -> nil])
+(ann set-state-for-node [String Node -> nil])
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `target`."
   [state-name node]
