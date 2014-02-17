@@ -68,9 +68,12 @@ Phase maps enable composition of operations across heterogenous nodes."
 (defn execute-phase
   "Apply phase to target.
   Phase is either a keyword, or a vector of keyword and phase arguments."
-  [session node phases-map phase]
-  (if-let [plan-fn (target-phase phases-map phase)]
-    (middleware/execute session node plan-fn)))
+  ([session node phases-map phase execute-f]
+     (let [plan-fn (target-phase phases-map phase)]
+       (middleware/execute session node plan-fn execute-f)))
+  ([session node phases-map phase]
+     (let [plan-fn (target-phase phases-map phase)]
+       (middleware/execute session node plan-fn))))
 
 
 ;; (ann execute-plan-fns [BaseSession TargetMapSeq Phase

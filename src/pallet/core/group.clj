@@ -38,8 +38,8 @@ TODO: put :system-targets into plan-state?"
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.session :as session
-    :refer [admin-user add-system-targets extension plan-state recorder
-            remove-system-targets update-extension]]
+    :refer [admin-user add-system-targets base-session? extension plan-state
+            recorder remove-system-targets target-session? update-extension]]
    [pallet.core.user :as user :refer [obfuscated-passwords]]
    [pallet.crate.os :refer [os]]
    [pallet.environment :refer [merge-environments]]
@@ -89,24 +89,34 @@ TODO: put :system-targets into plan-state?"
   ([spec inherits]
      (extend-specs spec inherits merge-spec-algorithm)))
 
+;;; ### Execution Wrapper
+
+(defn execute
+  "Execute a plan function"
+  [session node plan-fn]
+  (if node
+    (api/execute session node plan-fn)
+    (if plan-fn
+      (plan-fn session))))
+
 ;;; ## Phase Metadata
 ;;; Metadata for some phases defined by server-specs
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
-  {:middleware (-> api/execute
+  {:middleware (-> execute
                    middleware/image-user-middleware
                    (middleware/execute-on-unflagged :bootstrapped))})
 
 (def ^{:doc "Executes on bootstrapped nodes, with admin user credentials."}
   bootstrapped-meta
-  {:middleware (-> api/execute
+  {:middleware (-> execute
                    (middleware/execute-on-flagged :bootstrapped))})
 
 (def ^{:doc "The bootstrap phase is executed with the image credentials, and
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
   {:bootstrap {:middleware (->
-                            api/execute
+                            execute
                             middleware/image-user-middleware
                             (middleware/execute-one-shot-flag :bootstrapped))}})
 
@@ -540,6 +550,7 @@ specified in the `:extends` argument."
 (defn add-group-nodes
   "Create `count` nodes for a `group`."
   [session compute-service group count ch]
+  {:pre [(base-session? session)]}
   (debugf "add-group-nodes %s %s" group count)
   (go-tuple ch
     (debugf "add-group-nodes in go-tuple")
@@ -554,12 +565,12 @@ specified in the `:extends` argument."
              c)
           _ (debugf "add-group-nodes dispatched")
           [targets e] (<! c)
-          _ (debugf "add-group-nodes %s %s" targets e)
+          _ (debugf "add-group-nodes %s %s" (vec targets) e)
           targets ((inst map TargetMap Node)
                    (fn> [node :- Node] (assoc group :node node))
                    targets)]
       ;; (add-system-targets session targets)
-      (debugf "add-group-nodes %s %s" targets e)
+      (debugf "add-group-nodes %s %s" (vec targets) e)
       [targets e])))
 
 (ann remove-nodes [Session ComputeService GroupSpec GroupNodesForRemoval
@@ -586,6 +597,7 @@ specified in the `:extends` argument."
 (defn create-group-nodes
   "Create nodes for groups."
   [session compute-service group-counts ch]
+  {:pre [(base-session? session)]}
   (debugf "create-group-nodes %s %s" compute-service (vec group-counts))
   (go-tuple ch
     ;; We use a buffered channel so as not blocked when we read the
@@ -615,7 +627,7 @@ specified in the `:extends` argument."
              res []
              exceptions []]
         (if-let [[r e] (and (pos? n) (<! c))]
-          (recur (dec n) (conj res r) (if e (conj exceptions e) exceptions))
+          (recur (dec n) (concat res r) (if e (conj exceptions e) exceptions))
           [res (combine-exceptions exceptions)])))))
 
 (ann default-phases [TargetMapSeq -> (Seqable Keword)])
@@ -633,7 +645,8 @@ specified in the `:extends` argument."
   "Using the session, execute phase on target."
   [session phase {:keys [node phases target-type] :as target}]
   {:pre [(or node (= target-type :group))]}
-  (phase/execute-phase session node phases phase))
+  (merge (phase/execute-phase session node phases phase execute)
+         (select-keys target [target-type])))
 
 (defn lift-phase
   "Execute phase on all targets, returning a sequence of channels."
@@ -644,6 +657,7 @@ specified in the `:extends` argument."
   "Execute phase on all targets, using phase middleware.  Return a channel
   with the results."
   [session phase targets]
+  (debugf "lift-phase-with-middleware %s on %s targets" phase (count targets))
   (let [mw-targets (group-by (comp :phase-middleware meta) targets)
         c (chan)]
     (->
@@ -775,13 +789,15 @@ targets; the :old-node-ids a sequence of removed node-ids,
 and :results a sequence of phase results from
 the :destroy-server, :destroy-group, and :create-group phases."
   [session compute-service groups targets ch]
-  {:pre [compute-service
+  {:pre [(base-session? session)
+         compute-service
          (every? :count groups)
          (every? (some-fn :node :group) targets)]}
   (go-tuple ch
     (let [group-deltas (group-deltas targets groups)
           nodes-to-remove (nodes-to-remove targets group-deltas)
           nodes-to-add (nodes-to-add group-deltas)
+          targets-map (reduce #(assoc %1 (node/id (:node %2)) %2) {} targets)
           fail (fn fail [msg errs]
                  (ex-info msg {:errors errs}))
           add-results (fn add-results [result results]
@@ -791,8 +807,9 @@ the :destroy-server, :destroy-group, and :create-group phases."
              session :destroy-server
              (mapcat :targets (vals nodes-to-remove)) c)
           [res-ds es] (<! c)
-          result {:results res-ds}]
-
+          result {:results res-ds
+                  :targets targets}]
+      (debugf "targets-map %s" targets-map)
       (if es
         [result es]
         (do
@@ -801,7 +818,10 @@ the :destroy-server, :destroy-group, and :create-group phases."
             (do
               (remove-group-nodes session compute-service nodes-to-remove c)
               (let [[res-rg es] (<! c)
-                    result (assoc result :old-node-ids res-rg)]
+                    targets (vals (apply dissoc targets-map res-rg))
+                    result (assoc result
+                             :old-node-ids res-rg
+                             :targets targets)]
                 (if es
                   [result es]
                   (do
@@ -828,7 +848,10 @@ the :destroy-server, :destroy-group, and :create-group phases."
                                     (create-group-nodes
                                      session compute-service nodes-to-add c)
                                     (let [[res-cn es] (<! c)
-                                          result (assoc result :new-targets res-cn)]
+                                          result (assoc result
+                                                   :new-targets res-cn
+                                                   :targets (concat
+                                                             targets res-cn))]
                                       (if es
                                         [result es]
                                         [result]))))))))))))))))))))
@@ -1012,7 +1035,9 @@ flag.
         ;;                                   [:script-comments :script-trace]))
         phases (or (seq phases)
                    (apply total-order-merge
-                          (map :default-phases (concat groups targets))))]
+                          (map
+                           #(get % :default-phases [:configure])
+                           (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
     (go-tuple ch
       (let [session (session/create
@@ -1021,6 +1046,7 @@ flag.
                       :user user/*admin-user*})
             nodes-set (all-group-nodes compute groups all-node-set)
             nodes-set (concat nodes-set targets)
+            _  (debugf "nodes-set %s" (vec nodes-set))
             session (reduce record-target session nodes-set)
             _ (when-not (or compute (seq nodes-set))
                 (throw (ex-info
@@ -1030,14 +1056,16 @@ flag.
             _ (converge-op
                session compute groups nodes-set phases lift-options c)
             [converge-result e] (<! c)]
+        (debugf "new targets %s" (vec (:targets converge-result)))
+        (debugf "old ids %s" (vec (:old-node-ids converge-result)))
         (if e
           [converge-result e]
-          (let [nodes-set (concat (:new-targets converge-result) nodes-set)
+          (let [nodes-set (:targets converge-result)
+                _ (debugf "nodes-set %s" (vec nodes-set))
                 session (reduce record-target session nodes-set)
                 phases (concat (when os-detect [:pallet/os-bs :pallet/os])
                                [:settings :bootstrap] phases)]
-            (debugf "running nodes-set %s" (vec nodes-set))
-            (debugf "running phases %s" phases)
+            (debugf "running phases %s" (vec phases))
             (async-lift-op session phases nodes-set lift-options c)
             (let [[result e] (<! c)]
               [(-> converge-result

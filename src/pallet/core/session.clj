@@ -582,11 +582,12 @@ The session is a map with well defined keys:
   ;; set to the actual user used for authentication when executing
   ;; scripts, and may be different, e.g. when bootstrapping.
   (assert-type-predicate
-   (or (let [m (merge-scopes
-                (get-scopes (:plan-state session)
-                            (target-scopes (target-node session))
-                            [:user]))]
-         (and (not (empty? m)) m))
+   (or (if (:node session)
+         (let [m (merge-scopes
+                  (get-scopes (:plan-state session)
+                              (target-scopes (target-node session))
+                              [:user]))]
+           (and (not (empty? m)) m)))
        (-> session :execution-state :user))
    user?))
 

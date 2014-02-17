@@ -15,11 +15,13 @@
 (ann execute [BaseSession Node Fn -> PlanResult])
 (defn execute
   "Apply a plan function with metadata to the target node."
-  [session node plan-fn]
-  (let [{:keys [middleware]} (meta plan-fn)]
-    (if middleware
-      (middleware session node plan-fn)
-      (api/execute session node plan-fn))))
+  ([session node plan-fn execute-f]
+     (let [{:keys [middleware]} (meta plan-fn)]
+       (if middleware
+         (middleware session node plan-fn)
+         (execute-f session node plan-fn))))
+  ([session node plan-fn]
+     (execute session node plan-fn api/execute)))
 
 ;;; # Admin-user setting middleware
 (ann image-user-middleware [-> ExecSettingsFn])
