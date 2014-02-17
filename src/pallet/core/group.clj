@@ -293,17 +293,81 @@ specified in the `:extends` argument."
   {:pre [(node? (:node target-map))]}
   (update-extension session groups-extension (fnil conj []) target-map))
 
-(defn session-targets
+(ann targets [BaseSession -> (Nilable TargetMapSeq)])
+(defn targets
   "Return the sequence of target-maps for the current operation.  The
   targets are recorded in the session groups extension."
   [session]
   (extension session groups-extension))
 
-(defn session-target
-  "Return the target-map for the node.  The targets are recorded in
-  the session groups extension."
-  [session node]
-  (first (filter #(= (node/id node) (node/id (:node %))) (session-targets))))
+;; (defn target
+;;   "Return the target-map for the node.  The targets are recorded in
+;;   the session groups extension."
+;;   [session node]
+;;   (first (filter #(= (node/id node) (node/id (:node %))) (session-targets))))
+
+(ann target-nodes [BaseSession -> (Seqable Node)])
+(defn target-nodes
+  "Target nodes for current converge."
+  [session]
+  (map (fn> [t :- TargetMap] (:node t)) (targets session)))
+
+(ann nodes-in-group [Session GroupName -> TargetMapSeq])
+(defn nodes-in-group
+  "All nodes in the same tag as the target-node, or with the specified
+  group-name."
+  [session group-name]
+  (->>
+   (targets session)
+   (filter
+    (fn> [t :- TargetMap]
+         (or (= (:group-name t) group-name)
+             (when-let [group-names (:group-names t)]
+               (get group-names group-name)))))))
+
+(ann ^:no-check groups-with-role [BaseSession -> (Seqable GroupSpec)])
+(defn groups-with-role
+  "All target groups with the specified role."
+  [session role]
+  (->>
+   (targets session)
+   (filter (fn> [t :- TargetMap] ((:roles t #{}) role)))
+   (map (fn> [t :- TargetMap] (dissoc t :node)))
+   ((fn> [x :- TargetMapSeq] ((inst distinct TargetMap) x)))))
+
+;; (defn groups-with-role
+;;   "All target groups with the specified role."
+;;   [session role]
+;;   (->>
+;;    @(:system-targets session)
+;;    (filter #((:roles % #{}) role))
+;;    (map #(dissoc % :node))
+;;    distinct))
+
+(ann ^:no-check nodes-with-role [BaseSession -> TargetMapSeq])
+(defn nodes-with-role
+  "All target nodes with the specified role."
+  [session role]
+  (->> (targets session)
+       (filter
+        (fn> [node :- TargetMap]
+          (when-let [roles (:roles node)]
+            (roles role))))))
+
+(ann role->nodes-map [BaseSession -> (Map Keyword (Seqable Node))])
+(defn role->nodes-map
+  "Returns a map from role to nodes."
+  [session]
+  (reduce
+   (fn> [m :- (Map Keyword (Seqable Node))
+         node :- TargetMap]
+        (reduce (fn> [m :- (Map Keyword (Seqable Node))
+                      role :- Keyword]
+                     (update-in m [role] conj node))
+                m
+                (:roles node)))
+   {}
+   (targets session)))
 
 ;; (defn target-group-name
 ;;   "Return the group name for node, as recorded in the session-targets."

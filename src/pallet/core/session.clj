@@ -35,10 +35,6 @@ The session is a map with well defined keys:
 : an implementation of the StateGet and StateUpdate protocols.  The
   data in the plan-state is mutable in plan functions.
 
-`:system-targets`
-: an atom with a sequence of all known targets.  The sequence will be
-  updated when lift and converge are run.  It can be set explicitly.
-
 `:node`
 : the current target node
 "
@@ -61,8 +57,6 @@ The session is a map with well defined keys:
    [pallet.core.recorder :refer [recorder?]]
    [pallet.core.recorder.protocols :refer [Record]]
    [pallet.core.recorder.null :refer [null-recorder]]
-   [pallet.core.system-targets.list :refer [system-targets-list]]
-   [pallet.core.system-targets.protocols :refer [SystemTargets]]
    [pallet.core.user :refer [user?]]
    [pallet.node :as node]
    [pallet.utils :as utils]
@@ -97,8 +91,6 @@ The session is a map with well defined keys:
 (def base-session
   {:execution-state execution-state
    (optional-key :plan-state) pallet.core.plan_state.protocols.StateGet
-   (optional-key :system-targets)
-   pallet.core.system_targets.protocols.SystemTargets
    :type (schema/eq ::session)})
 
 (def target-session
@@ -123,14 +115,12 @@ The session is a map with well defined keys:
 (ann create [(HMap
               :mandatory {:executor Executor}
               :optional {:recorder Record
-                         :plan-state StateGet
-                         :system-targets TargetMapSeq})
+                         :plan-state StateGet})
              -> BaseSession])
 (defn create
   "Create a session with the specified components."
-  [{:keys [recorder plan-state executor system-targets action-options user
+  [{:keys [recorder plan-state executor action-options user
            environment]
-    :or {system-targets (system-targets-list)}
     :as args}]
   {:pre [(or (nil? plan-state) (plan-state? plan-state))
          (executor? executor)
@@ -141,8 +131,7 @@ The session is a map with well defined keys:
    {:type ::session
     :execution-state (select-keys
                       args
-                      [:environment :executor :recorder :action-options :user])
-    :system-targets system-targets}
+                      [:environment :executor :recorder :action-options :user])}
    (if plan-state
      {:plan-state plan-state})))
 
@@ -204,11 +193,6 @@ The session is a map with well defined keys:
   "Get the plan state"
   [session]
   (:plan-state session))
-
-;; (defn system-targets!
-;;   "Set the service state"
-;;   [s]
-;;   (assoc-session! :system-targets s))
 
 ;; (defn recorder!
 ;;   "Set the action recorder"
@@ -339,29 +323,6 @@ The session is a map with well defined keys:
    :post [(target-session? %)]}
   (assoc session :node node))
 
-(ann set-system-targets
-  [BaseSession (Nilable TargetMapSeq) -> (Nilable TargetMapSeq)])
-(defn set-system-targets
-  "Return a session with `targets` as the known system-targets.  System targets
-  form the set of all nodes considered during a lift or converge."
-  [session targets]
-  (reset! (:system-targets session) targets))
-
-(ann add-system-targets
-  [BaseSession (Nilable TargetMapSeq) -> (Nilable TargetMapSeq)])
-(defn add-system-targets
-  [session targets]
-  (swap! (:system-targets session) (inst concat TargetMap) targets))
-
-(ann remove-system-targets
-  [BaseSession (Nilable TargetMapSeq) -> TargetMapSeq])
-(defn remove-system-targets
-  [session targets]
-  (swap! (:system-targets session)
-         (fn> [ts :- (Nilable TargetMapSeq)]
-           ((inst remove TargetMap TargetMap) (set targets) ts))))
-
-
 ;;; ## Session Context
 ;;; The session context is used in pallet core code.
 (defmacro ^{:requires [#'with-context]} session-context
@@ -476,77 +437,6 @@ The session is a map with well defined keys:
        (name (group-name session)) (safe-id (name (target-id session))))
       session])
    )
-
-(ann targets [BaseSession -> (Nilable TargetMapSeq)])
-(defn targets
-  "Targets for current converge."
-  [session]
-  @(:system-targets session))
-
-(ann target-nodes [BaseSession -> (Seqable Node)])
-(defn target-nodes
-  "Target nodes for current converge."
-  [session]
-  (map (fn> [t :- TargetMap]
-         (:node t))
-       @(:system-targets session)))
-
-(ann nodes-in-group [Session GroupName -> TargetMapSeq])
-(defn nodes-in-group
-  "All nodes in the same tag as the target-node, or with the specified
-  group-name."
-  [session group-name]
-  (->>
-   @(:system-targets session)
-   (filter
-    (fn> [t :- TargetMap]
-         (or (= (:group-name t) group-name)
-             (when-let [group-names (:group-names t)]
-               (get group-names group-name)))))))
-
-(ann ^:no-check groups-with-role [BaseSession -> (Seqable GroupSpec)])
-(defn groups-with-role
-  "All target groups with the specified role."
-  [session role]
-  (->>
-   @(:system-targets session)
-   (filter (fn> [t :- TargetMap] ((:roles t #{}) role)))
-   (map (fn> [t :- TargetMap] (dissoc t :node)))
-   ((fn> [x :- TargetMapSeq] ((inst distinct TargetMap) x)))))
-
-;; (defn groups-with-role
-;;   "All target groups with the specified role."
-;;   [session role]
-;;   (->>
-;;    @(:system-targets session)
-;;    (filter #((:roles % #{}) role))
-;;    (map #(dissoc % :node))
-;;    distinct))
-
-(ann ^:no-check nodes-with-role [BaseSession -> TargetMapSeq])
-(defn nodes-with-role
-  "All target nodes with the specified role."
-  [session role]
-  (->> @(:system-targets session)
-       (filter
-        (fn> [node :- TargetMap]
-          (when-let [roles (:roles node)]
-            (roles role))))))
-
-(ann role->nodes-map [BaseSession -> (Map Keyword (Seqable Node))])
-(defn role->nodes-map
-  "Returns a map from role to nodes."
-  [session]
-  (reduce
-   (fn> [m :- (Map Keyword (Seqable Node))
-         node :- TargetMap]
-        (reduce (fn> [m :- (Map Keyword (Seqable Node))
-                      role :- Keyword]
-                     (update-in m [role] conj node))
-                m
-                (:roles node)))
-   {}
-   @(:system-targets session)))
 
 (ann packager [Session -> Keyword])
 (defn packager
