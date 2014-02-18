@@ -281,6 +281,10 @@ The session is a map with well defined keys:
   [session extension-kw f args]
   (apply update-in session [:execution-state :extension extension-kw] f args))
 
+(defn ^:internal set-extension
+  "Update the extension."
+  [session extension-kw value]
+  (assoc-in session [:execution-state :extension extension-kw] value))
 
 
 (def-alias SessionModifier

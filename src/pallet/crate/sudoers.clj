@@ -7,6 +7,7 @@
    [pallet.core.group :as group]
    [pallet.core.plan-state]
    [pallet.core.session :refer [admin-group]]
+   [pallet.core.target :as target]
    [pallet.crate
     :refer [assoc-settings defplan get-settings phase-context update-settings]]
    [pallet.crate-install :as crate-install]
@@ -38,8 +39,9 @@
 
 (defplan settings
   [session settings & {:keys [instance-id] :as options}]
-  (assoc-settings session facility
-                  (merge (default-settings session) settings) options))
+  (let [settings (merge (default-settings session) settings)]
+    (logging/debugf "sudoers settings %s %s" instance-id settings)
+    (assoc-settings session facility settings options)))
 
 (defplan install
   [session {:keys [instance-id]}]
@@ -207,6 +209,7 @@ specs [ { [\"user1\" \"user2\"]
   (let [{:keys [sudoers-file args] :as settings}
         (get-settings session facility options)]
     (logging/debugf "Sudoers configure %s" (pr-str settings))
+    (assert settings "No sudoers settings")
     (assert sudoers-file
             (str "No sudoers-file in settings for sudoers: "
                  settings))
@@ -221,7 +224,7 @@ specs [ { [\"user1\" \"user2\"]
 (defn server-spec
   "Returns a server-spec that installs sudoers in the configure phase."
   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
-  (group/server-spec
+  (target/server-spec
    :phases {:settings (plan-fn [session]
                         (pallet.crate.sudoers/settings session settings))
             :install (plan-fn [session]

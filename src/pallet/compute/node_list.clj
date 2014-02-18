@@ -20,7 +20,7 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.async :refer [go-tuple]]
+   [pallet.async :refer [go-try]]
    [pallet.compute :as compute]
    [pallet.environment]
    [pallet.compute.implementation :as implementation]
@@ -178,7 +178,8 @@ support."
   (nodes
     [compute ch]
     "List nodes. A sequence of node instances will be put onto the channel, ch."
-    (go-tuple ch [@node-list]))
+    (go-try ch
+      (>! ch [@node-list])))
 
 
                                         ;   pallet.compute.protocols.ComputeService

@@ -7,11 +7,11 @@
 
 (ann version-vector [String -> VersionVector])
 (defn version-vector
-  "Convert a dotted version string to a vector of version numbers.
+  "Convert a dotted (or dashed) version string to a vector of version numbers.
 E.g.,
     (version-vector \"1.2\") => [1 2]"
   [version-string]
-  (let [v (map read-string (string/split version-string #"\."))]
+  (let [v (map read-string (string/split version-string #"\.-"))]
     (assert (every? number? v))
     (vec v)))
 

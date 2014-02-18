@@ -66,8 +66,8 @@ functions with more defaults, etc."
         (throw e))
       rv)))
 
-(ann execute [BaseSession Node PlanFn -> PlanResult])
-(defn execute
+(ann execute* [BaseSession Node PlanFn -> PlanResult])
+(defn execute*
   "Execute a plan function on a target node.
 
 Ensures that the session target is set, and that the script
@@ -84,6 +84,7 @@ The result is also written to the recorder in the session."
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
          (executor session)]}
+  (debugf "execute* %s %s" node plan-fn)
   (when plan-fn
     (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
           session (-> session
@@ -97,17 +98,30 @@ The result is also written to the recorder in the session."
         ;; functions.
 
         (let [rv (try
+                   (debugf "execute* calling %s" plan-fn)
                    (plan-fn session)
+                   (debugf "execute* finished calling %s" plan-fn)
                    (catch Exception e
                      ;; Wrap the exception so we can return the
                      ;; accumulated results.
+                     (debugf e "execute*")
                      (throw (ex-info "Exception in plan-fn"
                                      {:action-results (results r)
                                       :node node}
                                      e))))]
           {:action-results (results r)
-           :return-value rv
-           :node node})))))
+           :return-value rv})))))
+
+(defn execute
+  "Execute a plan function.  If there is a target `node`, then we execute
+  the plan-fn using the core execute function, otherwise we just call the
+  plan function."
+  [session node plan-fn]
+  (debugf "execute %s %s" node plan-fn)
+  (if node
+    (execute* session node plan-fn)
+    (if plan-fn
+      {:return-value (plan-fn session)})))
 
 
 ;;; TODO make sure these error reporting functions are relevant and correct
@@ -119,9 +133,9 @@ The result is also written to the recorder in the session."
       (Nilable (NonEmptySeqable PlanResult))])
 (defn errors
   "Return a sequence of errors for a sequence of result maps.
-   Each element in the sequence represents a failed action, and is a map,
-   with :target, :error, :context and all the return value keys for the return
-   value of the failed action."
+   Each element in the sequence represents a failed action, and is a
+   map, with :node, :error, :context and all the return value keys for
+   the return value of the failed action."
   [results]
   (seq
    (concat

@@ -91,15 +91,14 @@
   [[(wild Keyword)] phase-meta-schema])
 
 (def-map-schema server-spec-schema
-  node-spec-schema
   [(optional-path [:phases]) phases-schema
    (optional-path [:roles]) (set-of Keyword)
    (optional-path [:packager]) Keyword
    (optional-path [:phases-meta]) phases-meta-schema
-   (optional-path [:default-phases]) (sequence-of Keyword)])
+   (optional-path [:default-phases]) (sequence-of Keyword)
+   (optional-path [:node-spec]) node-spec-schema])
 
 (def-map-schema group-spec-schema
-  node-spec-schema
   server-spec-schema
   [[:group-name] Keyword
    (optional-path [:node-filter]) IFn

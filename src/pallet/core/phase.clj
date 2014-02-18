@@ -70,52 +70,29 @@ Phase maps enable composition of operations across heterogenous nodes."
   Phase is either a keyword, or a vector of keyword and phase arguments."
   ([session node phases-map phase execute-f]
      (let [plan-fn (target-phase phases-map phase)]
+       (debugf "execute-phase %s %s" phase plan-fn)
        (middleware/execute session node plan-fn execute-f)))
   ([session node phases-map phase]
      (let [plan-fn (target-phase phases-map phase)]
+       (debugf "execute-phase %s %s" phase plan-fn)
        (middleware/execute session node plan-fn))))
 
 
-;; (ann execute-plan-fns [BaseSession TargetMapSeq Phase
-;;                        -> (Seqable (ReadOnlyPort PlanResult))])
-;; (defn execute-phase
-;;   "Apply phase to targets.
-;;   Phase is either a keyword, or a vector of keyword and phase arguments."
-;;   [session targets phase]
-;;   (for> :- (ReadOnlyPort PlanResult)
-;;         [target :- TargetMap targets
-;;          :let [plan (target-phase target phase)]
-;;          :when plan]
-;;     (api/execute session target plan)))
-
-
-
-
-;;; # phase metadata
-
-
-;;; ## Execution settings
-
-;;; #### Phase Metadata
-
-;;; Phase metadata is used to control how a phase is executed.  There are
-;;; currently two possible keys for the metadata attached to a plan function,
-;;; `:execution-settings-f` and `:phase-execution-f`.
-
-;;; Phase metadata is merged when phase functions are composed.
-
-;; (defn execute-with-image-credentials-metadata
-;;   "Returns a metadata map that specifies a phase should be run using the image
-;; credentials (rather than the admin-user).  The map is suitable for use as a
-;; value in a map passed to the `:phases-meta` clause of a `server-spec` or
-;; `group-spec`."
-;;   []
-;;   {:execution-settings-f (environment-image-execution-settings)})
-
-;; (defn execute-on-unflagged-metadata
-;;   "Returns a metadata map that specifies a phase should be run only if the
-;; specified `flag-kw` is not set on a node.  The map is suitable for use as a
-;; value in a map passed to the `:phases-meta` clause of a `server-spec` or
-;; `group-spec`."
-;;   [flag-kw]
-;;   {:phase-execution-f (execute-on-unflagged flag-kw)})
+;;; # Phase Specification
+(defn process-phases
+  "Process phases. Returns a phase list and a phase-map. Functions specified in
+  `phases` are identified with a keyword and a map from keyword to function.
+  The return vector contains a sequence of phase keywords and the map
+  identifying the anonymous phases."
+  [phases]
+  (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
+    (reduce
+     (fn [[phase-kws phase-map] phase]
+       (if (or (keyword? phase)
+               (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
+         [(conj phase-kws phase) phase-map]
+         (let [phase-kw (-> (gensym "phase")
+                            name keyword)]
+           [(conj phase-kws phase-kw)
+            (assoc phase-map phase-kw phase)])))
+     [[] {}] phases)))
