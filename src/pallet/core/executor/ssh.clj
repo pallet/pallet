@@ -21,10 +21,11 @@
 
 (deftype SshActionExecutor [result-chan]
   ActionExecutor
-  (execute [executor node user action]
-    {:pre [(user? user)]}
+  (execute [executor target user action]
+    {:pre [(user? user)
+           (:node target)]}
     (let [[script action-type location] (direct-script action)]
-      (ssh/ssh-script-on-target node user action script))))
+      (ssh/ssh-script-on-target (:node target) user action script))))
 
 (defn ssh-executor
   []

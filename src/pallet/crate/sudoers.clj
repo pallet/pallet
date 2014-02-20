@@ -6,7 +6,7 @@
    [pallet.core.api :as api :refer [plan-fn]]
    [pallet.core.group :as group]
    [pallet.core.plan-state]
-   [pallet.core.session :refer [admin-group]]
+   [pallet.core.spec :as spec :refer [admin-group]]
    [pallet.core.target :as target]
    [pallet.crate
     :refer [assoc-settings defplan get-settings phase-context update-settings]]
@@ -224,7 +224,7 @@ specs [ { [\"user1\" \"user2\"]
 (defn server-spec
   "Returns a server-spec that installs sudoers in the configure phase."
   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
-  (target/server-spec
+  (spec/server-spec
    :phases {:settings (plan-fn [session]
                         (pallet.crate.sudoers/settings session settings))
             :install (plan-fn [session]

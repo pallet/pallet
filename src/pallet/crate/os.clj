@@ -5,9 +5,10 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-script]]
    [pallet.core.node-os :refer [node-os node-os!]]
-   [pallet.core.session :refer [target-node plan-state]]
+   [pallet.core.session :refer [target plan-state]]
    [pallet.crate :refer [defplan]]
    [pallet.stevedore :refer [script]]
+   [pallet.core.target :as target]
    [pallet.utils :refer [maybe-assoc]]))
 
 ;;; NB no script functions here
@@ -108,4 +109,4 @@
         distro (infer-distro session)
         m (dissoc (merge os distro) :action-symbol :context)]
     (debugf "os %s %s %s" os distro m)
-    (node-os! (target-node session) (plan-state session) m)))
+    (node-os! (target/node (target session)) (plan-state session) m)))

@@ -9,64 +9,66 @@
    [pallet.core.api :as api :refer [errors plan-fn]]
    [pallet.core.session :refer [set-executor set-user]]
    [pallet.core.tag :as tag]
-   [pallet.node :as node]))
+   [pallet.node :as node]
+   [pallet.core.target :as target]))
 
 ;;; # Middleware aware plan execution
-(ann execute [BaseSession Node Fn -> PlanResult])
+(ann execute [BaseSession TargetMap Fn -> PlanResult])
 (defn execute
-  "Apply a plan function with metadata to the target node."
-  ([session node plan-fn execute-f]
+  "Apply a plan function with metadata to the target."
+  ([session target plan-fn execute-f]
      (let [{:keys [middleware]} (meta plan-fn)]
        (if middleware
-         (middleware session node plan-fn)
-         (execute-f session node plan-fn))))
-  ([session node plan-fn]
-     (execute session node plan-fn api/execute)))
+         (middleware session target plan-fn)
+         (execute-f session target plan-fn))))
+  ([session target plan-fn]
+     (execute session target plan-fn api/execute)))
 
 ;;; # Admin-user setting middleware
 (ann image-user-middleware [-> ExecSettingsFn])
 (defn image-user-middleware
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]
-  (fn> [session :- BaseSession node :- Node plan-fn :- Fn]
-    {:pre [(node/node? node)]}
-    (let [user (into {} (filter (inst val Any) (node/image-user node)))
+  (fn> [session :- BaseSession target :- TargetMap plan-fn :- Fn]
+    {:pre [(node/node? (target/node target))]}
+    (let [user (into {}
+                     (filter (inst val Any) (target/image-user target)))
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
                  user)]
       (debugf "image-user %s" user)
-      (handler (set-user session user) node plan-fn))))
+      (handler (set-user session user) target plan-fn))))
 
 ;;; # Phase Execution Functions
 (defn execute-one-shot-flag
-  "Return a middleware, that will execute a phase on nodes that
-  don't have the specified state flag set. On successful completion the nodes
+  "Return a middleware, that will execute a phase on targets that
+  don't have the specified state flag set. On successful completion the targets
   have the state flag set."
   [handler state-flag]
-  (fn execute-one-shot-flag [session node plan-fn]
-    {:pre [(node/node? node)]}
-    (when-not (tag/has-state-flag? state-flag node)
-      (let [result (handler session node plan-fn)]
-        (tag/set-state-for-node state-flag node)
+  (fn execute-one-shot-flag [session target plan-fn]
+    {:pre [(node/node? (target/node target))]}
+    (when-not (target/has-state-flag? target state-flag)
+      (let [result (handler session target plan-fn)]
+        (target/set-state-flag target state-flag)
         result))))
 
 (defn execute-on-filtered
-  "Return a function, that will execute a phase on nodes that
-  have the specified state flag set."
+  "Return a function, that will execute a phase on targets that
+  return true when applied to the filter-f function."
   [handler filter-f]
   (logging/tracef "execute-on-filtered")
   (fn execute-on-filtered
-    [session node plan-fn]
-    {:pre [(node/node? node)]}
-    (when (filter-f node)
-      (handler session node plan-fn))))
+    [session target plan-fn]
+    {:pre [(node/node? (target/node target))]}
+    (when (filter-f target)
+      (handler session target plan-fn))))
 
 (defn execute-on-flagged
   "Return an action middleware, that will execute a phase on nodes
   that have the specified state flag set."
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
-  (execute-on-filtered handler #(tag/has-state-flag? state-flag %)))
+  (execute-on-filtered handler #(target/has-state-flag? % state-flag)))
 
 (defn execute-on-unflagged
   "Return an action middleware, that will execute a phase on nodes
@@ -74,4 +76,4 @@
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
   (execute-on-filtered
-   handler (complement #(tag/has-state-flag? state-flag %))))
+   handler (complement #(target/has-state-flag? % state-flag))))

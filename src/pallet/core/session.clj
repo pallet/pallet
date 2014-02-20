@@ -35,8 +35,8 @@ The session is a map with well defined keys:
 : an implementation of the StateGet and StateUpdate protocols.  The
   data in the plan-state is mutable in plan functions.
 
-`:node`
-: the current target node
+`:target`
+: the current target
 "
   (:require
    [clojure.core.typed
@@ -93,7 +93,7 @@ The session is a map with well defined keys:
    :type (schema/eq ::session)})
 
 (def target-session
-  (assoc base-session :node pallet.compute.protocols.Node))
+  (assoc base-session :target {schema/Keyword schema/Any}))
 
 
 (ann ^:no-check base-session? (predicate BaseSession))
@@ -312,13 +312,13 @@ The session is a map with well defined keys:
   {:post [(recorder? (pallet.core.session/recorder %))]}
   (assoc-in session [:execution-state :recorder] recorder))
 
-(ann set-node [BaseSession Node -> Session])
-(defn set-node
+(ann set-target [BaseSession TargetMap -> Session])
+(defn set-target
   "Return a session with `:target` as the current target."
-  [session node]
-  {:pre [(base-session? session) (node/node? node)]
+  [session target]
+  {:pre [(base-session? session) (map? target)]
    :post [(target-session? %)]}
-  (assoc session :node node))
+  (assoc session :target target))
 
 ;;; ## Session Context
 ;;; The session context is used in pallet core code.
@@ -338,124 +338,11 @@ The session is a map with well defined keys:
 
 
 ;;; # Session accessors
-(ann safe-id [String -> String])
-(defn safe-id
-  "Computes a configuration and filesystem safe identifier corresponding to a
-  potentially unsafe ID"
-  [^String unsafe-id]
-  (utils/base64-md5 unsafe-id))
 
-(ann target-node [Session -> Node])
-(defn target-node
-  "Target compute service node."
+(ann target [Session -> TargetMap])
+(defn target
+  "Current session target map."
   [session]
   {:pre [(target-session? session)]
-   :post [(node/node? %)]}
-  (-> session :node))
-
-(ann target-name [Session -> String])
-(defn target-name
-  "Name of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (node/hostname (target-node session)))
-
-(ann target-id [Session -> String])
-(defn target-id
-  "Id of the target-node (unique for provider)."
-  [session]
-  {:pre [(target-session? session)]}
-  (node/id (target-node session)))
-
-(ann target-ip [Session -> String])
-(defn target-ip
-  "IP of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (node/primary-ip (target-node session)))
-
-(comment
-(defn target-roles
-  "Roles of the target server."
-  [session]
-  [(-> session :target :roles) session])
-
-(defn base-distribution
-  "Base distribution of the target-node."
-  [session]
-  (compute/base-distribution (-> session :target :image)))
-)
-
-(defn os-map
-  [session]
-  {:pre [(target-session? session)]}
-  (get-settings (:plan-state session) (target-id session) :pallet/os {}))
-
-(ann os-family [Session -> Keyword])
-(defn os-family
-  "OS-Family of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (:os-family (os-map session)))
-
-(ann os-version [Session -> String])
-(defn os-version
-  "OS-Family of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (:os-version (os-map session)))
-
-(ann packager [Session -> Keyword])
-(defn packager
-  []
-  ;; (or
-  ;;  (:packager (os-map session))
-  ;;  (packager-for-os (os-family session) (os-version session)))
-
-  ;; TODO fix
-  :apt
-  )
-
-(ann admin-user [Session -> User])
-(defn admin-user
-  "User that remote commands are run under."
-  [session]
-  {:post [(user? %)]}
-  ;; Note: this is not (-> session :execution-state :user), which is
-  ;; set to the actual user used for authentication when executing
-  ;; scripts, and may be different, e.g. when bootstrapping.
-  (assert-type-predicate
-   (or (if (:node session)
-         (let [m (merge-scopes
-                  (get-scopes (:plan-state session)
-                              (target-scopes (target-node session))
-                              [:user]))]
-           (and (not (empty? m)) m)))
-       (-> session :execution-state :user))
-   user?))
-
-(ann admin-group [Session -> String])
-(defn admin-group
-  "User that remote commands are run under"
-  [session]
-  (compute/admin-group
-   (os-family session)
-   (os-version session)))
-
-(ann is-64bit? [Session -> boolean])
-(defn is-64bit?
-  "Predicate for a 64 bit target"
-  [session]
-  (node/is-64bit? (target-node session)))
-
-(comment
-  (defn print-errors
-    "Display errors from the session results."
-    [session]
-    (doseq [[target phase-results] (:results session)
-            [phase results] phase-results
-            result (filter
-                    #(or (:error %) (and (:exit %) (not= 0 (:exit %))))
-                    results)]
-      (println target phase (:err result))))
-  )
+   :post [(map? %)]}
+  (-> session :target))

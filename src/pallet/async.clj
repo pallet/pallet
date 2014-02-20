@@ -78,6 +78,21 @@
   ([chans to]
      (concat-chans chans to true)))
 
+
+(defn map-chan
+  "Apply a function, f, to values from the from channel, writing the
+  return to the to channel. Closes the to channel when the from
+  channel closes."
+  [from f to]
+  (go-try
+   (loop []
+     (let [x (<! from)]
+       (when-not (nil? x)
+         (>! to (f x))
+         (recur)))
+     (close! to))))
+
+
 ;;; # Result Exception Tuples
 
 ;;; In order to assist in consistent reporting of exceptions across

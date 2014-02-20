@@ -77,8 +77,8 @@
 (defmacro ^{:requires [#'with-script-context #'with-script-language]}
   with-script-for-node
   "Set up the script context for a server"
-  [node plan-state & body]
-  `(let [node# ~node]
+  [target plan-state & body]
+  `(let [node# (:node ~target)]
      (if node#
        (with-script-context (script-template-for-node node# ~plan-state)
          (with-script-language :pallet.stevedore.bash/bash

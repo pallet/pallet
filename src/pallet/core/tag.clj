@@ -13,9 +13,7 @@ level?"
    [clojure.string :refer [blank?]]
    [pallet.core.types                   ; before any protocols
     :refer [assert-type-predicate keyword-map?]]
-   [pallet.node
-    :refer [compute-service id image-user group-name node? primary-ip
-            tag tag! taggable? terminated?]]))
+   [pallet.node :refer [id image-user tag tag! taggable?]]))
 
 ;;; # Node state tagging
 (ann state-tag-name String)
@@ -28,10 +26,10 @@ level?"
     {}
     (assert-type-predicate (read-string s) keyword-map?)))
 
-(ann set-state-for-node [String Node -> nil])
+(ann set-state-for-node [Node String -> nil])
 (defn set-state-for-node
-  "Sets the boolean `state-name` flag on `target`."
-  [state-name node]
+  "Sets the boolean `state-name` flag on `node`."
+  [node state-name]
   {:pre [(node? node)]}
   (debugf "set-state-for-node %s" state-name)
   (when (taggable? node)
@@ -41,10 +39,10 @@ level?"
       (debugf "set-state-for-node %s %s" state-tag-name (pr-str val))
       (tag! node state-tag-name (pr-str val)))))
 
-(ann has-state-flag? [String Node -> boolean])
+(ann has-state-flag? [Node String -> boolean])
 (defn has-state-flag?
   "Return a predicate to test for a state-flag having been set."
-  [state-name node]
+  [node state-name]
   {:pre [(node? node)]}
   (debugf "has-state-flag? %s %s" state-name (id node))
   (let [v (boolean

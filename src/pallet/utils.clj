@@ -443,3 +443,10 @@ value to assoc. The assoc only occurs if the value is non-nil."
               arg)
         arg-ref (if (map? arg) (:as arg) arg)]
     [arg arg-ref]))
+
+(ann safe-id [String -> String])
+(defn safe-id
+  "Computes a configuration and filesystem safe identifier corresponding to a
+  potentially unsafe ID"
+  [^String unsafe-id]
+  (base64-md5 unsafe-id))

@@ -8,6 +8,7 @@
    [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session :refer [plan-state target-session?]]
+   [pallet.core.target :as target]
    [pallet.execute :as execute]
    [pallet.node :as node]
    [pallet.sync :refer [sync-phase*]]
@@ -298,7 +299,8 @@
   ([session facility {:keys [instance-id default] :as options}]
      {:pre [(target-session? session)]}
      (plan-state/get-settings
-      (:plan-state session) (session/target-id session) facility options))
+      (:plan-state session)
+      (target/id (session/target session)) facility options))
   ([session facility]
      (get-settings session facility {})))
 
@@ -321,7 +323,7 @@
      {:pre [(target-session? session)]}
      (plan-state/assoc-settings
       (:plan-state session)
-      (session/target-id session)
+      (target/id (session/target session))
       facility
       kv-pairs
       options)
@@ -341,7 +343,7 @@
   ([session facility path value {:keys [instance-id] :as options}]
      (plan-state/update-settings
       (plan-state session)
-      (session/target-id session)
+      (target/id (session/target session))
       facility
       assoc-in [path value] options)
      ;; (session!
@@ -365,7 +367,7 @@
     (assert f "nil update function")
     (plan-state/update-settings
      (:plan-state session)
-     (session/target-id session)
+     (target/id (session/target session))
      facility
      f args options)
     ;; (session!

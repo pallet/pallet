@@ -1,12 +1,13 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
-   [clojure.core.async :refer [<!! chan]]
+   [clojure.core.async :as async :refer [<!! <! >! chan]]
    [clojure.core.typed
     :refer [ann
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
             Seq]]
    [clojure.tools.macro :refer [name-with-attributes]]
+   [pallet.async :refer [go-try]]
    [pallet.contracts :refer [check-node-spec]]
    [pallet.core.types                   ; before any protocols
     :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
@@ -116,6 +117,16 @@ Provider specific options may also be passed."
   {::protocol impl/ComputeService}
   [compute ch]
   (impl/nodes compute ch))
+
+(defasync targets
+  "Return the targets from the compute service."
+  {::protocol impl/ComputeService}
+  [compute ch]
+  (go-try ch
+    (let [c (chan)]
+      (impl/nodes compute c)
+      (let [[nodes e] (<! c)]
+        (>! ch [(map #(hash-map :node %) nodes) e])))))
 
 (defasync create-nodes
   "Create nodes running in the compute service."

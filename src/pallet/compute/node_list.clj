@@ -42,7 +42,7 @@
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
   (is-64bit? [node] (:is-64bit node))
-  (group-name [node] group-name)
+  ;; (group-name [node] group-name)
   (running? [node] running)
   (terminated? [node] (not running))
   (os-family [node] os-family)
@@ -59,7 +59,10 @@
   pallet.compute.protocols.NodeImage
   (image-user [node] image-user)
   pallet.compute.protocols.NodeProxy
-  (proxy [node] proxy))
+  (proxy [node] proxy)
+  pallet.compute.protocols/NodeBaseName
+  (has-base-name? [_ base-name]
+    (= base-name group-name)))
 
 ;;; Node utilities
 (def ^:private ip-resolve-failed-msg

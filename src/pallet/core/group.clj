@@ -28,11 +28,12 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.core.api :as api :refer [errors]]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.phase :as phase :refer [phases-with-meta process-phases]]
+   [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.session :as session
-    :refer [admin-user base-session? extension plan-state
-            recorder target-session? update-extension]]
-   [pallet.core.target
+    :refer [base-session? extension plan-state
+            recorder target target-session? update-extension]]
+   [pallet.core.spec
     :refer [create-targets default-phase-meta destroy-targets extend-specs
             lift-op* lift-phase merge-spec-algorithm merge-specs
             os-detection-phases target-id-map targets]]
@@ -83,7 +84,8 @@ Uses a TargetMap to describe a node with its group-spec info."
       (when-> roles
               (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
       (extend-specs extends)
-      (maybe-update-in [:phases] phases-with-meta phases-meta default-phase-meta)
+      (maybe-update-in
+       [:phases] phases-with-meta phases-meta default-phase-meta)
       (update-in [:default-phases] #(or default-phases % [:configure]))
       (dissoc :extends :phases-meta)
       (assoc :group-name group-name)
@@ -181,6 +183,23 @@ Uses a TargetMap to describe a node with its group-spec info."
             :provider (:provider
                        (service-properties
                         (node/compute-service node)))})))
+
+(ann admin-user [Session -> User])
+(defn admin-user
+  "User that remote commands are run under."
+  [session]
+  {:post [(user/user? %)]}
+  ;; Note: this is not (-> session :execution-state :user), which is
+  ;; set to the actual user used for authentication when executing
+  ;; scripts, and may be different, e.g. when bootstrapping.
+  (or (if (:target session)
+        (let [m (plan-state/merge-scopes
+                 (plan-state/get-scopes
+                  (:plan-state session)
+                  (target-scopes (target session))
+                  [:user]))]
+          (and (not (empty? m)) m)))
+      (-> session :execution-state :user)))
 
 
 ;; (ann group-name [Session -> GroupName])
@@ -638,8 +657,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
             targets (concat (vals targets-map) (mapcat :targets res-add))
             result {:results (concat (mapcat :destroy-server res-remove)
                                      (mapcat :destroy-group res-remove)
-                                     (mapcat :create-group res-add)
-                                     (mapcat :bootstrap res-add))
+                                     (mapcat :results res-add))
                     :targets targets
                     :old-node-ids old-node-ids}]
         (debugf "node-count-adjuster res-remove %s" (vec res-remove))
