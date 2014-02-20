@@ -7,7 +7,7 @@
             service
             service-script
             with-service-restart]]
-   [pallet.actions-impl :refer [service-script-path]]
+   [pallet.actions.impl :refer [service-script-path]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.test-utils :refer [make-node no-location-info]]))

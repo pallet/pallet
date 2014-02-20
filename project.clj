@@ -39,4 +39,4 @@ unprecedented level of customization."
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
                         :resource-paths ^:replace []}}
-  :core.typed {:check [pallet.core.api]})
+  :core.typed {:check [pallet.plan]})

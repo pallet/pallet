@@ -5,13 +5,16 @@
    [clojure.tools.logging :refer [tracef]]
    [pallet.actions.decl
     :refer [exec-checked-script package-source-changed-flag remote-file-action]]
-   [pallet.core.session :refer [packager]]
    [pallet.script.lib
     :refer [file heredoc install-package list-installed-packages
             package-manager-non-interactive purge-package os-version-name
             upgrade-package remove-package rm update-package-list]]
    [pallet.stevedore :refer [chain-commands* chained-script fragment script]]
    [pallet.version-dispatch :refer [os-map os-map-lookup]]))
+
+
+;; TODO Fixme
+(defn packager [] :apt)
 
 ;;; packages
 (defmulti adjust-packages

@@ -1,7 +1,7 @@
-(ns pallet.core.user-test
+(ns pallet.user-test
   (:require
    [clojure.test :refer :all]
-   [pallet.core.user :refer :all]))
+   [pallet.user :refer :all]))
 
 (deftest make-user-test
   (let [username "userfred"

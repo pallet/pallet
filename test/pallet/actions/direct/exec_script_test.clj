@@ -8,8 +8,7 @@
                                            with-log-to-string]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.api :refer [phase-errors throw-phase-errors]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :refer [phase-errors throw-phase-errors]]
    [pallet.node :refer [hostname]]
    [pallet.script-builder :refer [interpreter]]
    [pallet.script.lib :refer [ls]]
@@ -21,7 +20,8 @@
             script-action
             test-username
             with-bash-script-language
-            with-location-info]]))
+            with-location-info]]
+   [pallet.user :refer [*admin-user*]]))
 
 (use-fixtures
  :once

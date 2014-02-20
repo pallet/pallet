@@ -4,9 +4,9 @@
    [pallet.actions :refer [remote-file]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.session :refer [session with-session]]
    [pallet.crate :refer [admin-group]]
    [pallet.crate.sudoers :as sudoers]
+   [pallet.session :refer [session with-session]]
    [pallet.test-utils :refer [make-node test-session with-private-vars]]))
 
 (use-fixtures :once (logging-threshold-fixture))

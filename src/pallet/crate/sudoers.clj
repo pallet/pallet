@@ -3,17 +3,16 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [package remote-file]]
-   [pallet.core.api :as api :refer [plan-fn]]
-   [pallet.core.group :as group]
    [pallet.core.plan-state]
-   [pallet.core.spec :as spec :refer [admin-group]]
-   [pallet.core.target :as target]
-   [pallet.crate
-    :refer [assoc-settings defplan get-settings phase-context update-settings]]
    [pallet.crate-install :as crate-install]
+   [pallet.group :as group]
+   [pallet.plan :refer [defplan plan-fn]]
    [pallet.script.lib :refer [file config-root]]
+   [pallet.settings :refer [assoc-settings get-settings update-settings]]
+   [pallet.session :refer [target-session?]]
+   [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
-   [pallet.template :as template]
+   [pallet.target :as target :refer [admin-group]]
    [pallet.utils :as utils :refer [conj-distinct]]))
 
 ;; TODO - add recogintion of +key or key+
@@ -24,6 +23,7 @@
 
 (defn default-specs
   [session]
+  {:pre [(target-session? session)]}
   (let [admin-group (admin-group session)]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
@@ -32,6 +32,7 @@
 
 (defn default-settings
   [session]
+  {:pre [(target-session? session)]}
   {:sudoers-file (fragment (file (config-root) sudoers))
    :args [[(array-map) (array-map) (default-specs session)]]
    :install-strategy :packages
@@ -39,6 +40,7 @@
 
 (defplan settings
   [session settings & {:keys [instance-id] :as options}]
+  {:pre [(target-session? session)]}
   (let [settings (merge (default-settings session) settings)]
     (logging/debugf "sudoers settings %s %s" instance-id settings)
     (assoc-settings session facility settings options)))
@@ -49,6 +51,7 @@
 
 (defplan default-specs
   [session]
+  {:pre [(target-session? session)]}
   (let [admin-group (admin-group session)]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}

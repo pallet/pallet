@@ -20,7 +20,6 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.async :refer [go-try]]
    [pallet.compute :as compute]
    [pallet.environment]
    [pallet.compute.implementation :as implementation]
@@ -30,7 +29,8 @@
    [pallet.core.protocols :as core-impl]
    [pallet.environment :as environment]
    [pallet.node :as node]
-   [pallet.utils :refer [apply-map]])
+   [pallet.utils :refer [apply-map]]
+   [pallet.utils.async :refer [go-try]])
   (:import
    java.net.InetAddress))
 

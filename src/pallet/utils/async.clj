@@ -1,6 +1,7 @@
-(ns pallet.async
+(ns pallet.utils.async
   "Generally useful async functions"
   (:require
+   [clojure.core.async.impl.protocols :refer [Channel]]
    [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
    [clojure.core.typed.async :refer [go> ReadOnlyPort]]
    [clojure.core.async
@@ -9,6 +10,10 @@
    [pallet.core.types :refer [ErrorMap]]
    [pallet.utils :refer [combine-exceptions]]))
 
+
+;;; # Helpers for external protocols
+(defn ^:no-check channel? [x]
+  (satisfies? Channel x))
 
 (defmacro go-logged
   "Provides a go macro, where any exception thrown by body is logged."
@@ -77,20 +82,6 @@
         (close! to))))
   ([chans to]
      (concat-chans chans to true)))
-
-
-(defn map-chan
-  "Apply a function, f, to values from the from channel, writing the
-  return to the to channel. Closes the to channel when the from
-  channel closes."
-  [from f to]
-  (go-try
-   (loop []
-     (let [x (<! from)]
-       (when-not (nil? x)
-         (>! to (f x))
-         (recur)))
-     (close! to))))
 
 
 ;;; # Result Exception Tuples
@@ -177,8 +168,18 @@
            (when e (throw e))
            res)))
 
-
-
+(defn map-chan
+  "Apply a function, f, to values from the from channel, writing the
+  return to the to channel. Closes the to channel when the from
+  channel closes."
+  [from f to]
+  (go-try
+   (loop []
+     (let [x (<! from)]
+       (when-not (nil? x)
+         (>! to (f x))
+         (recur)))
+     (close! to))))
 
 
 ;; Local Variables:

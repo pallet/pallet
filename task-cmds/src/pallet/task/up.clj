@@ -7,7 +7,7 @@
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
    [pallet.compute :refer [service-properties]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.node :refer [node-map]]
    [pallet.task-utils
     :refer [comma-sep->kw-seq

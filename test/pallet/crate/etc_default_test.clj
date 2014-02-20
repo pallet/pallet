@@ -6,8 +6,8 @@
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.crate :refer [phase-context]]
    [pallet.crate.etc-default :as default]
+   [pallet.plan :refer [plan-context]]
    [pallet.test-utils
     :refer [with-bash-script-language
             with-ubuntu-script-template]]))
@@ -22,7 +22,7 @@
   (is (script-no-comment=
        (first
         (build-actions {:server {:image {:os-family :ubuntu}}}
-          (phase-context write {}
+          (plan-context write {}
             (remote-file
              "/etc/default/tomcat6"
              :owner "root:root"
@@ -37,7 +37,7 @@
   (is (script-no-comment=
        (first
         (build-actions {:server {:image {:os-family :ubuntu}}}
-          (phase-context write {}
+          (plan-context write {}
             (remote-file
              "/etc/tomcat/tomcat6"
              :owner "root:root"

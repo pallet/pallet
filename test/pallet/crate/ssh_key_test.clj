@@ -7,8 +7,7 @@
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
-   [pallet.core.api :refer [phase-errors]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.crate.ssh-key :refer :all]
    [pallet.live-test :as live-test]
    [pallet.script.lib :as lib]
@@ -18,6 +17,7 @@
             no-location-info
             test-username
             with-ubuntu-script-template]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [with-temp-file]]))
 
 (use-fixtures

@@ -1,4 +1,4 @@
-(ns pallet.core.group
+(ns pallet.group
   "Pallet Group functions for adjusting nodes
 
 Provides the node-spec, service-spec and group-spec abstractions.
@@ -7,6 +7,9 @@ Provides the lift and converge operations.
 
 Uses a TargetMap to describe a node with its group-spec info."
   (:require
+   [clj-schema.schema
+    :refer [constraints def-map-schema map-schema optional-path seq-schema
+            sequence-of set-of wild]]
    [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
@@ -16,35 +19,94 @@ Uses a TargetMap to describe a node with its group-spec info."
    [clojure.set :refer [union]]
    [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
-   [pallet.async
-    :refer [concat-chans exec-operation from-chan go-logged go-try
-            reduce-results]]
+   [pallet.blobstore :refer [blobstore?]]
    [pallet.compute
-    :refer [node-spec create-nodes destroy-nodes nodes service-properties]]
-   [pallet.contracts
-    :refer [check-converge-options
-            check-group-spec
-            check-lift-options]]
-   [pallet.core.api :as api :refer [errors]]
+    :refer [check-node-spec compute-service? node-spec nodes
+            service-properties]]
+   [pallet.contracts :refer [check-spec]]
    [pallet.core.executor.ssh :as ssh]
-   [pallet.core.phase :as phase :refer [phases-with-meta process-phases]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
-   [pallet.core.session :as session
-    :refer [base-session? extension plan-state
-            recorder target target-session? update-extension]]
-   [pallet.core.spec
-    :refer [create-targets default-phase-meta destroy-targets extend-specs
-            lift-op* lift-phase merge-spec-algorithm merge-specs
-            os-detection-phases target-id-map targets]]
-   [pallet.core.user :as user]
    [pallet.environment :refer [merge-environments]]
    [pallet.node :as node :refer [node?]]
+   [pallet.phase :as phase :refer [phases-with-meta process-phases]]
+   [pallet.plan :as api :refer [errors]]
+   [pallet.session :as session
+    :refer [base-session? extension plan-state
+            recorder target target-session? update-extension]]
+   [pallet.spec :as spec
+    :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
+            targets]]
+   [pallet.target-ops
+    :refer [create-targets destroy-targets lift-op* lift-phase
+            os-detection-phases target-id-map]]
    [pallet.thread-expr :refer [when->]]
+   [pallet.user :as user]
    [pallet.utils
-    :refer [combine-exceptions maybe-update-in total-order-merge]]))
+    :refer [combine-exceptions maybe-update-in total-order-merge]]
+   [pallet.utils.async
+    :refer [channel? concat-chans exec-operation from-chan go-logged go-try
+            reduce-results]])
+  (:import clojure.lang.IFn
+           clojure.lang.Keyword))
 
 ;;; # Domain Model
+
+;;; ## Schemas
+
+(def phase-with-args-schema
+  (seq-schema
+   :all
+   (constraints (fn [s] (keyword? (first s))))
+   wild))
+
+(def phase-schema
+  [:or Keyword IFn phase-with-args-schema])
+
+(def-map-schema environment-strict-schema
+  [(optional-path [:algorithms]) (map-schema :loose [])
+   (optional-path [:user]) user/user-schema
+   (optional-path [:executor]) IFn
+   (optional-path [:compute]) [:or compute-service? nil]])
+
+(def-map-schema group-spec-schema
+  spec/server-spec-schema
+  [[:group-name] Keyword
+   (optional-path [:node-filter]) IFn
+   (optional-path [:count]) Number])
+
+(def-map-schema lift-options-schema
+  environment-strict-schema
+  [(optional-path [:compute]) [:or compute-service? nil]
+   (optional-path [:blobstore]) [:or nil blobstore?]
+   (optional-path [:phase]) [:or phase-schema (sequence-of phase-schema)]
+   (optional-path [:environment]) (map-schema :loose environment-strict-schema)
+   (optional-path [:user]) user/user-schema
+   (optional-path [:status-chan]) channel?
+   (optional-path [:close-status-chan?]) wild
+   (optional-path [:async]) wild
+   (optional-path [:timeout-ms]) Number
+   (optional-path [:timeout-val]) wild
+   (optional-path [:debug :script-comments]) wild
+   (optional-path [:debug :script-trace]) wild
+   (optional-path [:os-detect]) wild
+   (optional-path [:all-node-set]) set?])
+
+(def-map-schema converge-options-schema
+  lift-options-schema
+  [[:compute] compute-service?])
+
+(defmacro check-group-spec
+  [m]
+  (check-spec m `group-spec-schema &form))
+
+(defmacro check-lift-options
+  [m]
+  (check-spec m `lift-options-schema &form))
+
+(defmacro check-converge-options
+  [m]
+  (check-spec m `converge-options-schema &form))
 
 ;;; ## Group-spec
 
@@ -290,6 +352,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   fall back onto checking the whether the node's base-name matches the
   group name."
   [node group-name]
+  {:pre [(node? node)]}
   (if (node/taggable? node)
     (= group-name (node/tag node group-name-tag))
     (node/has-base-name? node group-name)))
@@ -299,7 +362,8 @@ Uses a TargetMap to describe a node with its group-spec info."
   "Check if a node satisfies a group's node-filter."
   {:internal true}
   [node group]
-  {:pre [(check-group-spec group)]}
+  {:pre [(node? node)
+         (check-group-spec group)]}
   (debugf "node-in-group? node %s group %s" node group)
   (debugf "node-in-group? node in group %s" (node-has-group-name? node (name (:group-name group))))
   ((:node-filter group #(node-has-group-name? % (name (:group-name group))))
@@ -313,7 +377,8 @@ Uses a TargetMap to describe a node with its group-spec info."
   "Build a map entry from a node and a list of groups."
   {:internal true}
   [groups node]
-  {:pre [(every? #(check-group-spec %) groups)]}
+  {:pre [(every? #(check-group-spec %) groups)
+         (node? node)]}
   (when-let [groups (seq (->>
                           groups
                           (filter (fn> [group :- GroupSpec]
@@ -718,6 +783,9 @@ the :destroy-server, :destroy-group, and :create-group phases."
 (defn all-group-nodes
   "Returns the service state for the specified groups"
   [compute groups all-node-set]
+  {:pre [(compute-service? compute)
+         (every? #(check-group-spec %) groups)
+         (every? #(check-group-spec %) all-node-set)]}
   (service-state
    (nodes compute)
    (concat groups (map

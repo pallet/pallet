@@ -1,77 +1,91 @@
-;; (ns pallet.phase
-;;   "A phase is a function of a single `session` argument, that contains
-;;    calls to crate functions or actions. A phase has an implicitly
-;;    defined pre and post phase."
-;;   (:require
-;;    [pallet.core.session :refer [session session! session-context]]
-;;    [pallet.session.verify :refer [check-session]]))
+(ns pallet.phase
+  "# Pallet phase maps.
 
-;; (defn pre-phase-name
-;;   "Return the name for the pre-phase for the given `phase`."
-;;   [phase]
-;;   (keyword "pallet.phase" (str "pre-" (name phase))))
+Phase maps provide a way of naming functions at runtime.  A phase map
+is just a hash-map with keys that are keywords (the phases) and values
+that are pallet plan functions.
 
-;; (defn post-phase-name
-;;   "Return the name for the post-phase for the given `phase`."
-;;   [phase]
-;;   (keyword "pallet.phase" (str "post-" (name phase))))
+Phase maps enable composition of operations across heterogenous nodes."
+  (:require
+   [clojure.core.async :as async :refer [go <!]]
+   [clojure.core.typed
+    :refer [ann ann-form def-alias doseq> fn> for> letfn> inst tc-ignore
+            AnyInteger Map Nilable NilableNonEmptySeq
+            NonEmptySeqable Seq Seqable]]
+   [clojure.tools.logging :as logging :refer [debugf tracef]]
+   [pallet.core.plan-state :as plan-state]
+   [pallet.middleware :as middleware]
+   [pallet.node :as node]
+   [pallet.plan :as api]
+   [pallet.tag :as tag]
+   [pallet.user :refer [obfuscated-passwords]]
+   [pallet.utils :refer [deep-merge]]))
 
-;; (defn all-phases-for-phase
-;;   "Return a sequence including the implicit pre and post phases for a phase."
-;;   [phase]
-;;   [(pre-phase-name phase) phase (post-phase-name phase)])
+;;; # Phase specification functions
+(ann phase-args [Phase -> (Nilable (Seqable Any))])
+(defn phase-args [phase]
+  (if (keyword? phase)
+    nil
+    (rest phase)))
 
-;; (defn subphase-for
-;;   "Return the phase this is a subphase for, or nil if not a subphase"
-;;   [phase]
-;;   (when (= (namespace phase) "pallet.phase")
-;;     (let [n (name phase)
-;;           [_ pre] (re-matches #"pre-(.*)" n)
-;;           [_ post] (re-matches #"post-(.*)" n)
-;;           p (or pre post)]
-;;       (when p
-;;         (keyword p)))))
+(ann phase-kw [Phase -> Keyword])
+(defn phase-kw [phase]
+  (if (keyword? phase)
+    phase
+    (first phase)))
 
-;; (defmacro ^{:requires [#'session-context session! session]}
-;;   schedule-in-pre-phase
-;;   "Specify that the body should be executed in the pre-phase."
-;;   [& body]
-;;   `(session-context
-;;     schedule-in-pre-phase {}
-;;     (let [phase# (get (session) :phase)]
-;;       (session! (assoc (session) :phase (pre-phase-name phase#)))
-;;       ~@body
-;;       (session! (assoc (session) :phase phase#)))))
+(ann target-phase [PhaseTarget Phase -> [Any * -> Any]])
+(defn target-phase [phases-map phase]
+  (tracef "target-phase %s %s" phases-map phase)
+  ;; TODO switch back to keyword invocation when core.typed can handle it
+  (get phases-map (phase-kw phase)))
 
-;; (defmacro schedule-in-post-phase
-;;   "Specify that the body should be executed in the post-phase."
-;;   [& body]
-;;   `(session-context
-;;     schedule-in-post-phase {}
-;;     (let [phase# (get (session) :phase)]
-;;       (session! (assoc (session) :phase (post-phase-name phase#)))
-;;       ~@body
-;;       (session! (assoc (session) :phase phase#)))))
+;;; # Phase metadata
+(defn phases-with-meta
+  "Takes a `phases-map` and applies the default phase metadata and the
+  `phases-meta` to the phases in it."
+  [phases-map phases-meta default-phase-meta]
+  (reduce-kv
+   (fn [result k v]
+     (let [dm (default-phase-meta k)
+           pm (get phases-meta k)]
+       (assoc result k (if (or dm pm)
+                         ;; explicit overrides default
+                         (vary-meta v #(merge dm % pm))
+                         v))))
+   nil
+   (or phases-map {})))
 
-;; (defmacro ^{:requires [check-session]}
-;;   check-session-thread
-;;   "Add session checking to a sequence of calls which thread a session
-;;    map. e.g.
+;;; # Execution
+(ann execute-phase [BaseSession Node Phase -> PlanResult])
+(defn execute-phase
+  "Apply phase to target.
+  Phase is either a keyword, or a vector of keyword and phase arguments."
+  ([session node phases-map phase execute-f]
+     (let [plan-fn (target-phase phases-map phase)]
+       (debugf "execute-phase %s %s" phase plan-fn)
+       (middleware/execute session node plan-fn execute-f)))
+  ([session node phases-map phase]
+     (let [plan-fn (target-phase phases-map phase)]
+       (debugf "execute-phase %s %s" phase plan-fn)
+       (middleware/execute session node plan-fn))))
 
-;;        (->
-;;          session
-;;          (check-session-thread
-;;            (file \"/some-file\")
-;;            (file \"/other-file\")))
 
-;;    The example is thus equivalent to:
-
-;;        (-> session
-;;          (check-session \"The session passed to the pipeline\")
-;;          (check-session (file \"/some-file\"))
-;;          (check-session (file \"/other-file\")))"
-;;   [arg & body]
-;;   `(->
-;;     ~arg
-;;     (check-session "The session passed to the pipeline")
-;;     ~@(mapcat (fn [form] [form `(check-session '~form)]) body)))
+;;; # Phase Specification
+(defn process-phases
+  "Process phases. Returns a phase list and a phase-map. Functions specified in
+  `phases` are identified with a keyword and a map from keyword to function.
+  The return vector contains a sequence of phase keywords and the map
+  identifying the anonymous phases."
+  [phases]
+  (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
+    (reduce
+     (fn [[phase-kws phase-map] phase]
+       (if (or (keyword? phase)
+               (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
+         [(conj phase-kws phase) phase-map]
+         (let [phase-kw (-> (gensym "phase")
+                            name keyword)]
+           [(conj phase-kws phase-kw)
+            (assoc phase-map phase-kw phase)])))
+     [[] {}] phases)))

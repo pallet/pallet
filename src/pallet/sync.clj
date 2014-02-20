@@ -6,8 +6,8 @@ of a phase, across all targets in the parent phase."
   (:require
    [clojure.core.async :as async :refer [chan close! go thread <! <!!]]
    [clojure.tools.logging :refer [debugf]]
-   [pallet.async :refer [go-logged]]
-   [pallet.sync.protocols :as impl]))
+   [pallet.sync.protocols :as impl]
+   [pallet.utils.async :refer [go-logged]]))
 
 (defn enter-phase-targets
   "Enter phase on all the targets, with no synchronisation.

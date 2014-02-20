@@ -1,23 +1,79 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
+   [clj-schema.schema
+    :refer [def-map-schema map-schema optional-path sequence-of wild]]
    [clojure.core.async :as async :refer [<!! <! >! chan]]
    [clojure.core.typed
     :refer [ann
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
             Seq]]
    [clojure.tools.macro :refer [name-with-attributes]]
-   [pallet.async :refer [go-try]]
-   [pallet.contracts :refer [check-node-spec]]
    [pallet.core.types                   ; before any protocols
     :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
             User]]
    [pallet.compute.protocols :as impl :refer [Node]]
-   [pallet.core.protocols :as core-impl]
    [pallet.compute.implementation :as implementation]
+   [pallet.contracts :refer [check-spec]]
+   [pallet.core.protocols :as core-impl]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.utils :refer [maybe-assoc]]
+   [pallet.utils.async :refer [go-try]]
    [pallet.versions :refer [as-version-vector]]))
+
+;;; ## Schema types
+
+;;; node-spec contains loose schema, as these vary by, and should be enforced by
+;;; the providers.
+(def-map-schema :loose image-spec-schema
+  [(optional-path [:image-id]) [:or String Keyword]
+   (optional-path [:image-description-matches]) String
+   (optional-path [:image-name-matches]) String
+   (optional-path [:image-version-matches]) String
+   (optional-path [:os-family]) Keyword
+   (optional-path [:os-64-bit]) wild
+   (optional-path [:os-arch-matches]) String
+   (optional-path [:os-description-matches]) String
+   (optional-path [:os-name-matches]) String
+   (optional-path [:os-version-matches]) String
+   (optional-path [:hypervisor-matches]) String
+   (optional-path [:override-login-user]) String])
+
+(def-map-schema :loose location-spec-schema
+  [(optional-path [:location-id]) String])
+
+(def-map-schema :loose hardware-spec-schema
+  [(optional-path [:hardware-id]) String
+   (optional-path [:min-ram]) Number
+   (optional-path [:min-cores]) Number
+   (optional-path [:min-disk]) Number])
+
+(def-map-schema inbound-port-spec-schema
+  [[:start-port] Number
+   (optional-path [:end-port]) Number
+   (optional-path [:protocol]) String])
+
+(def inbound-port-schema
+  [:or inbound-port-spec-schema Number])
+
+(def-map-schema :loose network-spec-schema
+  [(optional-path [:inbound-ports]) (sequence-of inbound-port-schema)])
+
+(def-map-schema :loose qos-spec-schema
+  [(optional-path [:spot-price]) Number
+   (optional-path [:enable-monitoring]) wild])
+
+(def-map-schema node-spec-schema
+  [(optional-path [:image]) image-spec-schema
+   (optional-path [:location]) location-spec-schema
+   (optional-path [:hardware]) hardware-spec-schema
+   (optional-path [:network]) network-spec-schema
+   (optional-path [:qos]) qos-spec-schema])
+
+(defmacro check-node-spec
+  [m]
+  (check-spec m `node-spec-schema &form))
+
 
 ;;; Meta
 (ann supported-providers [-> (NilableNonEmptySeq ProviderIdentifier)])

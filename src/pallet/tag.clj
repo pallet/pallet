@@ -1,4 +1,4 @@
-(ns pallet.core.tag
+(ns pallet.tag
   "Tagging of nodes.
 
 TODO: This should be abstracted at this level, rather than in the
@@ -13,7 +13,7 @@ level?"
    [clojure.string :refer [blank?]]
    [pallet.core.types                   ; before any protocols
     :refer [assert-type-predicate keyword-map?]]
-   [pallet.node :refer [id image-user tag tag! taggable?]]))
+   [pallet.node :refer [id image-user node? tag tag! taggable?]]))
 
 ;;; # Node state tagging
 (ann state-tag-name String)

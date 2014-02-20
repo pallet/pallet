@@ -5,9 +5,9 @@
    [pallet.actions :refer [rsync rsync-directory]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer [phase-errors]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.test-utils :refer [make-localhost-compute test-username]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]))
 
 (use-fixtures :once (logging-threshold-fixture))

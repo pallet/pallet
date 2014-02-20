@@ -9,12 +9,11 @@
             remote-file
             remote-file-content
             sed]]
-   [pallet.core.session :refer [admin-user]]
-   [pallet.crate :refer [defplan]]
-   [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [user-home]]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [fragment with-source-line-comments]]))
+   [pallet.group :refer [admin-user]]
+   [pallet.plan :refer [defplan]]
+   [pallet.script.lib :as lib :refer [user-home]]
+   [pallet.stevedore :as stevedore
+    :refer [fragment with-source-line-comments]]))
 
 (defn user-ssh-dir [user]
   (str

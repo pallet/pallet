@@ -17,8 +17,8 @@ data may provide a version."
    [pallet.versions :refer [version-spec?]]
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
-   [pallet.core.api :refer [phase-context]]
-   [pallet.core.session :refer [os-family os-version]]
+   [pallet.plan :refer [plan-context]]
+   [pallet.target :refer [os-family os-version]]
    [pallet.versions :refer [as-version-vector version-matches?]]))
 
 (defn ^{:internal true} hierarchy-vals
@@ -119,7 +119,7 @@ refers to a software package version of some sort, on the specified `os` and
             (fn ~(symbol
                   (str (name os) "-" os-version "-" (string/join "" version)))
               [~@args]
-              (phase-context
+              (plan-context
                   ~(symbol
                     (str (name os) "-" os-version "-" (string/join "" version)))
                   {}

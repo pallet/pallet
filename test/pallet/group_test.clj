@@ -1,4 +1,4 @@
-(ns pallet.core.group-test
+(ns pallet.group-test
   (:require
    [clojure.core.async :refer [<!! chan]]
    [clojure.stacktrace :refer [print-cause-trace]]
@@ -7,17 +7,17 @@
    [pallet.actions.test-actions :refer [fail]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.api :refer :all]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.executor.plan :as plan]
    [pallet.core.executor.ssh :as ssh]
-   [pallet.core.group :as group]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :as session :refer [executor plan-state recorder]]
    [pallet.crate.os :refer [os]]
+   [pallet.group :as group]
+   [pallet.plan :refer :all]
+   [pallet.session :as session :refer [executor plan-state recorder]]
    [pallet.test-utils :refer [make-localhost-compute]]))
 
 ;; (deftest service-state-test

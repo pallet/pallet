@@ -5,7 +5,7 @@
    [clojure.string :as string]
    [pallet.action :refer [action-fn implement-action]]
    [pallet.actions :refer [directory]]
-   [pallet.actions-impl :refer [md5-filename new-filename]]
+   [pallet.actions.impl :refer [md5-filename new-filename]]
    [pallet.actions.decl
     :refer [checked-commands remote-directory-action remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]

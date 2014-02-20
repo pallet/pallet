@@ -5,15 +5,15 @@
    implemented as script."
   (:require
    [clojure.tools.macro :refer [name-with-attributes]]
-   [pallet.action-impl
+   [pallet.action.impl
     :refer [action-implementation
             action-symbol
             add-action-implementation!
             make-action]]
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
-   [pallet.core.api :refer [execute-action]]
-   [pallet.core.session :refer [target-session?]]
+   [pallet.plan :refer [execute-action]]
+   [pallet.session :refer [target-session?]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [compiler-exception]]))
 

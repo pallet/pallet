@@ -8,12 +8,13 @@
    [pallet.actions :refer [directory exec-checked-script remote-file]]
    [pallet.api :as api]
    [pallet.api :refer [plan-fn]]
-   [pallet.crate :refer [get-settings target-flag? update-settings]]
+   [pallet.crate :refer [target-flag?]]
    [pallet.crate.service
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
    [pallet.script.lib :refer [file state-root]]
+   [pallet.settings :refer [get-settings update-settings]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 

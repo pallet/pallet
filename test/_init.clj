@@ -6,7 +6,7 @@
    [pallet.actions :refer [directory]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer [phase-errors throw-phase-errors]]
+   [pallet.plan :refer [phase-errors throw-phase-errors]]
    [pallet.crate :refer [admin-user]]
    [pallet.script.lib :refer [file state-root]]
    [pallet.stevedore :refer [fragment]]

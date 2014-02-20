@@ -15,20 +15,19 @@
             remote-file-content
             transfer-file-to-local
             with-remote-file]]
-   [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.actions.impl :refer [copy-filename md5-filename new-filename]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.build-actions :as build-actions :refer [build-script]]
    [pallet.common.logging.logutils :as logutils :refer [with-log-to-string]]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
-   [pallet.core.api :as core-api :refer [phase-errors]]
-   [pallet.core.session :refer [with-session]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :as core-api :refer [phase-errors]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
    [pallet.script.lib :as lib :refer [user-home]]
+   [pallet.session :refer [with-session]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-executors :as test-executors]
    [pallet.test-utils :as test-utils]
@@ -38,6 +37,7 @@
             test-session
             verify-flag-not-set
             verify-flag-set]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]
    [pallet.utils :refer [tmpdir with-temporary]]))
 

@@ -1,11 +1,11 @@
-(ns pallet.actions-impl
+(ns pallet.actions.impl
   "Implementation namespace for Pallet's action primitives."
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
-   [pallet.core.session :refer [admin-user]]
+   [pallet.session :refer [user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
    [pallet.stevedore :refer [fragment script]]))
@@ -70,7 +70,7 @@
      (file ~(or script-dir
                 ;; use /home so we have a path tha doesn't
                 ;; involve shell vars
-                (str "/home/" (:username (admin-user))))
+                (str "/home/" (:username (user {})))) ;; TODO FIXME
            ~path))))
 
 (defn new-filename

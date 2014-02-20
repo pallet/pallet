@@ -4,7 +4,7 @@
    [clojure.pprint :refer [print-table]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [pallet.api :as api]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.task-utils :refer [pallet-project process-args project-groups]]
    [pallet.utils :refer [apply-map]]))
 

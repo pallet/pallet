@@ -20,7 +20,7 @@
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [pallet.core.api :refer [phase-errors service-state]]
+   [pallet.plan :refer [phase-errors service-state]]
    [pallet.core.operations :refer [converge]]
    [pallet.core.primitives :refer [async-operation]]
    [pallet.environment :refer [environment]]

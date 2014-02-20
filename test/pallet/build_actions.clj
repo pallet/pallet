@@ -8,10 +8,9 @@
    [pallet.compute :as compute]
    [pallet.context :as context]
    [pallet.context :refer [with-phase-context]]
-   [pallet.core.api
+   [pallet.plan
     :refer [action-plan execute-phase-on-target stop-execution-on-error]]
-   [pallet.core.api-impl :refer [with-script-for-node]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.executors :refer [echo-executor]]
@@ -21,6 +20,7 @@
    [pallet.session.action-plan :refer [target-path]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]))
 
 (defn- trim-if-string [s]

@@ -2,8 +2,8 @@
   (:require
    [clojure.test :refer :all]
    [pallet.api :refer [group-spec]]
-   [pallet.core.session :refer [session with-session]]
    [pallet.crate :refer :all]
+   [pallet.session :refer [session with-session]]
    [pallet.session.verify :refer [add-session-verification-key]]
    [pallet.test-utils :as test-utils]
    [pallet.test-utils :refer [make-node test-session]]))

@@ -1,7 +1,7 @@
 (ns pallet.action-options
   "Options for controlling the behaviour of actions."
   (:require
-   [pallet.core.session :as session]))
+   [pallet.session :as session]))
 
 ;;; # Action Options
 

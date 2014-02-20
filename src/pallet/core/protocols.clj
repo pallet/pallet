@@ -33,10 +33,6 @@
 
 
 
-;;; # Helpers for external protocols
-(defn ^:no-check channel? [x]
-  (satisfies? Channel x))
-
 
 
 

@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer :all]
+   [pallet.plan :refer :all]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.executor.plan :as plan]
    [pallet.core.executor.ssh :as ssh]
@@ -11,8 +11,8 @@
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :as session :refer [executor plan-state recorder]]
-   [pallet.crate.os :refer [os]]))
+   [pallet.crate.os :refer [os]]
+   [pallet.session :as session :refer [executor plan-state recorder]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

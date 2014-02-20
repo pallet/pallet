@@ -7,8 +7,9 @@
             package
             package-manager
             package-source]]
-   [pallet.crate
-    :refer [assoc-settings defplan get-settings os-family os-version]]))
+   [pallet.plan :refer [defplan]]
+   [pallet.settings :refer [assoc-settings get-settings]]
+   [pallet.spec :refer [os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/

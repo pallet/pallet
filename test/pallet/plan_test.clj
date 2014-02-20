@@ -1,17 +1,17 @@
-(ns pallet.core.api-test
+(ns pallet.plan-test
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer :all]
    [pallet.core.executor.plan :as plan]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :as session
+   [pallet.plan :refer :all]
+   [pallet.session :as session
     :refer [executor recorder set-target set-user]]
-   [pallet.core.user :as user]))
+   [pallet.user :as user]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

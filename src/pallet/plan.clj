@@ -1,4 +1,4 @@
-(ns pallet.core.api
+(ns pallet.plan
   "API for execution of pallet plan functions.
 
 TODO: consider renaming this to pallet.core.plan, and reserving the
@@ -9,6 +9,7 @@ functions with more defaults, etc."
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
+   [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.core.type-annotations]
    [pallet.core.types                   ; before any protocols
     :refer [assert-not-nil assert-type-predicate keyword-map?
@@ -24,13 +25,14 @@ functions with more defaults, etc."
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
-   [pallet.core.session
+   [pallet.node :refer [node?]]
+   [pallet.session
     :refer [base-session?
-            executor plan-state recorder remove-system-targets set-target
+            executor plan-state recorder set-target
             set-executor set-recorder target-session? user]]
-   [pallet.core.user :refer [obfuscated-passwords user?]]
-   [pallet.execute :refer [parse-shell-result]]
-   [pallet.node :refer [node?]])
+   [pallet.user :refer [obfuscated-passwords user?]]
+   [pallet.utils
+    :refer [apply-map compiler-exception local-env map-arg-and-ref]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
@@ -193,16 +195,16 @@ The result is also written to the recorder in the session."
 ;;; The phase context is used in actions and crate functions. The
 ;;; phase context automatically sets up a context, which is available
 ;;; (for logging, etc) at phase execution time.
-(defmacro phase-context
+(defmacro plan-context
   "Defines a block with a context that is automatically added."
   {:indent 2}
-  [pipeline-name event & args]
+  [context-name event & args]
   (let [line (-> &form meta :line)]
     `(with-phase-context
-       (merge {:kw ~(list 'quote pipeline-name)
-               :msg ~(if (symbol? pipeline-name)
-                       (name pipeline-name)
-                       pipeline-name)
+       (merge {:kw ~(list 'quote context-name)
+               :msg ~(if (symbol? context-name)
+                       (name context-name)
+                       context-name)
                :ns ~(list 'quote (ns-name *ns*))
                :line ~line
                :log-level :trace}
@@ -227,8 +229,108 @@ The result is also written to the recorder in the session."
         args (if n? (first body) args)
         body (if n? (rest body) body)]
     (if n
-      `(fn ~n ~args (phase-context ~(gensym (name n)) {} ~@body))
-      `(fn ~args (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
+      `(fn ~n ~args (plan-context ~(gensym (name n)) {} ~@body))
+      `(fn ~args (plan-context ~(gensym "a-plan-fn") {} ~@body)))))
+
+
+(defn final-fn-sym?
+  "Predicate to match the final function symbol in a form."
+  [sym form]
+  (loop [form form]
+    (when (sequential? form)
+      (let [s (first form)]
+        (if (and (symbol? s) (= sym (symbol (name s))))
+          true
+          (recur (last form)))))))
+
+(defmacro defplan
+  "Define a plan function."
+  {:arglists '[[name doc-string? attr-map? [params*] body]]
+   :indent 'defun}
+  [sym & body]
+  (letfn [(output-body [[args & body]]
+            (let [no-context? (final-fn-sym? sym body)
+                  [session-arg session-ref] (map-arg-and-ref (first args))]
+              `([~session-arg ~@(rest args)]
+                  ;; if the final function call is recursive, then
+                  ;; don't add a plan-context, so that just
+                  ;; forwarding different arities only gives one log
+                  ;; entry/event, etc.
+                  {:pre [(target-session? ~session-arg)]}
+                  ~@(if no-context?
+                      body
+                      [(let [locals (gensym "locals")]
+                         `(let [~locals (local-env)]
+                            (plan-context
+                                ~(symbol (str (name sym) "-cfn"))
+                                {:msg ~(str sym)
+                                 :kw ~(keyword sym)
+                                 :locals ~locals}
+                              ~@body)))]))))]
+    (let [[sym rest] (name-with-attributes sym body)
+          sym (vary-meta sym assoc :pallet/plan-fn true)]
+      (if (vector? (first rest))
+        `(defn ~sym
+           ~@(output-body rest))
+        `(defn ~sym
+           ~@(map output-body rest))))))
+
+;;; Multi-method for plan functions
+(defmacro defmulti-plan
+  "Declare a multimethod for plan functions"
+  {:arglists '([name docstring? attr-map? dispatch-fn
+                & {:keys [hierarchy] :as options}])}
+  [name & args]
+  (let [[docstring args] (if (string? (first args))
+                           [(first args) (rest args)]
+                           [nil args])
+        [attr-map args] (if (map? (first args))
+                          [(first args) (rest args)]
+                          [nil args])
+        dispatch-fn (first args)
+        {:keys [hierarchy]
+         :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
+        args (first (filter vector? dispatch-fn))
+        name (vary-meta name assoc :pallet/plan-fn true)]
+    `(let [a# (atom {})]
+       (def
+         ~name
+         ^{:dispatch-fn (fn [~@args] ~@(rest dispatch-fn))
+           :methods a#}
+         (fn [~@args]
+           (let [dispatch-val# ((-> ~name meta :dispatch-fn) ~@args)]
+             (if-let [f# (or (get @a# dispatch-val#)
+                             (some
+                              (fn [[k# f#]]
+                                (when (isa? @~hierarchy dispatch-val# k#)
+                                  f#))
+                              @a#))]
+               (f# ~@args)
+               (throw
+                (ex-info
+                 (format "Missing plan-multi %s dispatch for %s"
+                         ~(clojure.core/name name) (pr-str dispatch-val#))
+                 {:reason :missing-method
+                  :plan-multi ~(clojure.core/name name)})))))))))
+
+(defn
+  ^{:internal true :indent 2}
+  add-plan-method-to-multi
+  [multifn dispatch-val f]
+  (swap! (-> multifn meta :methods) assoc dispatch-val f))
+
+(defmacro defmethod-plan
+  {:indent 2}
+  [multifn dispatch-val args & body]
+  (letfn [(sanitise [v]
+            (string/replace (str v) #":" ""))]
+    `(add-plan-method-to-multi ~multifn ~dispatch-val
+       (fn [~@args]
+         (plan-context
+             ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
+             {:msg ~(name multifn) :kw ~(keyword (name multifn))
+              :dispatch-val ~dispatch-val}
+           ~@body)))))
 
 
 ;; Local Variables:

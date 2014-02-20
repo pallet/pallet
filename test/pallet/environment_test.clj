@@ -3,8 +3,8 @@
    [clojure.java.io :as io]
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.core.user :refer [user?]]
-   [pallet.environment :as environment]))
+   [pallet.environment :as environment]
+   [pallet.user :refer [user?]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 

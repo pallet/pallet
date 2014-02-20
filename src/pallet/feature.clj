@@ -32,39 +32,3 @@
   (if (has-feature?* feature)
     true-expr
     false-expr))
-
-(defn multilang-script
-  "Feature for multi-language script execution."
-  [] true)
-
-(defn run-nodes-without-bootstrap
-  "Feature for creating nodes without bootstrapping them."
-  [] true)
-
-(defn taggable-nodes
-  "Feature for tagging nodes."
-  [] true)
-
-(defn core-user
-  "Feature for pallet.core.user."
-  [] true)
-
-(defn node-packager
-  "Feature for pallet.node/NodePackager."
-  [] true)
-
-(defn node-image
-  "Feature for pallet.node/NodeImage."
-  [] true)
-
-(defn node-hardware
-  "Feature for pallet.node/NodeHardware."
-  [] true)
-
-(defn node-proxy
-  "Feature for pallet.node/NodeProxy."
-  [] true)
-
-(defn compute-service-properties
-  "Feature for pallet.compute/ComputeServiceProperties."
-  [] true)

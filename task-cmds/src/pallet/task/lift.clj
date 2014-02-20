@@ -6,7 +6,7 @@
    [clojure.tools.logging :as logging]
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.task :refer [abort maybe-resolve-symbol-string]]
    [pallet.task-utils :refer [pallet-project project-groups]]))
 

@@ -1,10 +1,10 @@
-(ns pallet.core.phase-middleware
+(ns pallet.phase-middleware
   "Middleware that is usable at the phase level.
   The middleware should execute asynchronously."
   (:require
    [clojure.core.async :refer [>!! chan]]
-   [pallet.async :refer [go-try reduce-results]]
-   [pallet.core.api :refer [errors]]))
+   [pallet.plan :refer [errors]]
+   [pallet.utils.async :refer [go-try reduce-results]]))
 
 (defn partition-nodes
   "Return a phase middleware to partition nodes using the specified

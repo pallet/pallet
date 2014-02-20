@@ -8,8 +8,9 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.core.plan-state :refer [get-settings update-settings]]
-   [pallet.core.session :refer [target-id]]
    [pallet.core.types :refer [ActionResult Keyword Session TargetMap User]]
+   [pallet.session :refer [target]]
+   [pallet.target :as target]
    [pallet.utils :refer [maybe-assoc]]))
 
 (ann normalise-eol [String -> String])
@@ -125,7 +126,7 @@
    (if (seq flags)
      (update-in
       session [:plan-state]
-      update-settings (target-id session) :flags union [flags] {})
+      update-settings (target/id (target session)) :flags union [flags] {})
      session)))
 
 (ann set-target-flag-values [Session (Map Keyword String) -> Session])
@@ -137,7 +138,8 @@
    (if (seq flag-values)
      (update-in
       session [:plan-state]
-      update-settings (target-id session) :flag-values union [flag-values] {})
+      update-settings (target/id (target session))
+      :flag-values union [flag-values] {})
      session)))
 
 (ann clear-target-flag [Session Keyword -> Session])
@@ -148,7 +150,7 @@
    [session flag]
    (update-in
     session [:plan-state]
-    update-settings (target-id session) :flags disj [flag] {})))
+    update-settings (target/id (target session)) :flags disj [flag] {})))
 
 (ann target-flag? (Fn [Session Keyword -> boolean]
                       [Keyword -> [Session -> (Vector* boolean Session)]]))
@@ -158,7 +160,9 @@
    "Predicate to test if the specified flag is set for target."
    ([session flag]
       (when-let [flags (get-settings
-                        (get session :plan-state) (target-id session) :flags
+                        (get session :plan-state)
+                        (target/id (target session))
+                        :flags
                         {:default #{}})]
         (logging/tracef "target-flag? flag %s flags %s" flag flags)
         (flags flag)))

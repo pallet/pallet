@@ -2,23 +2,25 @@
   "Pallet's action primitives."
   (:require
    [clj-schema.schema
-    :refer [constraints def-map-schema map-schema optional-path sequence-of]]
+    :refer [constraints def-map-schema map-schema optional-path sequence-of
+            wild]]
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [defaction]]
    [pallet.action-options :refer [action-options with-action-options]]
-   [pallet.actions-impl :refer :all]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl
     :refer [if-action remote-file-action remote-directory-action]]
-   [pallet.contracts :refer [any-value check-spec]]
-   [pallet.core.api :refer [phase-context]]
-   [pallet.core.session :refer [admin-user packager target-node]]
+   [pallet.actions.impl :refer :all]
+   [pallet.contracts :refer [check-spec]]
    [pallet.environment :refer [get-environment]]
    [pallet.node :refer [primary-ip ssh-port]]
+   [pallet.plan :refer [plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
+   [pallet.session :refer [target]]
+   [pallet.target :refer [admin-user node packager]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
@@ -152,24 +154,24 @@
    (optional-path [:md5]) String
    (optional-path [:md5-url]) String
    (optional-path [:content]) String
-   (optional-path [:literal]) any-value
+   (optional-path [:literal]) wild
    (optional-path [:template]) String
    (optional-path [:values]) (map-schema :loose [])
    (optional-path [:action]) Keyword
    (optional-path [:blob]) (map-schema :strict
                                        [[:container] String [:path] String])
-   (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
-   (optional-path [:insecure]) any-value
-   (optional-path [:overwrite-changes]) any-value
-   (optional-path [:install-new-files]) any-value
-   (optional-path [:no-versioning]) any-value
+   (optional-path [:blobstore]) wild  ; cheating to avoid adding a reqiure
+   (optional-path [:insecure]) wild
+   (optional-path [:overwrite-changes]) wild
+   (optional-path [:install-new-files]) wild
+   (optional-path [:no-versioning]) wild
    (optional-path [:max-versions]) Number
    (optional-path [:flag-on-changed]) String
    (optional-path [:owner]) String
    (optional-path [:group]) String
    (optional-path [:mode]) [:or String Number]
-   (optional-path [:force]) any-value
-   (optional-path [:verify]) any-value])
+   (optional-path [:force]) wild
+   (optional-path [:verify]) wild])
 
 (defmacro check-remote-file-arguments
   [m]
@@ -361,7 +363,7 @@ Content can also be copied from a blobstore.
   {:pallet/plan-fn true}
   [f path & args]
   (let [local-path (tmpfile)]
-    (phase-context with-remote-file-fn {:local-path local-path}
+    (plan-context with-remote-file-fn {:local-path local-path}
       (transfer-file-to-local path local-path)
       (apply f local-path args)
       (.delete (io/file local-path)))))
@@ -526,7 +528,7 @@ only specified files or directories, use the :extract-files option.
          :aptitude [\"git-core\" \"git-email\"])"
   {:pallet/plan-fn true}
   [session & {:keys [yum aptitude pacman brew] :as options}]
-  (phase-context packages {}
+  (plan-context packages {}
     (let [packager (packager)]
       (doseq [p (or (options packager)
                     (when (#{:apt :aptitude} packager)
@@ -683,16 +685,16 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
   [session local-path remote-path {:keys [port]
                                    :as options}]
   (rsync* session local-path remote-path
-          (merge {:port (ssh-port (target-node session))
+          (merge {:port (ssh-port (node (target session)))
                   :username (:username (admin-user session))
-                  :ip (primary-ip (target-node session))}
+                  :ip (primary-ip (node (target session)))}
                  options)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   {:pallet/plan-fn true}
   [session from to & {:keys [owner group mode port] :as options}]
-  (phase-context rsync-directory-fn {:name :rsync-directory}
+  (plan-context rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
     ;; root permissions, and doesn't work when this is run without
     ;; root permision
@@ -782,7 +784,7 @@ Deprecated in favour of pallet.crate.service/service."
   [session service-name & body]
   `(let [session# session
          service# ~service-name]
-     (phase-context with-restart {:service service#}
+     (plan-context with-restart {:service service#}
        (service session#  service# :action :stop)
        ~@body
        (service session# service# :action :start))))
@@ -795,7 +797,7 @@ Deprecated in favour of pallet.crate.service/service."
                           force service-impl]
                    :or {action :create service-impl :initd}
                    :as options}]
-  (phase-context init-script {}
+  (plan-context init-script {}
     (apply-map
      pallet.actions/remote-file
      session

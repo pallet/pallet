@@ -6,13 +6,13 @@
    [pallet.actions.direct.service :refer [service-impl]]
    [pallet.api :as api]
    [pallet.api :refer [plan-fn]]
-   [pallet.core.session :refer [session]]
-   [pallet.crate :refer [get-settings update-settings]]
    [pallet.crate.service
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
    [pallet.script.lib :refer [etc-init file]]
+   [pallet.session :refer [session]]
+   [pallet.settings :refer [get-settings update-settings]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 

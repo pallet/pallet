@@ -10,10 +10,10 @@
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.configure :refer [default-compute-service]]
-   [pallet.core.user :refer [*admin-user*]]
    [pallet.environment :as environment]
    [pallet.main :as main]
-   [pallet.main :refer [transient-services]]))
+   [pallet.main :refer [transient-services]]
+   [pallet.user :refer [*admin-user*]]))
 
 (defn log-info
   [admin-user]

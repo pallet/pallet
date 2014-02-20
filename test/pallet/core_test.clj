@@ -1,1 +1,0 @@
-(ns pallet.core-test)

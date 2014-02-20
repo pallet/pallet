@@ -4,9 +4,9 @@
    [clojure.string :as string]
    [pallet.actions :refer [exec-checked-script file remote-file]]
    [pallet.api :refer [plan-fn] :as api]
-   [pallet.crate :refer [assoc-settings get-settings update-settings]]
    [pallet.script :refer [defscript defimpl]]
    [pallet.script.lib :as lib]
+   [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
 

@@ -2,12 +2,12 @@
   (:require
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [package-manager user]]
-   [pallet.core.api :refer [plan-fn]]
-   [pallet.core.group :refer [admin-user]]
-   [pallet.core.spec :refer [server-spec]]
-   [pallet.crate :refer [assoc-settings defplan get-settings update-settings]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
+   [pallet.group :refer [admin-user]]
+   [pallet.plan :refer [defplan plan-fn]]
+   [pallet.settings :refer [assoc-settings get-settings update-settings]]
+   [pallet.spec :refer [server-spec]]
    [pallet.utils :refer [conj-distinct]]))
 
 (def facility ::automated-admin-user)

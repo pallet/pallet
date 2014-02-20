@@ -18,8 +18,8 @@
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute :refer [instantiate-provider]]
-   [pallet.core.user :refer [make-user]]
    [pallet.environment :as environment]
+   [pallet.user :refer [make-user]]
    [pallet.utils :as utils]))
 
 (def ^{:private true

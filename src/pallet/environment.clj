@@ -25,11 +25,11 @@
    `merge-key-algorithm`."
   (:require
    [clojure.walk :as walk]
-   [pallet.core.session :as session]
-   [pallet.core.user :refer [make-user]]
    [pallet.environment.protocols :as impl]
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge :refer [merge-key]]
+   [pallet.session :as session]
+   [pallet.user :refer [make-user]]
    [pallet.utils :as utils :refer [total-order-merge]]))
 
 ;;; # Environment maps

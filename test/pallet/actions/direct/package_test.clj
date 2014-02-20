@@ -22,7 +22,7 @@
     :refer [build-actions build-script build-session centos-session
             ubuntu-session]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.crate :refer [phase-context]]
+   [pallet.plan :refer [plan-context]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
    [pallet.script :refer [with-script-context]]
@@ -535,7 +535,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (first
           (build-actions {}
-            (phase-context packages {}
+            (plan-context packages {}
               (package "git-apt")
               (package "git-apt2"))))
          (first (build-actions {}
@@ -545,7 +545,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (first
           (build-actions centos-session
-            (phase-context packages {}
+            (plan-context packages {}
               (package "git-yum"))))
          (first (build-actions centos-session
                   (packages

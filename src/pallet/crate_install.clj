@@ -15,9 +15,9 @@
             remote-directory
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
-   ;; [pallet.execute :refer [target-flag?]]
-   [pallet.crate :refer [get-settings defmethod-plan defmulti-plan]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
+   [pallet.plan :refer [defmethod-plan defmulti-plan]]
+   [pallet.settings :refer [get-settings]]
    [pallet.utils :refer [apply-map]])
   (:import clojure.lang.IPersistentVector
            clojure.lang.Keyword))

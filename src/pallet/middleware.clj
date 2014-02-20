@@ -1,4 +1,4 @@
-(ns pallet.core.middleware
+(ns pallet.middleware
   "Allow decorating how plan functions are executed."
   (:require
    [clojure.core.typed
@@ -6,11 +6,11 @@
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
-   [pallet.core.api :as api :refer [errors plan-fn]]
-   [pallet.core.session :refer [set-executor set-user]]
-   [pallet.core.tag :as tag]
    [pallet.node :as node]
-   [pallet.core.target :as target]))
+   [pallet.plan :as api :refer [errors plan-fn]]
+   [pallet.session :refer [set-executor set-user]]
+   [pallet.tag :as tag]
+   [pallet.target :as target]))
 
 ;;; # Middleware aware plan execution
 (ann execute [BaseSession TargetMap Fn -> PlanResult])

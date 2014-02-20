@@ -4,7 +4,7 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.action :refer [defaction]]
-   [pallet.actions-impl :refer :all]
+   [pallet.actions.impl :refer :all]
    [pallet.context :as context]
    [pallet.stevedore :as stevedore]))
 

@@ -7,13 +7,13 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
    [pallet.compute.node-list :refer [node-list-service make-localhost-node]]
-   [pallet.core.api :refer [phase-errors stop-execution-on-error]]
+   [pallet.plan :refer [phase-errors stop-execution-on-error]]
    [pallet.core.operations :refer :all]
    [pallet.core.primitives :refer [async-operation]]
-   [pallet.core.user :refer [*admin-user*]]
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [group-name]]
-   [pallet.test-utils :refer [make-localhost-compute]]))
+   [pallet.test-utils :refer [make-localhost-compute]]
+   [pallet.user :refer [*admin-user*]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

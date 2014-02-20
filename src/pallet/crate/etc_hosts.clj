@@ -10,16 +10,14 @@
    [pallet.crate
     :refer [defmethod-plan
             defmulti-plan
-            defplan
-            get-settings
             os-family
             target-name
             target-node
-            target-node
-            update-settings]]
-   [pallet.node :as node]
-   [pallet.node :refer [primary-ip private-ip]]
+            target-node]]
+   [pallet.node :as node :refer [primary-ip private-ip]]
+   [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
+   [pallet.settings :refer [get-settings update-settings]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :as utils]))
 

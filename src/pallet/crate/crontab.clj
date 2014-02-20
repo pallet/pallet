@@ -3,8 +3,9 @@
   (:require
    [pallet.actions :refer [content-options exec-checked-script file remote-file]]
    [pallet.api :refer [plan-fn server-spec]]
-   [pallet.crate :refer [assoc-settings defplan get-settings update-settings]]
+   [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
+   [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map]]))

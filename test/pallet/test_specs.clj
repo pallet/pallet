@@ -24,16 +24,15 @@
    [pallet.core.primitives :refer [async-operation]]
    [pallet.crate
     :refer [admin-user
-            assoc-in-settings
             compute-service
-            defplan
-            get-settings
             target-name
             target-node
             target-nodes
             targets]]
    [pallet.node :refer [id tag tag!]]
+   [pallet.plan :refer [defplan]]
    [pallet.script-test :refer [is-true is= testing-script]]
+   [pallet.settings :refer [assoc-in-settings get-settings]]
    [pallet.shell :refer [sh]]
    [pallet.utils :refer [tmpdir tmpfile]]))
 

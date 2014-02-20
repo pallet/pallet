@@ -6,11 +6,11 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture
                                            with-log-to-string]]
    [pallet.compute.node-list :refer [make-localhost-node]]
-   [pallet.core.api-impl :refer [with-script-for-node]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.ssh.execute
     :refer [get-connection ssh-script-on-target with-connection]]
-   [pallet.transport :as transport]))
+   [pallet.transport :as transport]
+   [pallet.user :refer [*admin-user*]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

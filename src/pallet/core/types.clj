@@ -11,7 +11,6 @@
    [pallet.core.protocols :refer :all]
    [pallet.core.recorder.protocols :refer :all]
    [pallet.core.plan-state.protocols :refer :all]
-   [pallet.core.system-targets.protocols :refer :all]
    [pallet.environment.protocols :refer :all])
   (:import
    clojure.lang.IMapEntry
@@ -291,8 +290,7 @@ a priviledged user."
 (def-alias BaseSession
   (HMap :mandatory {:execution-state ExecutionState
                     :plan-state StateGet
-                    :system-targets SystemTargets
-                    :type (Value :pallet.core.session/session)}))
+                    :type (Value :pallet.session/session)}))
 
 (def-alias Session
   "The pallet session state."
@@ -300,7 +298,7 @@ a priviledged user."
   ;;                   :plan-state StateGet
   ;;                   :system-targets (Atom1
   ;;                                    (Nilable (NonEmptySeqable TargetMap)))
-  ;;                   :type (Value :pallet.core.session/session)
+  ;;                   :type (Value :pallet.session/session)
   ;;                   :target TargetMap})
   (Assoc BaseSession (Value :target) TargetMap)
   ;; (HMap
@@ -309,8 +307,8 @@ a priviledged user."
   ;;   :environment EnvironmentMap
   ;;   :service-state TargetMapSeq
   ;;   :server TargetMap
-  ;;   :pallet.core.api/executor [Session Action -> '[ActionResult Session]]
-  ;;   :pallet.core.api/execute-status-fn [ActionResult -> nil]
+  ;;   :pallet.plan/executor [Session Action -> '[ActionResult Session]]
+  ;;   :pallet.plan/execute-status-fn [ActionResult -> nil]
   ;;   :user User}
   ;;  :optional
   ;;  {:results (NonEmptySeqable PlanResult)
@@ -368,8 +366,8 @@ a priviledged user."
   (HMap :mandatory {:plan-state PlanState
                     :environment EnvironmentMap
                     :service-state TargetMapSeq
-                    :pallet.core.api/executor [Session Action -> ActionResult]
-                    :pallet.core.api/execute-status-fn [ActionResult -> nil]}))
+                    :pallet.plan/executor [Session Action -> ActionResult]
+                    :pallet.plan/execute-status-fn [ActionResult -> nil]}))
 
 (def-alias ^:internal Result
   "Overall result of a lift or converge."

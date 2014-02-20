@@ -7,13 +7,13 @@
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.build-actions :as build-actions :refer [build-actions build-script]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.session :refer [with-session]]
-   [pallet.core.user :refer [*admin-user*]]
    [pallet.script.lib :as lib]
+   [pallet.session :refer [with-session]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-utils
     :refer [with-bash-script-language with-ubuntu-script-template
             with-no-source-line-comments]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [tmpfile with-temporary]]))
 
 (use-fixtures
@@ -27,7 +27,7 @@
 (def remote-file* (action-fn remote-file-action :direct))
 
 (deftest remote-directory-test
-  (assert pallet.core.session/*session*)
+  (assert pallet.session/*session*)
   (is (script-no-comment=
        (build-script {}
          (directory "/path" :owner "fred" :recursive false)

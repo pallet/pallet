@@ -7,14 +7,14 @@
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute.node-list :refer [make-localhost-node]]
-   [pallet.core.session :refer [with-session]]
-   [pallet.core.api :refer [phase-errors]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.crate.environment :refer [system-environment
                                      system-environment-file]]
    [pallet.script :refer [with-script-context]]
+   [pallet.session :refer [with-session]]
    [pallet.stevedore :refer [with-script-language]]
    [pallet.test-utils :refer [make-node test-username]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [tmpfile with-temporary]]))
 
 (use-fixtures :once (logging-threshold-fixture))

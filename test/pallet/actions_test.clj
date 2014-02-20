@@ -4,11 +4,11 @@
    [pallet.actions :refer :all]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer [phase-errors]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.crate :refer [target-node]]
    [pallet.node :refer [primary-ip]]
-   [pallet.test-utils :refer [make-localhost-compute test-username]]))
+   [pallet.test-utils :refer [make-localhost-compute test-username]]
+   [pallet.user :refer [*admin-user*]]))
 
 
 (use-fixtures :once (logging-threshold-fixture))

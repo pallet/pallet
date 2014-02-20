@@ -2,7 +2,7 @@
   "Package repositories"
   (:require
    [pallet.actions :refer [exec-checked-script packages]]
-   [pallet.crate :refer [defplan]]
+   [pallet.plan :refer [defplan]]
    [pallet.script :refer [defimpl defscript]]))
 
 ;; https://help.ubuntu.com/community/Repositories/Personal

@@ -5,10 +5,10 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-script]]
    [pallet.core.node-os :refer [node-os node-os!]]
-   [pallet.core.session :refer [target plan-state]]
-   [pallet.crate :refer [defplan]]
+   [pallet.plan :refer [defplan]]
+   [pallet.session :refer [target plan-state]]
    [pallet.stevedore :refer [script]]
-   [pallet.core.target :as target]
+   [pallet.target :as target]
    [pallet.utils :refer [maybe-assoc]]))
 
 ;;; NB no script functions here

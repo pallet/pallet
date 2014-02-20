@@ -1,10 +1,37 @@
-(ns pallet.core.user
+(ns pallet.user
   "User for authentication."
   (:require
+   [clj-schema.schema
+    :refer [constraints
+            def-map-schema
+            map-schema
+            optional-path
+            seq-schema
+            wild]]
    [clojure.core.typed :refer [ann ann-record Nilable]]
-   [pallet.contracts :refer [check-user]]
+   [pallet.contracts :refer [bytes? check-spec]]
    [pallet.core.types :refer [User]]
    [pallet.utils :refer [maybe-update-in obfuscate]]))
+
+(def-map-schema user-schema
+  (constraints
+   (fn [{:keys [password private-key-path private-key]}]
+     (or password private-key private-key-path)))
+  [[:username] String
+   (optional-path [:password]) [:or String nil]
+   (optional-path [:sudo-password]) [:or String nil]
+   (optional-path [:no-sudo]) wild
+   (optional-path [:sudo-user]) [:or String nil]
+   (optional-path [:temp-key]) wild
+   (optional-path [:private-key-path]) [:or String nil]
+   (optional-path [:public-key-path]) [:or String nil]
+   (optional-path [:private-key]) [:or String bytes? nil]
+   (optional-path [:public-key]) [:or String bytes? nil]
+   (optional-path [:passphrase]) [:or String bytes? nil]])
+
+(defmacro check-user
+  [m]
+  (check-spec m `user-schema &form))
 
 (ann default-private-key-path [-> String])
 (defn default-private-key-path

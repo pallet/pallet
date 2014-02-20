@@ -7,12 +7,12 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
    [pallet.context :as logging]
-   [pallet.core.user :refer [default-public-key-path]]
    [pallet.crate.automated-admin-user :as automated-admin-user
     :refer [create-admin-user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
-   [pallet.live-test :as live-test]))
+   [pallet.live-test :as live-test]
+   [pallet.user :refer [default-public-key-path]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

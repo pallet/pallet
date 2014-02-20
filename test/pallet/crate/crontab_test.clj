@@ -6,7 +6,7 @@
    [pallet.api :refer [extend-specs plan-fn]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.plan :refer [phase-errors]]
    [pallet.core.operations :refer [lift]]
    [pallet.core.primitives :refer [async-operation]]
    [pallet.crate :refer [admin-user]]
@@ -17,7 +17,7 @@
             user-crontabs
             user-settings
             with-crontab]]
-   [pallet.core.session :refer [session]]
+   [pallet.session :refer [session]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.live-test :refer [images test-for test-nodes]]
    [pallet.script.lib :refer [user-home]]

@@ -2,11 +2,11 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [pallet.common.logging.logutils :refer [with-log-to-string]]
-   [pallet.core.user :refer [make-user]]
    [pallet.ssh.credentials :refer [ensure-ssh-credential
                                    generate-keypair-files
                                    ssh-credential-status]]
    [pallet.test-utils :refer [suppress-output]]
+   [pallet.user :refer [make-user]]
    [pallet.utils :refer [tmpfile with-temp-file]]))
 
 (deftest ssh-credential-status-test

@@ -9,7 +9,7 @@
             transfer-file
             transfer-file-to-local
             wait-for-file]]
-   [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
+   [pallet.actions.impl :refer [copy-filename md5-filename new-filename]]
    [pallet.actions.decl
     :refer [checked-commands checked-script remote-file-action]]
    [pallet.actions.direct.file :as file]
@@ -20,7 +20,6 @@
    [pallet.script.lib :refer [wait-while]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]
-   [pallet.template :as templates]
    [pallet.utils :refer [first-line]]))
 
 (implement-action transfer-file-to-local :direct

@@ -5,8 +5,8 @@
    [pallet.action :refer [implementation]]
    pallet.actions.direct
    [pallet.core.executor.protocols :refer :all]
-   [pallet.core.user :refer [user?]]
-   [pallet.ssh.execute :as ssh]))
+   [pallet.ssh.execute :as ssh]
+   [pallet.user :refer [user?]]))
 
 (defn direct-script
   "Execute the direct action implementation, which returns script or other

@@ -1,4 +1,4 @@
-(ns pallet.action-impl
+(ns pallet.action.impl
   "Provides a data structure for pallet's actions. This is the internal
   representation of an action. User code should use pallet.action, where actions
   are represented via the functions that insert them into the session action

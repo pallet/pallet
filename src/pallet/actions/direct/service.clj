@@ -4,7 +4,7 @@
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [service]]
    [pallet.actions.decl :refer [checked-script]]
-   [pallet.actions-impl :refer [init-script-path]]
+   [pallet.actions.impl :refer [init-script-path]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.utils :refer [apply-map]]))

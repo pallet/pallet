@@ -20,7 +20,7 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :as logging]
    [pallet.action-options :refer [action-options-key]]
-   [pallet.async :refer [go-logged timeout-chan]]
+   [pallet.utils.async :refer [go-logged timeout-chan]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.contracts
@@ -30,12 +30,6 @@
             check-node-spec
             check-server-spec
             check-user]]
-   [pallet.core.api :as api
-    :refer [environment-image-execution-settings
-            phase-errors session-for stop-execution-on-error
-            target-fn target-phase-fn]]
-   [pallet.core.api-impl
-    :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.primitives
@@ -43,17 +37,21 @@
             execute-on-unflagged phases-with-meta unbootstrapped-meta]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :refer [session-context]]
-   [pallet.core.user :as user]
-   [pallet.crate :refer [phase-context]]
    [pallet.crate.os :refer [os]]
    [pallet.environment :refer [group-with-environment merge-environments]]
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [node-map node?]]
+   [pallet.plan :as api
+    :refer [environment-image-execution-settings
+            phase-errors session-for stop-execution-on-error
+            target-fn target-phase-fn]]
    [pallet.plugin :refer [load-plugins]]
+   [pallet.spec
+    :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.sync :refer [enter-phase-targets]]
    [pallet.sync.in-memory :refer [in-memory-sync-service]]
    [pallet.thread-expr :refer [when->]]
+   [pallet.user :as user]
    [pallet.utils :refer [apply-map maybe-update-in total-order-merge]]))
 
 

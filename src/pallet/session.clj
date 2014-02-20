@@ -1,4 +1,4 @@
-(ns pallet.core.session
+(ns pallet.session
   "Functions for querying sessions.
 
 The session is a map with well defined keys:
@@ -46,9 +46,6 @@ The session is a map with well defined keys:
     :refer [assert-type-predicate
             ActionOptions BaseSession Executor ExecuteStatusFn Keyword PlanState
             Recorder ScopeMap Session User]]
-   [pallet.compute :as compute :refer [packager-for-os]]
-   [pallet.compute.protocols :refer [Node]]
-   [pallet.context :refer [with-context]]
    [pallet.core.executor :refer [executor?]]
    [pallet.core.plan-state
     :refer [get-settings get-scopes merge-scopes plan-state?]]
@@ -56,8 +53,8 @@ The session is a map with well defined keys:
    [pallet.core.recorder :refer [recorder?]]
    [pallet.core.recorder.protocols :refer [Record]]
    [pallet.core.recorder.null :refer [null-recorder]]
-   [pallet.core.user :refer [user?]]
    [pallet.node :as node]
+   [pallet.user :refer [user?]]
    [pallet.utils :as utils]
    ;; [circle.schema-typer :refer [def-schema-alias def-validator]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
@@ -309,7 +306,7 @@ The session is a map with well defined keys:
 (defn set-recorder
   "Return a session with `recorder` as the action result recorder."
   [session recorder]
-  {:post [(recorder? (pallet.core.session/recorder %))]}
+  {:post [(recorder? (pallet.session/recorder %))]}
   (assoc-in session [:execution-state :recorder] recorder))
 
 (ann set-target [BaseSession TargetMap -> Session])
@@ -319,25 +316,6 @@ The session is a map with well defined keys:
   {:pre [(base-session? session) (map? target)]
    :post [(target-session? %)]}
   (assoc session :target target))
-
-;;; ## Session Context
-;;; The session context is used in pallet core code.
-(defmacro ^{:requires [#'with-context]} session-context
-  "Defines a session context."
-  {:indent 2}
-  [pipeline-name event & args]
-  (let [line (-> &form meta :line)]
-    `(with-context
-        ~(merge {:kw (list 'quote pipeline-name)
-                 :msg (name pipeline-name)
-                 :ns (list 'quote (ns-name *ns*))
-                 :line line
-                 :log-level :trace}
-                event)
-        ~@args)))
-
-
-;;; # Session accessors
 
 (ann target [Session -> TargetMap])
 (defn target

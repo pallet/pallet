@@ -4,11 +4,10 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.action-impl :refer [action-symbol]]
+   [pallet.action.impl :refer [action-symbol]]
    [pallet.actions.decl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
@@ -21,6 +20,7 @@
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
+   [pallet.user :refer [obfuscated-passwords]]
    [pallet.utils :refer [log-multiline]]))
 
 (def ssh-connection (transport/factory :ssh {}))

@@ -18,12 +18,12 @@
    [pallet.compute :refer [nodes]]
    [pallet.compute.node-list :refer [node-list-service]]
    [pallet.core.primitives :refer [async-operation default-phase-meta]]
-   [pallet.core.session :refer [session session! with-session]]
-   [pallet.core.user :refer [default-private-key-path default-public-key-path]]
    [pallet.environment :refer [get-environment]]
    [pallet.node :refer [group-name]]
+   [pallet.session :refer [session session! with-session]]
    [pallet.session.verify :refer [add-session-verification-key]]
-   [pallet.test-utils :refer [make-localhost-compute]]))
+   [pallet.test-utils :refer [make-localhost-compute]]
+   [pallet.user :refer [default-private-key-path default-public-key-path]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

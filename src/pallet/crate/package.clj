@@ -5,7 +5,9 @@
    ;; [pallet.contracts :refer []]
    [pallet.api :as api]
    [pallet.actions :as actions]
-   [pallet.crate :refer [defplan get-settings packager update-settings]]))
+   [pallet.crate :refer [get-settings update-settings]]
+   [pallet.plan :refer [defplan]]
+   [pallet.spec :refer [packager]]))
 
 (def-map-schema package-repo-schema
   [[:repository] String

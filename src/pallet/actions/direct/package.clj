@@ -21,14 +21,17 @@
    [pallet.actions.decl :refer [checked-commands
                                 package-repository-action
                                 remote-file-action]]
-   [pallet.core.session :refer [os-family packager]]
    [pallet.script.lib :as lib]
+   [pallet.target :refer [os-family]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [checked-script fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map]]
    [pallet.version-dispatch :refer [os-map os-map-lookup]]))
 
 (require 'pallet.actions.direct.remote-file)  ; stop slamhound from removing it
+
+;; TODO FIXME
+(defn packager [] :apt)
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
@@ -606,8 +609,8 @@
      (remote-file*
       rpm-name
       (merge
-       {:install-new-files pallet.actions-impl/*install-new-files*
-        :overwrite-changes pallet.actions-impl/*force-overwrite*}
+       {:install-new-files pallet.actions.impl/*install-new-files*
+        :overwrite-changes pallet.actions.impl/*force-overwrite*}
        options))
      second)
     (checked-script
@@ -624,8 +627,8 @@
     (-> (remote-file*
          deb-name
          (merge
-          {:install-new-files pallet.actions-impl/*install-new-files*
-           :overwrite-changes pallet.actions-impl/*force-overwrite*}
+          {:install-new-files pallet.actions.impl/*install-new-files*
+           :overwrite-changes pallet.actions.impl/*force-overwrite*}
           options))
         second)
     (checked-script
