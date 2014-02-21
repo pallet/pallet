@@ -104,6 +104,10 @@ The session is a map with well defined keys:
   [x]
   (not (schema/check target-session x)))
 
+(defn validate-target-session
+  [x]
+  (schema/validate target-session x))
+
 
 ;; (def-schema-alias BaseSession base-session)
 ;; (def-validator validate-base-session BaseSession base-session)

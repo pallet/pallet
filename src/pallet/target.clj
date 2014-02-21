@@ -3,9 +3,9 @@
 specific node (or some other target)."
   (:require
    [pallet.compute :as compute :refer [packager-for-os]]
-   [pallet.core.node-os :refer [node-os]]
+   [pallet.core.node-os :refer [node-os node-os-merge!]]
    [pallet.node :as node :refer [node? node-map]]
-   [pallet.session :refer [plan-state target target-session?]]
+   [pallet.session :as session :refer [plan-state target target-session?]]
    [pallet.tag :as tag]))
 
 ;;; # Target accessors
@@ -74,7 +74,7 @@ specific node (or some other target)."
   [session]
   {:pre [(target-session? session)]}
   (or
-   (-> session :target :override :os-version)
+   (-> session :target :override :os-family)
    (:os-family (os-map session))))
 
 (defn os-version
@@ -107,3 +107,12 @@ specific node (or some other target)."
   (compute/admin-group
    (os-family session)
    (os-version session)))
+
+(defn set-target
+  "Set the target for the session"
+  [session target]
+  (when (:node target)
+    (node-os-merge!
+     (:node target) (plan-state session)
+     (select-keys (:override target) [:os-family :os-version :packager])))
+  (session/set-target session target))

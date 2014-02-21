@@ -12,12 +12,13 @@
    [pallet.action-options :refer [action-options with-action-options]]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl
-    :refer [if-action remote-file-action remote-directory-action]]
+    :refer [if-action package-action package-manager-action
+            package-source-action remote-file-action remote-directory-action]]
    [pallet.actions.impl :refer :all]
    [pallet.contracts :refer [check-spec]]
    [pallet.environment :refer [get-environment]]
    [pallet.node :refer [primary-ip ssh-port]]
-   [pallet.plan :refer [plan-context]]
+   [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.session :refer [target]]
    [pallet.target :refer [admin-user node packager]]
@@ -503,7 +504,7 @@ only specified files or directories, use the :extract-files option.
 ;;; # Packages
 (defalias package-source-changed-flag decl/package-source-changed-flag)
 
-(defaction package
+(defn package
   "Install or remove a package.
 
    Options
@@ -514,33 +515,38 @@ only specified files or directories, use the :extract-files option.
     - :priority n                 priority (0-100, default 50)
     - :disable-service-start      disable service startup (default false)
 
-   Package management occurs in one shot, so that the package manager can
-   maintain a consistent view."
-  [session package-name & {:keys [action y force purge enable disable priority]
-                           :or {action :install
-                                y true
-                                priority 50}}])
+   For package management to occur in one shot, use pallet.crate.package."
+  ([session package-name {:keys [action y force purge enable disable priority]
+                          :or {action :install
+                               y true
+                               priority 50}
+                          :as options}]
+     (package-action session package-name
+                     (merge {:packager (packager session)} options)))
+  ([session package-name] (package session package-name {})))
 
-(defn packages
-  "Install a list of packages keyed on packager.
-       (packages session
-         :yum [\"git\" \"git-email\"]
-         :aptitude [\"git-core\" \"git-email\"])"
-  {:pallet/plan-fn true}
-  [session & {:keys [yum aptitude pacman brew] :as options}]
-  (plan-context packages {}
-    (let [packager (packager)]
-      (doseq [p (or (options packager)
-                    (when (#{:apt :aptitude} packager)
-                      (options (first (disj #{:apt :aptitude} packager)))))]
-        (apply-map package session p (dissoc options :aptitude :brew :pacman :yum))))))
+
+;; (defn packages
+;;   "Install a list of packages keyed on packager.
+;;        (packages session
+;;          :yum [\"git\" \"git-email\"]
+;;          :aptitude [\"git-core\" \"git-email\"])"
+;;   {:pallet/plan-fn true}
+;;   [session & {:keys [yum aptitude pacman brew] :as options}]
+;;   (plan-context packages {}
+;;     (let [packager (packager)]
+;;       (doseq [p (or (options packager)
+;;                     (when (#{:apt :aptitude} packager)
+;;                       (options (first (disj #{:apt :aptitude} packager)))))]
+;;         (apply-map package session p (dissoc options :aptitude :brew :pacman :yum))))))
+
 
 ;; (defn all-packages
 ;;   "Install a list of packages."
 ;;   [packages]
 ;;   (packages-action (packager) packages))
 
-(defaction package-manager
+(defplan package-manager
   "Package manager controls.
 
    `action` is one of the following:
@@ -556,10 +562,13 @@ only specified files or directories, use the :extract-files option.
 
    To enable non-free on debian:
        (package-manager session :add-scope :scope :non-free)"
-  [session action & options])
+  ([session action {:keys [packages scope] :as options}]
+     (package-manager-action
+      session action (merge {:packager (packager session)} options)))
+  ([session action]
+     (package-manager session action {})))
 
-
-(defaction package-source
+(defn package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
@@ -605,7 +614,8 @@ only specified files or directories, use the :extract-files option.
                  :scopes [\"partner\"]})"
   {:always-before #{package-manager package}
    :execution :aggregated}
-  [session name & {:keys [aptitude yum]}])
+  [session name {:keys [] :as options}]
+  (package-source-action session name (merge {:packager (packager session)})))
 
 (defn package-repository
   "Control package repository.

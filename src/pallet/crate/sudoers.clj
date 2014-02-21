@@ -3,7 +3,6 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [package remote-file]]
-   [pallet.core.plan-state]
    [pallet.crate-install :as crate-install]
    [pallet.group :as group]
    [pallet.plan :refer [defplan plan-fn]]
@@ -12,7 +11,7 @@
    [pallet.session :refer [target-session?]]
    [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :as target :refer [admin-group]]
+   [pallet.target :refer [admin-group]]
    [pallet.utils :as utils :refer [conj-distinct]]))
 
 ;; TODO - add recogintion of +key or key+

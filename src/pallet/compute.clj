@@ -359,6 +359,7 @@ Provider specific options may also be passed."
 (defn packager-for-os
   "Package manager"
   [os-family os-version]
+  {:pre [(keyword? os-family)]}
   (or
    (get packager-map (maybe-assoc
                       {:os os-family}

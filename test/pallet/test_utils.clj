@@ -102,10 +102,9 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn make-node
   "Simple node for testing"
-  [node-name & {:as options}]
+  [node-name {:as options}]
   {:pre [node-name]}
-  (apply-map
-   node-list/make-node
+  (node-list/make-node
    node-name
    (:group-name options node-name)
    (:ip options "1.2.3.4")

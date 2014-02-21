@@ -106,6 +106,43 @@ to deal with local file transfer."
 
 (def package-source-changed-flag "packagesourcechanged")
 
+(defaction package-action
+  "Install or remove a package.
+
+   Options
+    - :action [:install | :remove | :upgrade]
+    - :purge [true|false]         when removing, whether to remove all config
+    - :enable [repo|(seq repo)]   enable specific repository
+    - :disable [repo|(seq repo)]  disable specific repository
+    - :priority n                 priority (0-100, default 50)
+    - :disable-service-start      disable service startup (default false)
+
+   Package management occurs in one shot, so that the package manager can
+   maintain a consistent view."
+  [session package-name
+   {:keys [action y force purge enable disable priority packager]
+    :or {action :install
+         y true
+         priority 50}}])
+
+(defaction package-manager-action
+  "Package manager controls.
+
+   `action` is one of the following:
+   - :update          - update the list of available packages
+   - :list-installed  - output a list of the installed packages
+   - :add-scope       - enable a scope (eg. multiverse, non-free)
+
+   To refresh the list of packages known to the package manager:
+       (package-manager session :update)
+
+   To enable multiverse on ubuntu:
+       (package-manager session :add-scope :scope :multiverse)
+
+   To enable non-free on debian:
+       (package-manager session :add-scope :scope :non-free)"
+  [session action options])
+
 (defaction package-repository-action
   "Control package repository.
    Options are a map of packager specific options.
@@ -151,3 +188,48 @@ to deal with local file transfer."
         :url \"http://archive.canonical.com/\"
         :scopes [\"partner\"]})"
   [packager {:as options}])
+
+(defaction package-source-action
+  "Control package sources.
+   Options are the package manager specific keywords.
+
+## `:aptitude`
+
+`:source-type source-string`
+: the source type (default \"deb\")
+
+`:url url-string`
+: the repository url
+
+`:scopes seq`
+: scopes to enable for repository
+
+`:release release-name`
+: override the release name
+
+`:key-url url-string`
+: url for key
+
+`:key-server hostname`
+: hostname to use as a keyserver
+
+`:key-id id`
+: id for key to look it up from keyserver
+
+## `:yum`
+
+`:name name`
+: repository name
+
+`:url url-string`
+: repository base url
+
+`:gpgkey url-string`
+: gpg key url for repository
+
+## Example
+
+    (package-source \"Partner\"
+      :aptitude {:url \"http://archive.canonical.com/\"
+                 :scopes [\"partner\"]})"
+  [session name {:keys [packager]}])

@@ -13,13 +13,13 @@
             debconf-set-selections
             install-deb
             minimal-packages
-            package
-            package-manager
-            package-source
             package-source-changed-flag
             sed]]
    [pallet.actions.decl :refer [checked-commands
+                                package-action
+                                package-manager-action
                                 package-repository-action
+                                package-source-action
                                 remote-file-action]]
    [pallet.script.lib :as lib]
    [pallet.target :refer [os-family]]
@@ -30,9 +30,6 @@
 
 (require 'pallet.actions.direct.remote-file)  ; stop slamhound from removing it
 
-;; TODO FIXME
-(defn packager [] :apt)
-
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
 
@@ -40,8 +37,8 @@
   sed* (action-fn sed :direct))
 
 (defmulti adjust-packages
-  (fn [& _]
-    (packager)))
+  (fn [packager & _]
+    packager))
 
 ;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
 (def ^{:private true} aptitude-escape-map
@@ -59,7 +56,7 @@
 ;; aptitude and apt can install, remove and purge all in one command, so we just
 ;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
-  [packages]
+  [_ packages]
   (logging/tracef "adjust-packages :aptitude %s" (vec packages))
   (checked-commands
    "Packages"
@@ -128,7 +125,7 @@
                    ("grep" (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
-  [packages]
+  [_ packages]
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
@@ -180,7 +177,7 @@
 ;; `yum` has separate install, remove and purge commands, so we just need to
 ;; split by enable/disable options and by command.  We install before removing.
 (defmethod adjust-packages :yum
-  [packages]
+  [_ packages]
   (checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -207,7 +204,7 @@
 
 
 (defmethod adjust-packages :default
-  [packages]
+  [_ packages]
   (checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -229,8 +226,8 @@
 (defn- package-map
   "Convert the args into a single map"
   [package-name
-   & {:keys [action y force purge priority enable disable allow-unsigned]
-      :as options}]
+   {:keys [action y force purge priority enable disable allow-unsigned]
+    :as options}]
   (logging/tracef "package-map %s %s" package-name options)
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
@@ -241,7 +238,7 @@
      (update-in [:enable] as-seq)
      (update-in [:disable] as-seq))))
 
-(implement-action package :direct
+(implement-action package-action :direct
   "Install or remove a package.
 
    Options
@@ -257,11 +254,13 @@
    maintain a consistent view."
   {:action-type :script
    :location :target}
-  [action-options & args]
-  (logging/tracef "package %s" (vec args))
+  [action-options package-name options]
+  (logging/tracef "package %s" package-name)
   [{:language :bash
-    :summary (str "package " (string/join " " args))}
-   (adjust-packages [(apply package-map args)])])
+    :summary (str "package " package-name)}
+   (adjust-packages
+    (:packager options)
+    [(package-map package-name (dissoc options :packager))])])
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -309,8 +308,8 @@
 
 (defmulti package-source*
   "Add a packager source."
-  (fn  [name & {:keys [apt aptitude yum] :as options}]
-    (packager)))
+  (fn [name {:keys [packager] :as options}]
+    packager))
 
 (def ubuntu-ppa-add
   (atom                                 ; allow for open extension
@@ -319,10 +318,10 @@
      {:os :ubuntu :os-version [[12 10] nil]} "software-properties-common"})))
 
 (defn- package-source-apt
-  [name & {:keys [apt aptitude yum] :as options}]
+  [name {:keys [key-id key-server key-url url] :as options}]
   (checked-commands
    "Package source"
-   (let [^String key-url (or (:url aptitude) (:url apt))]
+   (let [^String key-url url]
      (if (and key-url (.startsWith key-url "ppa:"))
        (let [list-file (str
                         (string/replace (subs key-url 4) "/" "-")
@@ -343,67 +342,63 @@
               (~lib/update-package-list))))))
        (->
         (remote-file*
+         {}
          (format (source-location :apt) name)
-         {:content (format-source
-                    :apt name (or (:apt options) (:aptitude options)))
+         {:content (format-source :apt name options)
           :flag-on-changed package-source-changed-flag})
         second)))
-   (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
-     (let [key-server (or (:key-server aptitude) (:key-server apt)
-                          *default-apt-keyserver*)]
+   (if key-id
+     (let [key-server (or key-server *default-apt-keyserver*)]
        (stevedore/script
-        ("apt-key"
-         adv
-         "--keyserver" ~key-server
-         "--recv-keys" ~key-id))))
-   (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
+        ("apt-key" adv "--keyserver" ~key-server "--recv-keys" ~key-id))))
+   (if key-url
      (stevedore/chain-commands
       (->
        (remote-file*
+        {}
         "aptkey.tmp"
         {:url key-url :flag-on-changed package-source-changed-flag})
        second)
       (stevedore/script ("apt-key" add aptkey.tmp))))))
 
 (defmethod package-source* :aptitude
-  [name & {:keys [apt aptitude yum] :as options}]
-  (apply-map package-source-apt name options))
+  [name {:keys [apt aptitude yum] :as options}]
+  (package-source-apt name options))
 
 (defmethod package-source* :apt
-  [name & {:keys [apt aptitude yum] :as options}]
-  (apply-map package-source-apt name options))
+  [name {:keys [apt aptitude yum] :as options}]
+  (package-source-apt name options))
 
 (defmethod package-source* :yum
-  [name & {:keys [apt aptitude yum] :as options}]
-  (let [packager (packager)]
-    (checked-commands
-     "Package source"
-     (->
-      (remote-file*
-       (format (source-location packager) name)
-       {:content (format-source packager name (packager options))
-        :literal true
-        :flag-on-changed package-source-changed-flag})
-      second)
-     (when-let [key (and (= packager :yum) (:gpgkey yum))]
-       (stevedore/script ("rpm" "--import" ~key))))))
+  [name {:keys [packager gpgkey] :as options}]
+  (checked-commands
+   "Package source"
+   (->
+    (remote-file*
+     {}
+     (format (source-location packager) name)
+     {:content (format-source packager name options)
+      :literal true
+      :flag-on-changed package-source-changed-flag})
+    second)
+   (if gpgkey
+     (stevedore/script ("rpm" "--import" ~gpgkey)))))
 
 (defmethod package-source* :default
-  [name & {:as options}]
-  (let [packager (packager)]
-    (checked-commands
-     "Package source"
-     (->
-      (remote-file*
-       (format (source-location packager) name)
-       {:content (format-source packager name (packager options))
-        :flag-on-changed package-source-changed-flag})
-      first second))))
+  [name {:keys [packager] :as options}]
+  (checked-commands
+   "Package source"
+   (->
+    (remote-file*
+     {}
+     (format (source-location packager) name)
+     {:content (format-source packager name options)
+      :flag-on-changed package-source-changed-flag})
+    first second)))
 
-(implement-action package-source :direct
+(implement-action package-source-action :direct
                   "Control package sources.
-   Options are the package manager keywords, each specifying a map of
-   packager specific options.
+   Options are the package manager specific keywords.
 
    :aptitude
      - :source-type string   - source type (deb)
@@ -423,10 +418,10 @@
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
   {:action-type :script :location :target}
-  [action-options & args]
+  [action-options name options]
   [{:language :bash
-    :summary (str "package-source " (string/join " " args))}
-   (apply package-source* args)])
+    :summary (str "package-source " name)}
+   (package-source* name options)])
 
 (implement-action package-repository-action :direct
                   {:action-type :script :location :target}
@@ -495,12 +490,13 @@
   [packager {:keys [priority prox] :or {priority 50} :as options}]
   (->
    (remote-file*
+    {}
     (format "/etc/apt/apt.conf.d/%spallet" priority)
     {:content (string/join
                \newline
                (map
                 #(package-manager-option packager (key %) (val %))
-                (dissoc options :priority)))
+                (dissoc options :priority :packager)))
      :literal true})
    second))
 
@@ -513,12 +509,13 @@
   (stevedore/chain-commands
    (->
     (remote-file*
+     {}
      "/etc/yum.pallet.conf"
      {:content (string/join
                 \newline
                 (map
                  #(package-manager-option packager (key %) (val %))
-                 (dissoc options :priority)))
+                 (dissoc options :priority :packager)))
       :literal true})
     second)
    ;; include yum.pallet.conf from yum.conf
@@ -534,12 +531,13 @@
   (stevedore/chain-commands
    (->
     (remote-file*
+     {}
      "/etc/pacman.pallet.conf"
      {:content (string/join
                 \newline
                 (map
                  #(package-manager-option packager (key %) (val %))
-                 (dissoc options :priority)))
+                 (dissoc options :priority :packager)))
       :literal true})
     second)
    ;; include pacman.pallet.conf from pacman.conf
@@ -547,6 +545,7 @@
     (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
       (do
         ~(-> (sed*
+              {}
               "/etc/pacman.conf"
               "a Include = /etc/pacman.pallet.conf"
               :restriction "/\\[options\\]/")
@@ -558,26 +557,25 @@
 
 (defn package-manager*
   "Package management."
-  [action & options]
-  (let [packager (packager)]
-    (checked-commands
-     (format "package-manager %s %s" (name action) (string/join " " options))
-     (case action
-       :update (stevedore/script (apply ~lib/update-package-list ~options))
-       :upgrade (stevedore/script (~lib/upgrade-all-packages))
-       :list-installed (stevedore/script (~lib/list-installed-packages))
-       :add-scope (add-scope (apply hash-map options))
-       :multiverse (add-scope (apply hash-map :scope "multiverse" options))
-       :universe (add-scope (apply hash-map :scope "universe" options))
-       :debconf (if (#{:aptitude :apt} packager)
-                  (stevedore/script
-                   (apply ~lib/debconf-set-selections ~options)))
-       :configure (configure-package-manager packager options)
-       (throw (IllegalArgumentException.
-               (str action
-                    " is not a valid action for package-manager action")))))))
+  [action {:keys [packager packages scope] :as options}]
+  (checked-commands
+   (format "package-manager %s %s" (name action) (string/join " " options))
+   (case action
+     :update (stevedore/script (apply ~lib/update-package-list ~packages))
+     :upgrade (stevedore/script (~lib/upgrade-all-packages))
+     :list-installed (stevedore/script (~lib/list-installed-packages))
+     :add-scope (add-scope scope)
+     :multiverse (add-scope (merge {:scope "multiverse"} options))
+     :universe (add-scope (merge {:scope "universe"} options))
+     ;; :debconf (if (#{:aptitude :apt} packager)
+     ;;            (stevedore/script
+     ;;             (apply ~lib/debconf-set-selections ~options)))
+     :configure (configure-package-manager packager options)
+     (throw (IllegalArgumentException.
+             (str action
+                  " is not a valid action for package-manager action"))))))
 
-(implement-action package-manager :direct
+(implement-action package-manager-action :direct
   "Package manager controls.
 
    `action` is one of the following:
@@ -594,11 +592,11 @@
    To enable non-free on debian:
        (package-manager :add-scope :scope :non-free)"
   {:action-type :script :location :target}
-  [action-options & package-manager-args]
+  [action-options action package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [{:language :bash
     :summary (str "package-manager " (string/join " " package-manager-args))}
-   (apply package-manager* package-manager-args)])
+   (package-manager* action package-manager-args)])
 
 (implement-action add-rpm :direct
                   {:action-type :script :location :target}
@@ -607,6 +605,7 @@
    (stevedore/do-script
     (->
      (remote-file*
+      {}
       rpm-name
       (merge
        {:install-new-files pallet.actions.impl/*install-new-files*
@@ -625,6 +624,7 @@
   [{:language :bash}
    (stevedore/do-script
     (-> (remote-file*
+         {}
          deb-name
          (merge
           {:install-new-files pallet.actions.impl/*install-new-files*

@@ -11,7 +11,8 @@
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.compute :refer [packager-for-os]]
    [pallet.compute.protocols :refer [Node]]
-   [pallet.core.plan-state :refer [assoc-settings get-settings plan-state?]]
+   [pallet.core.plan-state
+    :refer [assoc-settings get-settings plan-state? update-settings]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :as node]
    [pallet.script :refer [with-script-context]]
@@ -36,14 +37,22 @@
     os-map))
 
 (defn node-os!
-  "Set the node os infor map"
+  "Set the node os information map"
   [node plan-state os-details]
   {:pre [(or (nil? os-details) (os-details-map? os-details))]}
   (assoc-settings plan-state (node/id node) :pallet/os os-details {}))
 
+(defn node-os-merge!
+  "Merge the os-details into the node os information map"
+  [node plan-state os-details]
+  {:pre [(or (nil? os-details) (os-details-map? os-details))]}
+  (update-settings plan-state (node/id node) :pallet/os merge os-details {}))
+
 ;; TODO remove the no-check when building maps in steps is easily typable
 (ann ^:no-check target-os-details [TargetMap PlanState -> OsDetailsMap])
 (defn node-os-details
+  "Return a node-os details map from the plan-state.  These can be set manually,
+  or are set by using the detection phases in pallet.crate.os."
   [node plan-state]
   (let [{:keys [os-family os-version] :as os-map} (node-os node plan-state)
         os-map (update-in

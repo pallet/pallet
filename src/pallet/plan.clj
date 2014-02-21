@@ -20,7 +20,7 @@ functions with more defaults, etc."
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.executor :as executor]
-   [pallet.core.node-os :refer :all]
+   [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -28,8 +28,9 @@ functions with more defaults, etc."
    [pallet.node :refer [node?]]
    [pallet.session
     :refer [base-session?
-            executor plan-state recorder set-target
+            executor plan-state recorder
             set-executor set-recorder target-session? user]]
+   [pallet.target :refer [set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils
     :refer [apply-map compiler-exception local-env map-arg-and-ref]])
@@ -230,7 +231,7 @@ The result is also written to the recorder in the session."
         body (if n? (rest body) body)]
     (if n
       `(fn ~n ~args (plan-context ~(gensym (name n)) {} ~@body))
-      `(fn ~args (plan-context ~(gensym "a-plan-fn") {} ~@body)))))
+      `(fn ~args ~@body))))
 
 
 (defn final-fn-sym?
