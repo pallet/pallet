@@ -468,3 +468,12 @@ value to assoc. The assoc only occurs if the value is non-nil."
   "Take a sequence, and returns a map with the count of each value."
   [s]
   (reduce (fn [cnts e] (update-in cnts [e] (fnil inc 0))) {} s))
+
+(defn ^java.io.File first-existing-file
+  "Return the first file that exists.  Each name in filenames is
+  tested under root for existence.  Returns a java.io.File."
+  [root filenames]
+  (->>
+   (map #(io/file root %) filenames)
+   (filter #(.exists ^java.io.File %))
+   first))

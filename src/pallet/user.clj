@@ -9,9 +9,10 @@
             seq-schema
             wild]]
    [clojure.core.typed :refer [ann ann-record Nilable]]
+   [clojure.java.io :refer [file]]
    [pallet.contracts :refer [bytes? check-spec]]
    [pallet.core.types :refer [User]]
-   [pallet.utils :refer [maybe-update-in obfuscate]]))
+   [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]))
 
 (def-map-schema user-schema
   (constraints
@@ -33,17 +34,22 @@
   [m]
   (check-spec m `user-schema &form))
 
+(def key-files ["id_rsa" "id_dsa"])
+(def ssh-home (file (System/getProperty "user.home") ".ssh"))
+
 (ann default-private-key-path [-> String])
 (defn default-private-key-path
   "Return the default private key path."
   []
-  (str (System/getProperty "user.home") "/.ssh/id_rsa"))
+  (if-let [f (first-existing-file ssh-home key-files)]
+    (str f)))
 
 (ann default-public-key-path [-> String])
 (defn default-public-key-path
   "Return the default public key path"
   []
-  (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
+  (if-let [f (first-existing-file ssh-home (map #(str % ".pub") key-files))]
+    (str f)))
 
 (defn user? [user]
   (check-user user))
