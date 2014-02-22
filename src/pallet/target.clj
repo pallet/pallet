@@ -112,9 +112,10 @@ specific node (or some other target)."
   "Set the target for the session"
   [session target]
   (when (:node target)
-    (node-os-merge!
-     (:node target) (plan-state session)
-     (select-keys (:override target) [:os-family :os-version :packager])))
+    (when-let [plan-state (plan-state session)]
+      (node-os-merge!
+       (:node target) plan-state
+       (select-keys (:override target) [:os-family :os-version :packager]))))
   (session/set-target session target))
 
 (defn effective-username
