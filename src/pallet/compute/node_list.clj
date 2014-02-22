@@ -83,25 +83,27 @@
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   {:deprecated true}
-  [name group-name ip os-family
-   {:keys [id ssh-port private-ip is-64bit running os-version service
-           hardware proxy image-user]
-    :or {ssh-port 22 is-64bit true running true}}]
-  (Node.
-   name
-   (keyword (clojure.core/name group-name))
-   ip
-   os-family
-   os-version
-   (or id (str name "-" (string/replace ip #"\." "-")))
-   ssh-port
-   private-ip
-   is-64bit
-   running
-   service
-   hardware
-   proxy
-   image-user))
+  ([name group-name ip os-family
+    {:keys [id ssh-port private-ip is-64bit running os-version service
+            hardware proxy image-user]
+     :or {ssh-port 22 is-64bit true running true}}]
+     (Node.
+      name
+      (keyword (clojure.core/name group-name))
+      ip
+      os-family
+      os-version
+      (or id (str name "-" (string/replace ip #"\." "-")))
+      ssh-port
+      private-ip
+      is-64bit
+      running
+      service
+      hardware
+      proxy
+      image-user))
+  ([name group-name ip os-family]
+     (make-node name group-name ip os-family {})))
 
 (def-map-schema node-args-schema
   [(optional-path [:ip]) String
@@ -122,11 +124,11 @@
 (defn node
   "Returns a node, suitable for use in a node-list."
   {:added "0.9.0"}
-  [name
-   & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
-             os-version service hardware proxy image-user]
-      :or {ssh-port 22 is-64bit true running true}
-      :as args}]
+  [name {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
+                os-version service hardware proxy image-user]
+         :or {ssh-port 22 is-64bit true running true}
+         :as args}]
+  {:post [(node/node? %)]}
   (check-node-args-spec args)
   (let [ip (or ip (ip-for-name name))]
     (Node.
