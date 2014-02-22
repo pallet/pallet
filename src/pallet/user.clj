@@ -45,21 +45,6 @@
   []
   (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
 
-;; (ann-record User [username :- String
-;;                   public-key-path :- (Nilable String)
-;;                   private-key-path :- (Nilable String)
-;;                   public-key :- (Nilable String)
-;;                   private-key :- (Nilable String)
-;;                   passphrase :- (Nilable String)
-;;                   password :- (Nilable String)
-;;                   sudo-password :- (Nilable String)
-;;                   no-sudo :- (Nilable boolean)
-;;                   sudo-user :- (Nilable String)])
-;; (defrecord User
-;;     [username public-key-path private-key-path public-key private-key
-;;      passphrase password sudo-password no-sudo sudo-user])
-
-(ann ^:no-check user? (predicate User))
 (defn user? [user]
   (check-user user))
 
@@ -114,6 +99,7 @@
                     passphrase
                     password sudo-password no-sudo sudo-user]
              :as options}]
+  {:post [(check-user %)]}
   (assoc options :username username))
 
 (ann *admin-user* User)

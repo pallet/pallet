@@ -13,12 +13,8 @@
             :password password
             :private-key-path private-key-path
             :public-key-path public-key-path
-            :private-key nil
-            :public-key nil
             :passphrase passphrase
-            :sudo-password password
-            :no-sudo nil
-            :sudo-user nil}
+            :sudo-password password}
            (into {}
                  (make-user
                   username
