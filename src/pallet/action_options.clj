@@ -55,3 +55,8 @@ options.
   [session m & body]
   `(let [~session (merge-action-options ~session ~m)]
      ~@body))
+
+(defn file-uploader
+  "Return the file-uploader specified in the action options"
+  [session]
+  (:file-uploader (action-options session)))

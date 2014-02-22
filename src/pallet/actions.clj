@@ -9,7 +9,8 @@
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [defaction]]
-   [pallet.action-options :refer [action-options with-action-options]]
+   [pallet.action-options
+    :refer [action-options file-uploader with-action-options]]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl
     :refer [if-action package-action package-manager-action
@@ -21,7 +22,7 @@
    [pallet.node :refer [primary-ip ssh-port]]
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
-   [pallet.session :refer [file-uploader target]]
+   [pallet.session :refer [target]]
    [pallet.target :refer [admin-user node packager]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
