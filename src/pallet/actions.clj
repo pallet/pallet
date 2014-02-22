@@ -10,7 +10,7 @@
    [clojure.tools.logging :as logging]
    [pallet.action :refer [defaction]]
    [pallet.action-options
-    :refer [action-options file-uploader with-action-options]]
+    :refer [action-options with-action-options]]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl
     :refer [if-action package-action package-manager-action
