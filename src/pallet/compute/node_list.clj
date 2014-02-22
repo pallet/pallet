@@ -62,7 +62,7 @@
   (proxy [node] proxy)
   pallet.compute.protocols/NodeBaseName
   (has-base-name? [_ base-name]
-    (= base-name group-name)))
+    (= (clojure.core/name base-name) (clojure.core/name group-name))))
 
 ;;; Node utilities
 (def ^:private ip-resolve-failed-msg
