@@ -1,5 +1,5 @@
 (ns pallet.action
-  "Actions are the primitives that are called by crate functions.
+  "Actions are the primitives that are called by phase functions.
 
    Actions can have multiple implementations, but by default most are
    implemented as script."
@@ -13,9 +13,9 @@
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
    [pallet.plan :refer [execute-action]]
-   [pallet.session :refer [target-session?]]
+   [pallet.session :as session :refer [target-session?]]
    [pallet.stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [compiler-exception]]))
+   [pallet.utils :refer [compiler-exception maybe-assoc]]))
 
 ;;; ## Actions
 (defn action-map
@@ -30,17 +30,38 @@
    :args arg-vector
    :options options})
 
-;;; Actions are primitives that may be called in a plan function. An
-;;; action can have multiple implementations.
+(defn effective-user
+  "Return a user map for the effective user for an action."
+  [user action-options]
+  (let [user (merge user (:user action-options))
+        no-sudo (or (:no-sudo action-options)
+                    (and (:no-sudo user) (not (:sudo-user action-options))))
+        sudo-user (and (not no-sudo)
+                       (or (:sudo-user action-options)
+                           (:sudo-user user)))
+        username (or (:username action-options)
+                     (:username user))]
+    (maybe-assoc user
+                 :no-sudo no-sudo
+                 :sudo-user sudo-user
+                 :username username)))
+
+(defn action-execute
+  "Call the session executor for the action with argv."
+  [session action argv]
+  {:pre [(target-session? session)]}
+  (let [options (merge (:options action) (action-options session))
+        user (effective-user (session/user session) action-options)
+        options (update-in options [:user] merge user)]
+    (execute-action session (action-map action argv options))))
+
 (defn- action-execute-fn
   "Return a function that will call the session executor for the
   action with argv."
   [action]
   (with-meta
     (fn action-fn [session & argv]
-      (execute-action
-       session
-       (action-map action argv (action-options session))))
+      (action-execute session action argv))
     {:action action}))
 
 (defn declare-action
@@ -106,12 +127,7 @@
          ^{:action action#}
          (fn [~@args]
            (let [session# ~(first args)]
-             (assert (target-session? session#) "Invalid session")
-             (execute-action
-              session#
-              (action-map
-               action# ~(arg-values (rest args))
-               (action-options session#)))))))))
+             (action-execute session# action# [~(arg-values (rest args))])))))))
 
 (defn implement-action*
   "Define an implementation of an action given the `action-inserter` function."

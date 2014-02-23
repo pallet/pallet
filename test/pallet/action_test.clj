@@ -31,7 +31,7 @@
                    :user (session/user session)
                    :result {:args [:a :b]
                             :action (:action (meta a))
-                            :options nil}}]
+                            :options {:user user/*admin-user*}}}]
                  (plan/plan (session/executor session)))))))))
 
 (defaction b "b doc" {:m 1} [session x])
@@ -61,3 +61,13 @@
                         :action (:action (meta b))
                         :options {:n 2}}}]
              (plan/plan (session/executor session)))))))
+
+(deftest effective-user-test
+  (testing "effective-user"
+    (is (= user/*admin-user* (effective-user user/*admin-user* {}))
+        "identitity if no action options")
+    (is (= (assoc user/*admin-user* :no-sudo false :sudo-user "fred")
+           (effective-user
+            (assoc user/*admin-user* :no-sudo true)
+            {:sudo-user "fred"}))
+        "sudo-user in options overrides no-sudo in user")))

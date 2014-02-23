@@ -247,10 +247,18 @@
 (defn maybe-assoc
   "'Assoc a value in an associative structure, where k is a key and v is the
 value to assoc. The assoc only occurs if the value is non-nil."
-  [m k v]
-  (if (nil? v)
-    m
-    (assoc m k v)))
+  ([m k v]
+     (if (nil? v)
+       m
+       (assoc m k v)))
+  ([m k v & key-vals]
+     (let [ret (maybe-assoc m k v)]
+       (if key-vals
+         (if (next key-vals)
+           (recur ret (first key-vals) (second key-vals) (nnext key-vals))
+           (throw (IllegalArgumentException.
+                   "maybe-assoc expects even number of arguments after map, found odd number")))
+         ret))))
 
 (defn map-seq
   "Given an argument, returns the argument, or nil if passed an empty map."
