@@ -4,5 +4,10 @@
 ;; should we pass target and session, or user options, or …
 ;; Are the user options global over executors? (I think so)
 (defprotocol ActionExecutor
-  (execute [_ target user action]
-    "Execute an action on a target using the credentials in user"))
+  (execute [_ target action]
+    "Execute an action on a target."))
+
+(defn executor?
+  "Predicate to test for an executor"
+  [x]
+  (satisfies? ActionExecutor x))

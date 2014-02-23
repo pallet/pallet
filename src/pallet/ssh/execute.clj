@@ -23,9 +23,6 @@
    [pallet.user :refer [obfuscated-passwords]]
    [pallet.utils :refer [log-multiline]]))
 
-(def ssh-connection (transport/factory :ssh {}))
-(def local-connection (transport/factory :local {}))
-
 (defn authentication
   "Return the user to use for authentication.  This is not necessarily the
   admin user (e.g. when bootstrapping, it is the image user)."
@@ -68,12 +65,12 @@
            :err (:err result)
            :out (:out result)}))))))
 
-(defn get-connection [node user]
+(defn get-connection [ssh-connection node user]
   (transport/open
    ssh-connection (endpoint node) (authentication user)
    {:max-tries 3}))
 
-(defn release-connection [node user]
+(defn release-connection [ssh-connection node user]
   (transport/release
    ssh-connection (endpoint node) (authentication user)
    {:max-tries 3}))
@@ -90,15 +87,15 @@
 
 (defn ^{:internal true} with-connection*
   "Execute a function with a connection to the current target node,"
-  [node user f]
+  [ssh-connection node user f]
   (loop [retries 1]
-    (let [connection (get-connection node user)
+    (let [connection (get-connection ssh-connection node user)
           r (f connection)]
       (if (map? r)
         (cond
          (and (::retriable r) (pos? retries))
          (do
-           (release-connection node user)
+           (release-connection ssh-connection node user)
            (recur (dec retries)))
 
          (::retriable r) (throw (::exception r))
@@ -108,8 +105,8 @@
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
-  [node user [connection] & body]
-  `(with-connection* ~node ~user
+  [ssh-connection node user [connection] & body]
+  `(with-connection* ~ssh-connection ~node ~user
      (fn [~connection]
        (try
          ~@body
@@ -118,7 +115,7 @@
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [node user {:keys [context] :as action} [options script]]
+  [ssh-connection node user {:keys [context] :as action} [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
   (let [endpoint (endpoint node)]
@@ -128,7 +125,7 @@
        (:server endpoint) (:port endpoint)
        (or (context-string) "")
        (or (:summary options) ""))
-      (with-connection node user [connection]
+      (with-connection ssh-connection node user [connection]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)

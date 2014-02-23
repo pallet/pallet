@@ -55,7 +55,7 @@ functions with more defaults, etc."
     (tracef "execute-action executor %s" (pr-str executor))
     (assert executor "No executor in session")
     (let [[rv e] (try
-                   [(executor/execute executor target (user session) action)]
+                   [(executor/execute executor target action)]
                    (catch Exception e
                      (let [rv (:result (ex-data e))]
                        (when-not rv

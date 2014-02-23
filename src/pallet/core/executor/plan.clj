@@ -5,9 +5,8 @@
 
 (deftype PlanActionExecutor [actions]
   ActionExecutor
-  (execute [executor target user action]
+  (execute [executor target action]
     (let [rv {:target target
-              :user user
               :result action}]
       (swap! actions conj rv)
       rv)))

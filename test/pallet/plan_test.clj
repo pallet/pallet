@@ -23,7 +23,7 @@
                    (set-target {})
                    (set-user user/*admin-user*))
           result (execute-action session {:a 1})]
-      (is (= {:target {} :user user/*admin-user* :result {:a 1}} result)
+      (is (= {:target {} :result {:a 1}} result)
           "returns the result of the action")
       (is (= [result] (plan/plan (executor session)))
           "uses the session executor")
@@ -40,5 +40,6 @@
         result (execute session {:node (localhost)} plan)]
     (is (map? result))
     (is (= 1 (count (:action-results result))))
+    (is (every? #(zero? (:exit %)) (:action-results result)))
     (is (= :rv (:return-value result)))
     (is (= {:node (localhost)} (:target result)))))

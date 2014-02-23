@@ -8,7 +8,6 @@
    [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script.lib
     :refer [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment with-source-line-comments]]
    [pallet.stevedore.bash :refer [infix-operators]]))
@@ -57,9 +56,9 @@ infix-operators
   (fn [kw user action] kw))
 (defmethod prefix :default [_ _ _] nil)
 
-(defmethod prefix :sudo [_ session action]
-  (debugf "prefix sudo %s" (into {} (merge (session/user session) action)))
-  (sudo-cmd-for (normalise-sudo-options (session/user session) action)))
+(defmethod prefix :sudo [_ user action]
+  (debugf "prefix sudo %s %s" user action)
+  (sudo-cmd-for (normalise-sudo-options user action)))
 
 (defn build-script
   "Builds a script. The script is wrapped in a shell script to set
@@ -123,7 +122,7 @@ future)."
                                   (or script-prefix
                                       default-script-prefix
                                       :sudo)
-                                  user
+                                  (:user action)
                                   action)]
                  (debugf "prefix %s" prefix)
                  (string/split prefix #" "))

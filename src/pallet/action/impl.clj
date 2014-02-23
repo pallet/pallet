@@ -41,6 +41,7 @@
   ([action dispatch-val default]
      (get @(:impls action) dispatch-val (get @(:impls action) default)))
   ([action dispatch-val]
+     {:pre [action (:impls action)]}
      (get @(:impls action) dispatch-val)))
 
 (defn add-action-implementation!

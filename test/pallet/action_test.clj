@@ -28,7 +28,6 @@
         (let [session (test-session)]
           (a session :a :b)
           (is (= [{:target (session/target session)
-                   :user (session/user session)
                    :result {:args [:a :b]
                             :action (:action (meta a))
                             :options {:user user/*admin-user*}}}]
@@ -46,7 +45,6 @@
     (let [session (test-session)]
       (b session :a)
       (is (= [{:target (session/target session)
-               :user (session/user session)
                :result {:args [:a]
                         :action (:action (meta b))
                         :options nil}}]
@@ -56,7 +54,6 @@
       (with-action-options session {:n 2}
         (b session :a))
       (is (= [{:target (session/target session)
-               :user (session/user session)
                :result {:args [:a]
                         :action (:action (meta b))
                         :options {:n 2}}}]
