@@ -21,33 +21,29 @@
 (defn make-action
   "Function to create an action. The action will have no initial
   implementations."
-  [action-symbol execution precedence]
+  [action-symbol options]
   {:action-symbol action-symbol
    :impls (atom {})
-   :execution execution
-   :precedence precedence})
+   :options options})
 
 (defn action-symbol
   "Return the action's symbol."
   [action]
   (:action-symbol action))
 
-(defn action-execution
-  "Return the execution model for the action."
+(defn action-options
+  "Return the options for the action."
   [action]
-  (:execution action))
-
-(defn action-precedence
-  "Return the precedence map for the action."
-  [action]
-  (:precedence action))
+  (:options action))
 
 (defn action-implementation
+  "Return the action implementation for an action."
   ([action dispatch-val default]
      (get @(:impls action) dispatch-val (get @(:impls action) default)))
   ([action dispatch-val]
      (get @(:impls action) dispatch-val)))
 
 (defn add-action-implementation!
+  "Add an action implementation for an action."
   [action dispatch-val metadata f]
   (swap! (:impls action) assoc dispatch-val {:f f :metadata metadata}))

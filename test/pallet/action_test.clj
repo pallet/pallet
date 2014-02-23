@@ -2,6 +2,62 @@
   (:require
    [clojure.test :refer :all]
    [pallet.action :refer :all]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]))
+   [pallet.action-options :refer [with-action-options]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute.node-list :as node-list]
+   [pallet.core.executor.plan :as plan]
+   [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
+   [pallet.session :as session]
+   [pallet.user :as user]))
 
 (use-fixtures :once (logging-threshold-fixture))
+
+(defn test-session
+  []
+  (-> (session/create {:executor (plan/executor)
+                       :recorder (in-memory-recorder)})
+      (session/set-target {:node (node-list/node "localhost" {})})
+      (session/set-user user/*admin-user*)))
+
+(deftest declare-action-test
+  (testing "A declared action"
+    (let [a (declare-action 'a {})]
+      (testing "has metadata"
+        (is (map? (:action (meta a))) "Action function has :action metadata"))
+      (testing "execution"
+        (let [session (test-session)]
+          (a session :a :b)
+          (is (= [{:target (session/target session)
+                   :user (session/user session)
+                   :result {:args [:a :b]
+                            :action (:action (meta a))
+                            :options nil}}]
+                 (plan/plan (session/executor session)))))))))
+
+(defaction b "b doc" {:m 1} [session x])
+
+(deftest defaction-test
+  (testing "action metadata"
+    (is (= "b doc" (:doc (meta #'b))) "Action var has doc")
+    (is (= 1 (:m (meta #'b))) "Action var has metadata")
+    (is (map? (:action (meta b))) "Action function has :action metadata")
+    (is (= {:m 1} (:options (:action (meta b)))) "Action has action :options"))
+  (testing "action execution"
+    (let [session (test-session)]
+      (b session :a)
+      (is (= [{:target (session/target session)
+               :user (session/user session)
+               :result {:args [:a]
+                        :action (:action (meta b))
+                        :options nil}}]
+             (plan/plan (session/executor session))))))
+  (testing "action execution with action options"
+    (let [session (test-session)]
+      (with-action-options session {:n 2}
+        (b session :a))
+      (is (= [{:target (session/target session)
+               :user (session/user session)
+               :result {:args [:a]
+                        :action (:action (meta b))
+                        :options {:n 2}}}]
+             (plan/plan (session/executor session)))))))

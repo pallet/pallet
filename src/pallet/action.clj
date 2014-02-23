@@ -26,50 +26,28 @@
    - :action          the action that is scheduled,
    - :args            the arguments to pass to the action function,"
   [action arg-vector options]
-  (merge options {:action action :args arg-vector}))
+  {:action action
+   :args arg-vector
+   :options options})
 
-;;; Actions are primitives that may be called in a phase or crate function. An
+;;; Actions are primitives that may be called in a plan function. An
 ;;; action can have multiple implementations.
 (defn- action-execute-fn
-  "Return an action inserter function. This is used for anonymous actions. The
-  argument list is not enforced."
+  "Return a function that will call the session executor for the
+  action with argv."
   [action]
-  ^{:action action}
-  (fn action-fn [session & argv]
-    (execute-action
-     session
-     (action-map action argv (action-options session)))))
+  (with-meta
+    (fn action-fn [session & argv]
+      (execute-action
+       session
+       (action-map action argv (action-options session))))
+    {:action action}))
 
 (defn declare-action
   "Declare an action. The action-name is a symbol (not necessarily referring to
-  a Var).
-
-   The execution model can be specified using the :execution key in `metadata`,
-   with one of the following possible values:
-
-   :in-sequence - The generated action will be applied to the node
-        \"in order\", as it is defined lexically in the source crate.
-        This is the default.
-   :aggregated - All aggregated actions are applied to the node
-        in the order they are defined, but before all :in-sequence
-        actions. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
-   :collected - All collected actions are applied to the node
-        in the order they are defined, but after all :in-sequence
-        action. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
-   :delayed-crate-fn - delayed crate functions are phase functions that
-        are executed at action-plan translation time.
-   :aggregated-crate-fn - aggregate crate functions are phase functions that are
-        executed at action-plan translation time, with aggregated arguments, as
-        for :aggregated."
-  [action-symbol metadata]
-  (let [action (make-action
-                action-symbol
-                (:execution metadata :in-sequence)
-                (dissoc metadata :execution))]
+  a Var).  Returns an executor function for the action."
+  [action-symbol options]
+  (let [action (make-action action-symbol options)]
     (action-execute-fn action)))
 
 (defn- args-with-map-as
@@ -97,39 +75,43 @@
     (concat (if &-seen [`apply `vector] [`vector]) args)))
 
 
-;; This doesn't use declare-action, so that the action inserter function
-;; gets the correct signature.
+;;; We want defonce semantics, so that the action implementations
+;;; aren't lost when the action is recompiled.
+
+;;; This doesn't use declare-action, so that the action inserter
+;;; function gets the correct signature.
+
+;;; TODO find a way to do this will still getting a top level
+;;; function, rather than an anonymous function.
+
 (defmacro defaction
   "Declares a named action."
   {:arglists '[[action-name attr-map? [params*]]]
    :indent 'defun}
   [action-name & body]
   (let [[action-name [args & body]] (name-with-attributes action-name body)
+        action-meta (dissoc (meta action-name) :doc :arglists)
         action-name (vary-meta
                      action-name assoc
                      :arglists (list 'quote [args])
                      :defonce true
-                     :pallet/action true
-                     :pallet/plan-fn true)
+                     :pallet/action true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))
         metadata (meta action-name)
         args (args-with-map-as args)]
-    `(let [action# (make-action
-                    '~action-symbol
-                    ~(:execution metadata :in-sequence)
-                    ~(select-keys metadata [:always-before :always-after]))]
+    `(let [action# (make-action '~action-symbol ~action-meta)]
        (defonce ~action-name
          ^{:action action#}
-         (fn ~action-name
-           [~@args]
+         (fn [~@args]
            (let [session# ~(first args)]
              (assert (target-session? session#) "Invalid session")
              (execute-action
               session#
               (action-map
-               action# ~(arg-values args) (action-options session#)))))))))
+               action# ~(arg-values (rest args))
+               (action-options session#)))))))))
 
 (defn implement-action*
   "Define an implementation of an action given the `action-inserter` function."

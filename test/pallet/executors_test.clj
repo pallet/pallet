@@ -33,8 +33,7 @@
             ;; :action-symbol pallet.actions.decl/exec-script*,
             :action
             {:action-symbol pallet.actions.decl/exec-script*,
-             :execution :in-sequence
-             :precedence {}}})
+             :options {}}})
          (plan-data-fn (plan-fn (exec-script "f")))))
   (testing "action options"
     (is (= '{:summary nil
@@ -46,8 +45,7 @@
              ;; :action-symbol pallet.actions.decl/exec-script*,
              :action
              {:action-symbol pallet.actions.decl/exec-script*,
-              :execution :in-sequence,
-              :precedence {}},
+              :options {}},
              :script-dir "abc",}
            (-> (plan-data-fn (plan-fn
                               (with-action-options {:script-dir "abc"}
@@ -88,8 +86,7 @@
               ;; :action-symbol pallet.actions.decl/remote-file-action
               :action
               {:action-symbol 'pallet.actions.decl/remote-file-action
-               :execution :in-sequence
-               :precedence {}}
+               :options {}}
               :summary "remote-file p :content \"line 1...\""}
              (-> (plan-data-fn (plan-fn
                                 (remote-file "p" :content "line 1\nline 2")))

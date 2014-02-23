@@ -11,10 +11,11 @@
 (defn direct-script
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
-  [{:keys [action-options args script-dir] :as action}]
+  [{:keys [options args action] :as action}]
   (let [{:keys [metadata f]} (implementation action :direct)
+        action-options (merge (:options action) options)
         {:keys [action-type location]} metadata
-        script-vec (apply f action-options (drop 1 args))]
+        script-vec (apply f action-options args)]
     (logging/tracef "direct-script %s %s" f (vec args))
     (logging/tracef "direct-script %s" script-vec)
     [script-vec action-type location]))

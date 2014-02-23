@@ -20,12 +20,12 @@
 ;;   (action-options (session)))
 
 (defn merge-action-options
-  "Update any precedence modifiers defined on the session"
+  "Update the default action options modifiers defined on the session"
   [session m]
   (update-in session [:execution-state action-options-key] merge m))
 
 (defn assoc-action-options
-  "Set precedence modifiers defined on the session."
+  "Set the default action options defined on the session."
   [session & m]
   (apply update-in session [:execution-state action-options-key] assoc m))
 
