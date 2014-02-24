@@ -333,29 +333,6 @@ value to assoc. The assoc only occurs if the value is non-nil."
     `(clojure.core/with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
 
-(defmacro ^{:requires [io/file]}
-  compiler-exception
-  "Create a compiler exception that wraps a cause and includes source location."
-  [exception]
-  `(let [e# ~exception
-         f# (io/file ~*file*)]
-     (ex-info
-      (str (.getMessage e#) " " (.getName f#) ":")
-      {:file ~*file*
-       :line ~(-> &form meta :line)}
-      ~exception)))
-
-(defmacro macro-compiler-exception
-  "Create a compiler exception that wraps a cause and includes source location."
-  [exception]
-  `(let [e# ~exception
-         f# (io/file ~'*file*)]
-     (ex-info
-      (str (.getMessage e#) " " (.getName f#) ":")
-      {:file ~'*file*
-       :line (-> ~'&form meta :line)}
-      ~exception)))
-
 (defmacro local-env
   "Return clojure's local environment as a map of keyword value pairs."
   []

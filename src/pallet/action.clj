@@ -15,7 +15,7 @@
    [pallet.plan :refer [execute-action]]
    [pallet.session :as session :refer [target-session?]]
    [pallet.stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [compiler-exception maybe-assoc]]))
+   [pallet.utils :refer [maybe-assoc]]))
 
 ;;; ## Actions
 (defn action-map
@@ -134,13 +134,6 @@
   [action-inserter dispatch-val metadata f]
   {:pre [(fn? f)]}
   (let [action (-> action-inserter meta :action)]
-    (when-not (keyword? dispatch-val)
-      (throw
-       (compiler-exception
-        (IllegalArgumentException.
-         (format
-          "Attempting to implement action %s with invalid dispatch value %s"
-          (action-symbol action) dispatch-val)))))
     (add-action-implementation! action dispatch-val metadata f)))
 
 (defmacro implement-action
@@ -150,6 +143,15 @@
    :indent 2}
   [action dispatch-val & body]
   (let [[impl-name [args & body]] (name-with-attributes action body)]
+    (when-not (keyword? dispatch-val)
+      (throw
+       (ex-info
+        (format
+         (str
+          "Attempting to implement action %s with invalid dispatch value %s."
+          "  Dispatch value must be a keyword.")
+         action dispatch-val)
+        {})))
     `(let [action# ~action]
        (implement-action*
         action# ~dispatch-val

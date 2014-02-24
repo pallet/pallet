@@ -2,19 +2,17 @@
   "Implementation of file upload using rsync."
   (:require
    [clojure.tools.logging :refer [debugf]]
+   [pallet.action :refer [effective-user]]
    [pallet.actions.direct.rsync
-    :refer [default-options rsync-command rsync-sudo-user]]
+    :refer [default-options rsync-command]]
    [pallet.local.execute :refer [local-checked-script]]
-   [pallet.core.session
-    :refer [admin-user effective-username target-ip target-node]]
+   [pallet.session :as session]
+   [pallet.user :refer [effective-username]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
    [pallet.node :refer [ssh-port]]
-   [pallet.ssh.file-upload.sftp-upload :refer [target]]))
-
-(defn rsync-user [session]
-  (or (rsync-sudo-user session)
-      (:username (admin-user session))))
+   [pallet.ssh.file-upload.sftp-upload :refer [target]]
+   [pallet.target :as target]))
 
 (defn rsync-upload-file
   [local-path target-path address port username options]
@@ -39,10 +37,15 @@
     [_ session local-path target-path action-options]
     (rsync-upload-file
      local-path
-     (target upload-root (rsync-user session) target-path)
-     (target-ip session)
-     (ssh-port (target-node session))
-     (:username (admin-user session))
+     (target
+      upload-root
+      (effective-username
+       (effective-user (session/user session) action-options))
+      target-path)
+     (target/primary-ip (session/target session))
+     (target/ssh-port (session/target session))
+     (effective-username
+      (effective-user (session/user session) action-options))
      (merge (-> (default-options session)
                 (select-keys [:rsync-path]))
             {:chmod "go-w,go-r"}))))

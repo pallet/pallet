@@ -68,3 +68,9 @@
             (assoc user/*admin-user* :no-sudo true)
             {:sudo-user "fred"}))
         "sudo-user in options overrides no-sudo in user")))
+
+(deftest implement-action-test
+  (is (thrown? Exception
+               (eval `(implement-action b 'fred {} [action-options] nil)))
+      "implement-action with non-keyword dispatch should fail to compile")
+  (is (implement-action b :x {} [action-options] nil)))

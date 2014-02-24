@@ -133,8 +133,14 @@
       (maybe-update-in [:password] obfuscate)
       (maybe-update-in [:sudo-password] obfuscate)))
 
+(defn sudo-username
+  "Return the sudo username for a user map.  Returns nil if :no-sudo
+  is true."
+  [{:keys [no-sudo sudo-user username] :as user}]
+  (and (not no-sudo) (or sudo-user "root")))
+
 (defn effective-username
   "Return the effective username for a user map."
-  [{:keys [username sudo-user username] :as user}]
-  (or (and (not no-sudo) (or sudo-user "root"))
+  [{:keys [no-sudo sudo-user username] :as user}]
+  (or (sudo-username user)
       username))

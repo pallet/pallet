@@ -30,10 +30,13 @@
       (is (= [result] (results (recorder session)))
           "records the results in the session recorder"))))
 
+(defn test-session []
+  (->
+   (session/create {:executor (ssh/ssh-executor)})
+   (set-user user/*admin-user*)))
+
 (deftest execute-localhost-test
-  (let [session (->
-                 (session/create {:executor (ssh/ssh-executor)})
-                 (set-user user/*admin-user*))
+  (let [session (test-session)
         plan (fn [session]
                (exec-script* session "ls")
                :rv)
@@ -43,3 +46,13 @@
     (is (every? #(zero? (:exit %)) (:action-results result)))
     (is (= :rv (:return-value result)))
     (is (= {:node (localhost)} (:target result)))))
+
+
+(deftest plan-fn-test
+  (is (plan-fn [session]))
+  (is (thrown? Exception (eval `(plan-fn [])))
+      "Plan-fn with zero args should fail to compile")
+  (is (thrown? Exception (eval `(plan-fn nil)))
+      "Plan-fn with no arg vector should fail to compile"))
+
+;; TODO add plan-context tests

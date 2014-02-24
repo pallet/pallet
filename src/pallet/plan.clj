@@ -33,7 +33,7 @@ functions with more defaults, etc."
    [pallet.target :refer [set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils
-    :refer [apply-map compiler-exception local-env map-arg-and-ref]])
+    :refer [apply-map local-env map-arg-and-ref]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
@@ -229,6 +229,16 @@ The result is also written to the recorder in the session."
         n (if n? args)
         args (if n? (first body) args)
         body (if n? (rest body) body)]
+    (when-not (vector? args)
+      (throw (ex-info
+              (str "plan-fn requires a vector for its arguments,"
+                   " but none found.")
+              {:type :plan-fn-definition-no-args})))
+    (when (zero? (count args))
+      (throw (ex-info
+              (str "plan-fn requires at least one argument for the session,"
+                   " but no arguments found.")
+              {:type :plan-fn-definition-args-missing})))
     (if n
       `(fn ~n ~args (plan-context ~(gensym (name n)) {} ~@body))
       `(fn ~args ~@body))))
