@@ -8,6 +8,7 @@
    [pallet.context :as context :refer [with-phase-context]]
    [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.executor.echo :refer [echo-executor]]
+   [pallet.core.executor.plan :refer [plan plan-executor]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
@@ -44,10 +45,7 @@
             {:keys [action-results] :as result-map}
             (execute-target-phase session phase target)]
         (logging/debugf "build-actions result-map %s" result-map)
-        [(str
-          (string/join "\n" (map (comp trim-if-string :script) action-results))
-          \newline)
-         result-map]))))
+        result-map))))
 
 
 ;; (fn test-exec-setttings-fn [_ _]
@@ -95,7 +93,7 @@
         session (update-in session [:execution-state :action-options]
                            #(merge {:script-comments nil} %))
         session (update-in session [:execution-state :executor]
-                           #(or (echo-executor) %))
+                           #(or % (echo-executor)))
         session (update-in session [:phase] #(or % :test-phase))
         session (update-in session [:plan-state]
                            #(or % (in-memory-plan-state)))
@@ -111,9 +109,14 @@
             (fn []
               (with-phase-context {:msg phase-context}
                 (f)))
-            f)
-        [script session] (produce-phases session f)]
-    [script session]))
+            f)]
+    (produce-phases session f)))
+
+(defn join-script
+  [{:keys [action-results]}]
+  (str
+   (string/join "\n" (map (comp trim-if-string :script) action-results))
+   \newline))
 
 (defmacro build-actions
   "Outputs the remote actions specified in the body for the specified phases.
@@ -124,7 +127,8 @@
   [[session-sym session] & body]
   `(let [session# ~session]
      (assert (or (nil? session#) (map? session#)))
-     (build-actions* (plan-fn [~session-sym] ~@body) session#)))
+     ((juxt join-script identity)
+      (build-actions* (plan-fn [~session-sym] ~@body) session#))))
 
 (defmacro build-script
   "Outputs the remote actions specified in the body for the specified phases.
@@ -135,7 +139,46 @@
   [[session-sym session] & body]
   `(let [session# ~session]
      (assert (or (nil? session#) (map? session#)))
-     (first (build-actions* (plan-fn [~session-sym] ~@body) session#))))
+     (join-script (build-actions* (plan-fn [~session-sym] ~@body) session#))))
+
+(defn plan-result
+  [result]
+  (let [result
+        (-> result
+            (update-in [:action] :action-symbol)
+            (update-in [:options]
+                       (fn [{:keys [script-comments user] :as options}]
+                         (let [options (if (= user *admin-user*)
+                                         (dissoc options :user)
+                                         options)
+                               options (if (nil? script-comments)
+                                         (dissoc options :script-comments)
+                                         options)]
+                           options))))
+        result (if (empty? (:options result))
+                 (dissoc result :options)
+                 result)]
+    result))
+
+(defn plan-results
+  [executor]
+  (->> (plan executor)
+       (map :result)
+       (map plan-result)))
+
+(defmacro build-plan
+  "Outputs the remote actions specified in the body for the specified phases.
+   This is useful in testing.
+
+   `session` should be a map (but was historically a vector of keyword
+   pairs).  See `build-session`."
+  [[session-sym session] & body]
+  `(let [executor# (plan-executor)
+         session# (assoc-in (or ~session {})
+                            [:execution-state :executor] executor#)]
+     (assert (or (nil? session#) (map? session#)))
+     (build-actions* (plan-fn [~session-sym] ~@body) session#)
+     (plan-results executor#)))
 
 (defmacro let-actions
   "Outputs the remote actions specified in the body for the specified phases.
@@ -160,6 +203,6 @@
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (build-actions 1)(build-script 1))
+;; eval: (define-clojure-indent (build-actions 1)(build-script 1)(build-plan 1))
 ;; eval: (define-clojure-indent (let-actions 1))
 ;; End:

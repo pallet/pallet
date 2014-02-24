@@ -11,7 +11,7 @@
       (swap! actions conj rv)
       rv)))
 
-(defn executor
+(defn plan-executor
   "Return a plan executor"
   []
   (PlanActionExecutor. (atom [])))

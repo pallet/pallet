@@ -44,7 +44,7 @@
   (keyword (name (gensym "flag"))))
 
 ;;; # Simple File Management
-(defaction file
+(defn file
   "Touch or remove a file. Can also set owner and permissions.
 
      - :action    one of :create, :delete, :touch
@@ -52,8 +52,12 @@
      - :group     user name or id for group of file
      - :mode      file permissions
      - :force     when deleting, try and force removal"
-  [session path & {:keys [action owner group mode force]
-                   :or {action :create force true}}])
+  ([session path {:keys [action owner group mode force]
+                  :or {action :create force true}
+                  :as options}]
+     (decl/file session path (merge {:action :create} options)))
+  ([session path]
+     (file session path {})))
 
 (defaction symbolic-link
   "Symbolic link management.

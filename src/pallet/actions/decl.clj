@@ -233,3 +233,5 @@ to deal with local file transfer."
       :aptitude {:url \"http://archive.canonical.com/\"
                  :scopes [\"partner\"]})"
   [session name {:keys [packager]}])
+
+(defaction file [session path options])

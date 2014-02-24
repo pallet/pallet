@@ -4,6 +4,7 @@
    Actions can have multiple implementations, but by default most are
    implemented as script."
   (:require
+   [clojure.tools.logging :refer [debugf]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.action.impl
     :refer [action-implementation
@@ -127,37 +128,42 @@
          ^{:action action#}
          (fn [~@args]
            (let [session# ~(first args)]
-             (action-execute session# action# [~(arg-values (rest args))])))))))
+             (action-execute session# action# ~(arg-values (rest args)))))))))
 
-(defn implement-action*
-  "Define an implementation of an action given the `action-inserter` function."
-  [action-inserter dispatch-val metadata f]
+(defn implement-action
+  "Define an implementation of an action given the `action-inserter`
+  action function."
+  [action-inserter dispatch-val metadata script-data f]
   {:pre [(fn? f)]}
   (let [action (-> action-inserter meta :action)]
-    (add-action-implementation! action dispatch-val metadata f)))
+    (add-action-implementation!
+     action dispatch-val metadata
+     (fn [& args]
+       (debugf "args %s" (vec args))
+       [script-data (apply f args)]))))
 
-(defmacro implement-action
-  "Define an implementation of an action. The dispatch-val is used to dispatch
-  on."
-  {:arglists '[[action-name dispatch-val attr-map? [params*]]]
-   :indent 2}
-  [action dispatch-val & body]
-  (let [[impl-name [args & body]] (name-with-attributes action body)]
-    (when-not (keyword? dispatch-val)
-      (throw
-       (ex-info
-        (format
-         (str
-          "Attempting to implement action %s with invalid dispatch value %s."
-          "  Dispatch value must be a keyword.")
-         action dispatch-val)
-        {})))
-    `(let [action# ~action]
-       (implement-action*
-        action# ~dispatch-val
-        ~(meta impl-name)
-        (fn ~(symbol (str impl-name "-" (name dispatch-val)))
-          [~@args] ~@body)))))
+;; (defmacro implement-action
+;;   "Define an implementation of an action. The dispatch-val is used to dispatch
+;;   on."
+;;   {:arglists '[[action-name dispatch-val attr-map? [params*]]]
+;;    :indent 2}
+;;   [action dispatch-val & body]
+;;   (let [[impl-name [args & body]] (name-with-attributes action body)]
+;;     (when-not (keyword? dispatch-val)
+;;       (throw
+;;        (ex-info
+;;         (format
+;;          (str
+;;           "Attempting to implement action %s with invalid dispatch value %s."
+;;           "  Dispatch value must be a keyword.")
+;;          action dispatch-val)
+;;         {})))
+;;     `(let [action# ~action]
+;;        (implement-action*
+;;         action# ~dispatch-val
+;;         ~(meta impl-name)
+;;         (fn ~(symbol (str impl-name "-" (name dispatch-val)))
+;;           [~@args] ~@body)))))
 
 (defn implementation
   "Returns the metadata and function for an implementation of an action from an

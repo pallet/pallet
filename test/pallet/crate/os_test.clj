@@ -5,7 +5,6 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.plan :refer :all]
    [pallet.core.node-os :refer [node-os]]
-   [pallet.core.executor.plan :as plan]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]

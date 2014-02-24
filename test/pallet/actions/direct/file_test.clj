@@ -2,8 +2,8 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [file sed]]
-   [pallet.actions.direct.file :refer [write-md5-for-file]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.actions.direct.file :refer [file* write-md5-for-file]]
+   [pallet.build-actions :refer [build-actions build-script]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -22,6 +22,10 @@
 (deftest file-test
   (is (script-no-comment=
        (stevedore/checked-script "file file1" ("touch" file1))
+       (file* {} nil "file1" {})))
+
+  (is (script-no-comment=
+       (stevedore/checked-script "file file1" ("touch" file1))
        (first (build-actions [session {}]
                 (file session "file1")))))
   (is (script-no-comment=
@@ -29,28 +33,28 @@
         "file file1"
         ("touch" file1)
         ("chown" user1 file1))
-       (first (build-actions [session {}]
-                (file session "file1" :owner "user1")))))
+       (build-script [session {}]
+         (file session "file1" {:owner "user1"}))))
   (is (script-no-comment=
        (stevedore/checked-script
         "file file1"
         ("touch" file1)
         ("chown" user1 file1))
        (first (build-actions [session {}]
-                (file session "file1" :owner "user1" :action :create)))))
+                (file session "file1" {:owner "user1" :action :create})))))
   (is (script-no-comment=
        (stevedore/checked-script
         "file file1"
         ("touch" file1)
         ("chgrp" group1 file1))
        (first (build-actions [session {}]
-                (file session "file1" :group "group1" :action :touch)))))
+                (file session "file1" {:group "group1" :action :touch})))))
   (is (script-no-comment=
        (stevedore/checked-script
         "delete file file1"
         ("rm" "--force" file1))
        (first (build-actions [session {}]
-                (file session "file1" :action :delete :force true))))))
+                (file session "file1" {:action :delete :force true}))))))
 
 (deftest sed-test
   (is (script-no-comment=

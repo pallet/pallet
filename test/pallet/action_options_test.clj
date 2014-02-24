@@ -6,7 +6,7 @@
    [pallet.session :as session]))
 
 (deftest with-action-options-tets
-  (let [session (session/create {:executor (plan/executor)})
+  (let [session (session/create {:executor (plan/plan-executor)})
         m {:kw 1}]
     (is (empty? (action-options session)))
     (with-action-options session m

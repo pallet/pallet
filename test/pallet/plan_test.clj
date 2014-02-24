@@ -18,7 +18,7 @@
 (deftest execute-action-test
   (testing "execute-action"
     (let [session (->
-                   (session/create {:executor (plan/executor)
+                   (session/create {:executor (plan/plan-executor)
                                     :recorder (in-memory-recorder)})
                    (set-target {})
                    (set-user user/*admin-user*))

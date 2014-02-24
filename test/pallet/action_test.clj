@@ -14,7 +14,7 @@
 
 (defn test-session
   []
-  (-> (session/create {:executor (plan/executor)
+  (-> (session/create {:executor (plan/plan-executor)
                        :recorder (in-memory-recorder)})
       (session/set-target {:node (node-list/node "localhost" {})})
       (session/set-user user/*admin-user*)))

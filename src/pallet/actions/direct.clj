@@ -4,7 +4,7 @@
 The :direct implementation of actions is designed to return script
 that will be executed on the remote target."
   (:require
-   [clojure.tools.logging :refer [tracef]]
+   [clojure.tools.logging :refer [debugf tracef]]
    [pallet.action :refer [implementation]]))
 
 ;;; Require all implementations
@@ -23,6 +23,7 @@ that will be executed on the remote target."
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
   [{:keys [options args] :as action} state-map]
+  (debugf "direct-script args %s" args)
   (let [{:keys [metadata f]} (implementation action :direct)
         script-vec (apply f options state-map args)]
     (tracef "direct-script %s %s" f (vec args))
