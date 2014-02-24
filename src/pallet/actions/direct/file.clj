@@ -38,9 +38,10 @@
 
 (implement-action file :direct
                   {:action-type :script :location :target}
-  [action-options path & {:keys [action owner group mode force]
-                          :or {action :create force true}
-                          :as options}]
+  [action-options state
+   path & {:keys [action owner group mode force]
+           :or {action :create force true}
+           :as options}]
   [{:language :bash}
    (case action
      :delete (checked-script
@@ -55,9 +56,10 @@
 
 (implement-action symbolic-link :direct
                   {:action-type :script :location :target}
-  [action-options from name & {:keys [action owner group mode force
-                                      no-deref]
-                               :or {action :create force true}}]
+  [action-options state
+   from name & {:keys [action owner group mode force
+                       no-deref]
+                :or {action :create force true}}]
   [{:language :bash}
    (case action
      :delete (checked-script
@@ -70,8 +72,9 @@
 
 (implement-action fifo :direct
                   {:action-type :script :location :target}
-  [action-options path & {:keys [action owner group mode force]
-                          :or {action :create} :as options}]
+  [action-options state
+   path & {:keys [action owner group mode force]
+           :or {action :create} :as options}]
   [{:language :bash}
    (case action
      :delete (checked-script
@@ -86,8 +89,8 @@
 
 (implement-action sed :direct
                   {:action-type :script :location :target}
-  [action-options path exprs-map
-   & {:keys [seperator no-md5 restriction] :as options}]
+  [action-options state
+   path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
   [{:language :bash}
    (checked-script
     (format "sed file %s" path)

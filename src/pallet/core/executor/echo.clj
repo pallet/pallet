@@ -1,7 +1,7 @@
 (ns pallet.core.executor.echo
   "An action executor over echo"
   (:require
-   [pallet.core.executor.ssh :refer [direct-script]]
+   [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
    [pallet.echo.execute :as echo]
    [pallet.user :refer [user?]]))
@@ -10,7 +10,7 @@
   ActionExecutor
   (execute [executor target action]
     {:pre [(:node target)]}
-    (let [script (direct-script action)]
+    (let [script (direct-script action nil)]
       {:script-meta (first script)
        :script (second script)})))
 

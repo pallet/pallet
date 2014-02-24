@@ -3,30 +3,26 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implementation]]
-   pallet.actions.direct
+   [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
+   [pallet.core.script-state :refer [node-state update-node-state]]
    [pallet.ssh.execute :as ssh]
    [pallet.transport :as transport]
    [pallet.user :refer [user?]]))
 
-(defn direct-script
-  "Execute the direct action implementation, which returns script or other
-  argument data, and metadata."
-  [{:keys [options args] :as action}]
-  (let [{:keys [metadata f]} (implementation action :direct)
-        script-vec (apply f options args)]
-    (logging/tracef "direct-script %s %s" f (vec args))
-    (logging/tracef "direct-script %s" script-vec)
-    script-vec))
-
-(deftype SshActionExecutor [transport]
+(deftype SshActionExecutor [transport state]
   ActionExecutor
   (execute [executor target action]
     {:pre [(:node target)(map? action)]}
-    (let [script (direct-script action)]
-      (ssh/ssh-script-on-target
-       transport (:node target) (:user action) action script))))
+    (let [node (:node target)
+          script (direct-script action (node-state @state node))
+          {:keys [out] :as result} (ssh/ssh-script-on-target
+                                    transport (:node target)
+                                    (:user action) action script)]
+      (when out
+        (swap! state update-node-state node out))
+      result)))
 
 (defn ssh-executor
   []
-  (SshActionExecutor. (transport/factory :ssh {})))
+  (SshActionExecutor. (transport/factory :ssh {}) (atom {})))

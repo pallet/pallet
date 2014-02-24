@@ -1,5 +1,13 @@
-(ns pallet.actions.direct "Direct execution action implementations")
+(ns pallet.actions.direct
+  "Direct execution action implementations.
 
+The :direct implementation of actions is designed to return script
+that will be executed on the remote target."
+  (:require
+   [clojure.tools.logging :refer [tracef]]
+   [pallet.action :refer [implementation]]))
+
+;;; Require all implementations
 (require
  'pallet.actions.direct.directory
  'pallet.actions.direct.exec-script
@@ -10,3 +18,13 @@
  'pallet.actions.direct.rsync
  'pallet.actions.direct.service
  'pallet.actions.direct.user)           ; prevent slamhound removing these
+
+(defn direct-script
+  "Execute the direct action implementation, which returns script or other
+  argument data, and metadata."
+  [{:keys [options args] :as action} state-map]
+  (let [{:keys [metadata f]} (implementation action :direct)
+        script-vec (apply f options state-map args)]
+    (tracef "direct-script %s %s" f (vec args))
+    (tracef "direct-script %s" script-vec)
+    script-vec))

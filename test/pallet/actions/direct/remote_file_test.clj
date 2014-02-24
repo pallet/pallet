@@ -22,7 +22,6 @@
    [pallet.common.logging.logutils :as logutils :refer [with-log-to-string]]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
-   [pallet.core.file-upload.rsync-upload :refer [rsync-upload]]
    [pallet.group :refer [group-spec]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
@@ -31,7 +30,6 @@
    [pallet.ssh.node-state.no-state :refer [no-backup no-checksum]]
    [pallet.ssh.node-state.state-root :refer [create-path-with-template]]
    [pallet.stevedore :as stevedore :refer [fragment]]
-   [pallet.test-executors :as test-executors]
    [pallet.test-utils :as test-utils]
    [pallet.test-utils
     :refer [make-localhost-compute
