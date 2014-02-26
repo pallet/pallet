@@ -12,10 +12,11 @@
 (deftest jpackage-test
   (is
    (build-actions
-    {:server
-     {:node
-      (make-node "n" :os-family :centos :os-version "5.5" :packager :yum)}}
-    (jpackage-utils)
-    (add-jpackage)
-    (
-     package-manager-update-jpackage))))
+       [session {:server
+                 {:node
+                  (make-node "n" :os-family :centos
+                             :os-version "5.5"
+                             :packager :yum)}}]
+    (jpackage-utils session)
+    (add-jpackage session)
+    (package-manager-update-jpackage session))))

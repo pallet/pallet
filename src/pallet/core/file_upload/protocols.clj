@@ -8,12 +8,8 @@
   (user-file-path [_ target-path action-options]
     "Return the path to which intermediate files should be written for the
     specified username.")
-  (upload-file [_ session local-path target-path action-options]
-    "Upload a file to the target-path, and return any script needed to
-    be run on the node to get the file into place.
+  (upload-file [_ target local-path target-path action-options]
+    "Upload a file to the target-path.
 
-    file-options is a map of options as passed to remote-file, for file
-    ownership, permissions, etc.
-
-    action-options can contain a :sudo-user, specify the user to install
+    action-options must contain a :user, specifying the user to install
     the file as."))

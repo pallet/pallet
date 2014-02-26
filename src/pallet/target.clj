@@ -1,6 +1,7 @@
 (ns pallet.target
   "A target-map is a server-spec, with a :node element targeting a
 specific node (or some other target)."
+  (:refer-clojure :exclude [proxy])
   (:require
    [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.core.node-os :refer [node-os node-os-merge!]]

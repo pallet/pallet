@@ -10,5 +10,7 @@
 (deftest rpmforge-test
   (is
    (build-actions
-    {:server {:packager :yum :image {:os-family :centos :os-version "5.5"}}}
-    (add-rpmforge))))
+       [session {:server
+                 {:packager :yum
+                  :image {:os-family :centos :os-version "5.5"}}}]
+    (add-rpmforge session))))

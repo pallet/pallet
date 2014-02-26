@@ -62,30 +62,30 @@
 ;;; Note that we can not use remote evaluated expressions in these paths, as
 ;;; they are used locally.
 
-(defn- adjust-root
-  [^String script-dir ^String path]
-  (if (.startsWith path "/")
-    path
-    (fragment
-     (file ~(or script-dir
-                ;; use /home so we have a path tha doesn't
-                ;; involve shell vars
-                (str "/home/" (:username (user {})))) ;; TODO FIXME
-           ~path))))
+;; (defn- adjust-root
+;;   [^String script-dir ^String path]
+;;   (if (.startsWith path "/")
+;;     path
+;;     (fragment
+;;      (file ~(or script-dir
+;;                 ;; use /home so we have a path tha doesn't
+;;                 ;; involve shell vars
+;;                 (str "/home/" (:username (user {})))) ;; TODO FIXME
+;;            ~path))))
 
-(defn new-filename
-  "Generate a temporary file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
+;; (defn new-filename
+;;   "Generate a temporary file name for a given path."
+;;   [script-dir path]
+;;   (fragment
+;;    (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
 
-(defn md5-filename
-  "Generate a md5 file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
+;; (defn md5-filename
+;;   "Generate a md5 file name for a given path."
+;;   [script-dir path]
+;;   (fragment
+;;    (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
 
-(defn copy-filename
-  "Generate a file name for a copy of the given path."
-  [script-dir path]
-  (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))
+;; (defn copy-filename
+;;   "Generate a file name for a copy of the given path."
+;;   [script-dir path]
+;;   (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))

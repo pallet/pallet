@@ -22,7 +22,7 @@
    [pallet.node :refer [primary-ip ssh-port]]
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
-   [pallet.session :refer [target]]
+   [pallet.session :refer [target target-session?]]
    [pallet.target :refer [admin-user node packager]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
@@ -55,11 +55,12 @@
   ([session path {:keys [action owner group mode force]
                   :or {action :create force true}
                   :as options}]
+     {:pre [(target-session? session)]}
      (decl/file session path (merge {:action :create} options)))
   ([session path]
      (file session path {})))
 
-(defaction symbolic-link
+(defn symbolic-link
   "Symbolic link management.
 
      - :action    one of :create, :delete
@@ -68,10 +69,16 @@
      - :mode      symlink permissions
      - :force     when deleting, try and force removal
      - :no-deref  do not deref target if it is a symlink to a directory"
-  [session from name & {:keys [action owner group mode force no-deref]
-                        :or {action :create force true}}])
+  ([session from name {:keys [action owner group mode force no-deref]
+                       :or {action :create force true}
+                       :as options}]
+     {:pre [(target-session? session)]}
+     (decl/symbolic-link session from name
+                         (merge {action :create force true} options)))
+  ([session from name]
+     (decl/symbolic-link session from name {})))
 
-(defaction fifo
+(defn fifo
   "FIFO pipe management.
 
      - :action    one of :create, :delete
@@ -79,19 +86,25 @@
      - :group     user name or id for group of fifo
      - :mode      fifo permissions
      - :force     when deleting, try and force removal"
-  [session path & {:keys [action owner group mode force]
-                   :or {action :create}}])
+  ([session path {:keys [action owner group mode force]
+                  :or {action :create}
+                  :as options}]
+     (decl/fifo session path (merge {action :create} options))))
 
-(defaction sed
+(defn sed
   "Execute sed on the file at path.  Takes a map of expr to replacement.
      - :separator     the separator to use in generated sed expressions. This
                       will be inferred if not specified.
      - :no-md5        prevent md5 generation for the modified file
      - :restriction   restrict the sed expressions to a particular context."
-  [session path exprs-map & {:keys [separator no-md5 restriction]}])
+  ([session path exprs-map {:keys [separator no-md5 restriction] :as options}]
+     {:pre [(target-session? session)]}
+     (decl/sed session path exprs-map options))
+  ([session path exprs-map]
+     (sed session path exprs-map {})))
 
 ;;; # Simple Directory Management
-(defaction directory
+(defn directory
   "Directory management.
 
    For :create and :touch, all components of path are effected.
@@ -104,9 +117,16 @@
     - :owner      set owner
     - :group      set group
     - :mode       set mode"
-  [session dir-path & {:keys [action recursive force path mode verbose owner
-                              group]
-                       :or {action :create recursive true force true path true}}])
+  ([session dir-path {:keys [action recursive force path mode verbose owner
+                             group]
+                      :or {action :create recursive true force true path true}
+                      :as options}]
+     {:pre [(target-session? session)]}
+     (decl/directory
+      session dir-path
+      (merge {:action :create :recursive true :force true :path true} options)))
+  ([session dir-path]
+     (directory session dir-path {})))
 
 (defn directories
   "Directory management of multiple directories with the same
@@ -114,9 +134,9 @@
 
    `options` are as for `directory` and are applied to each directory in
    `paths`"
-  [paths & options]
+  [session paths options]
   (doseq [path paths]
-    (apply directory path options)))
+    (directory session path options)))
 
 ;;; # Remote File Content
 
@@ -349,19 +369,19 @@ Content can also be copied from a blobstore.
 
     (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
-  [session path & {:keys [action url local-file remote-file link
-                          content literal
-                          template values
-                          md5 md5-url
-                          owner group mode force
-                          blob blobstore
-                          install-new-files
-                          overwrite-changes no-versioning max-versions
-                          flag-on-changed
-                          local-file-options
-                          verify]
-                   :as options}]
-  {:pre [path]}
+  [session path {:keys [action url local-file remote-file link
+                        content literal
+                        template values
+                        md5 md5-url
+                        owner group mode force
+                        blob blobstore
+                        install-new-files
+                        overwrite-changes no-versioning max-versions
+                        flag-on-changed
+                        local-file-options
+                        verify]
+                 :as options}]
+  {:pre [path (target-session? session)]}
   (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
   (let [action-options (action-options session)
@@ -370,17 +390,22 @@ Content can also be copied from a blobstore.
                (:sudo-user action-options)
                (:username (admin-user session)))]
     (when local-file
-      (transfer-file local-file path))
-    (remote-file-action
-     path
-     (merge
-      (maybe-assoc
-         {:install-new-files *install-new-files* ; capture bound values
-          :overwrite-changes *force-overwrite*
-          :owner user
-          :proxy (get-environment session [:proxy] nil)}
-         :blobstore (get-environment session [:blobstore] nil))
-      options))))
+      (transfer-file session local-file path))
+    (let [{:keys [exit] :as result}
+          (remote-file-action
+           session
+           path
+           (merge
+            (maybe-assoc
+             {:install-new-files *install-new-files* ; capture bound values
+              :overwrite-changes *force-overwrite*
+              :owner user
+              :proxy (get-environment session [:proxy] nil)}
+             :blobstore (get-environment session [:blobstore] nil))
+            options))]
+      (when (= 2 exit)
+        (throw (ex-info "Local file failed to transfer" {})))
+      result)))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -388,10 +413,10 @@ Content can also be copied from a blobstore.
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
   {:pallet/plan-fn true}
-  [f path & args]
+  [session f path & args]
   (let [local-path (tmpfile)]
     (plan-context with-remote-file-fn {:local-path local-path}
-      (transfer-file-to-local path local-path)
+      (transfer-file-to-local session path local-path)
       (apply f local-path args)
       (.delete (io/file local-path)))))
 
@@ -399,8 +424,9 @@ Content can also be copied from a blobstore.
   "Return a function that returns the content of a file, when used inside
    another action."
   {:pallet/plan-fn true}
-  [path]
-  (let [nv (exec-script (~lib/cat ~path))]
+  [session path]
+  {:pre [(target-session? session)]}
+  (let [nv (exec-script session (~lib/cat ~path))]
     (:out nv)))
 
 ;;; # Remote Directory Content
@@ -475,7 +501,6 @@ only specified files or directories, use the :extract-files option.
        :url \"http://a.com/path/file.jar\"
        :unpack :jar
        :extract-files [\"dir/file\" \"file2\"])"
-  {:pallet/plan-fn true}
   [session path & {:keys [action url local-file remote-file
                           unpack tar-options unzip-options jar-options
                           strip-components md5 md5-url owner group recursive
@@ -488,6 +513,7 @@ only specified files or directories, use the :extract-files option.
                         strip-components 1
                         recursive true}
                    :as options}]
+  {:pre [(target-session? session)]}
   (check-remote-directory-arguments options)
   (verify-local-file-exists local-file)
   (let [action-options (action-options session)
@@ -712,32 +738,24 @@ The :id key must contain a recognised repository."
     id))
 
 ;;; # Synch local file to remote
-(defaction rsync*
-  "Use rsync to copy files from local-path to remote-path"
-  [session local-path remote-path {:keys [port]}])
-
 (defn rsync
   "Use rsync to copy files from local-path to remote-path"
   [session local-path remote-path {:keys [port]
                                    :as options}]
-  (rsync* session local-path remote-path
-          (merge {:port (ssh-port (node (target session)))
-                  :username (:username (admin-user session))
-                  :ip (primary-ip (node (target session)))}
-                 options)))
+  (decl/rsync session local-path remote-path
+              (merge {:port (ssh-port (node (target session)))
+                      :username (:username (admin-user session))
+                      :ip (primary-ip (node (target session)))}
+                     options)))
 
-(defaction rsync-to-local*
+(defn rsync-to-local
   "Use rsync to copy files from remote-path to local-path"
-  [session remote-path local-path {:keys [port]}])
-
-(defaction rsync-to-local
-  "Use rsync to copy files from remote-path to local-path"
-  [session remote-path local-path {:keys [port ip username]}]
-  (rsync-to-local* session local-path remote-path
-                   (merge {:port (ssh-port (node (target session)))
-                           :username (:username (admin-user session))
-                           :ip (primary-ip (node (target session)))}
-                          options)))
+  [session remote-path local-path {:keys [port ip username] :as options}]
+  (decl/rsync-to-local session local-path remote-path
+                       (merge {:port (ssh-port (node (target session)))
+                               :username (:username (admin-user session))
+                               :ip (primary-ip (node (target session)))}
+                              options)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."

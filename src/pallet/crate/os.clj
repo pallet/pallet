@@ -6,7 +6,7 @@
    [pallet.actions :refer [exec-script]]
    [pallet.core.node-os :refer [node-os node-os!]]
    [pallet.plan :refer [defplan]]
-   [pallet.session :refer [target plan-state]]
+   [pallet.session :refer [plan-state target target-session?]]
    [pallet.stevedore :refer [script]]
    [pallet.target :as target]
    [pallet.utils :refer [maybe-assoc]]))
@@ -67,6 +67,7 @@
 (defplan infer-os
   "Infer the OS family and version from a node"
   [session]
+  {:pre [(target-session? session)]}
   (let [os (exec-script session (os-detection))]
     (when (and (number? (:exit os)) (zero? (:exit os)))
       (let [out (string/replace-first (:out os) pre-map-output "{")
@@ -87,6 +88,7 @@
 (defplan infer-distro
   "Infer the linux distribution from a node"
   [session]
+  {:pre [(target-session? session)]}
   (let [distro (exec-script session (distro-detection))]
     (when (and (number? (:exit distro)) (zero? (:exit distro)))
       (let [out (string/replace-first (:out distro) pre-map-output "{")
@@ -105,6 +107,7 @@
   "Infer OS and distribution.  Puts a map into the settings' :pallet/os
   facility."
   [session]
+  {:pre [(target-session? session)]}
   (let [os (infer-os session)
         distro (infer-distro session)
         m (dissoc (merge os distro) :action-symbol :context)]

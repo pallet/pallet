@@ -462,3 +462,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
    (map #(io/file root %) filenames)
    (filter #(.exists ^java.io.File %))
    first))
+
+(defn multi-fn?
+  "Predicate for a multi-method."
+  [x]
+  (instance? clojure.lang.MultiFn x))

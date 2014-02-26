@@ -3,7 +3,7 @@
   (:require
    [clojure.string :as string]
    [pallet.actions :refer [remote-file]]
-   [pallet.crate :refer [defplan]]
+   [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [with-source-line-comments]]))

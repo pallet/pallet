@@ -16,7 +16,6 @@
    [pallet.script :as script]
    [pallet.session :refer [plan-state target validate-target-session]]
    [pallet.session.action-plan :refer [target-path]]
-   [pallet.session.verify :refer [add-session-verification-key check-session]]
    [pallet.target-ops :refer [execute-target-phase]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.user :refer [*admin-user*]]
@@ -99,6 +98,7 @@
                            #(or % (in-memory-plan-state)))
         session (update-in session [:execution-state :user]
                            #(or % *admin-user*))]
+    (logging/tracef "session %s" session)
     (assoc session :type :pallet.session/session)))
 
 (defn build-actions*

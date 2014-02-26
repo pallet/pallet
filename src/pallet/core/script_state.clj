@@ -10,8 +10,7 @@ target :flags key."
     :refer [ann doseq> fn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq NonEmptySeqable Set]]
    [clojure.tools.logging :as logging]
-   [pallet.core.types :refer []]
-   [pallet.node :as node]))
+   [pallet.core.types :refer []]))
 
 
 (ann setflag-regex java.util.regex.Pattern)
@@ -28,8 +27,8 @@ target :flags key."
   [FlagValues Node (Map Keyword String) -> FlagValues])
 (defn ^:internal merge-node-state
   "Set flag values for target."
-  [state node new-flag-values]
-  (update-in state [(node/id node)] merge new-flag-values))
+  [state node-id new-flag-values]
+  (update-in state [node-id] merge new-flag-values))
 
 (ann parse-flags [(Nilable String) -> (Nilable Set)])
 (defn ^:internal parse-flags
@@ -65,17 +64,17 @@ target :flags key."
 
 (defn update-node-state
   "Update the state map for node with flag values parsed from out."
-  [state node out]
-  (merge-node-state state node (parse-node-state out)))
+  [state node-id out]
+  (merge-node-state state node-id (parse-node-state out)))
 
 (ann node-state (Fn [Session Keyword -> boolean]
                     [Keyword -> [Session -> (Vector* boolean Session)]]))
 (defn get-node-state
   "Return the node state value for key."
-  [state node key]
-  (get-in state [(node/id node) key]))
+  [state node-id key]
+  (get-in state [node-id key]))
 
 (defn node-state
   "Return the node state."
-  [state node]
-  (get state (node/id node)))
+  [state node-id]
+  (get state node-id))

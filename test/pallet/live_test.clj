@@ -20,9 +20,8 @@
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [pallet.plan :refer [phase-errors service-state]]
-   [pallet.core.operations :refer [converge]]
-   [pallet.core.primitives :refer [async-operation]]
+   [pallet.group :refer [converge phase-errors service-state]]
+   [pallet.plan :refer []]
    [pallet.environment :refer [environment]]
    [pallet.node :as configure]
    [pallet.node :as node]))
@@ -223,30 +222,28 @@
   "Build nodes using the node-types specs"
   [service node-types specs phases]
   (let [counts (counts specs)
-        op
-        (converge
-         (async-operation {})
-         service
-         counts
-         (service-state service counts)
-         {} (environment service) phases {})]
-    @op
-    (when (phase-errors @op)
+        session (converge
+                 service
+                 counts
+                 (service-state service counts)
+                 {} (environment service) phases {})]
+    session
+    (when (phase-errors session)
       (let [e (or
-               (:exception @op)
-               (some #(some (comp :cause :error) %) (phase-errors @op)))]
+               (:exception session)
+               (some #(some (comp :cause :error) %) (phase-errors session)))]
         (if e
-          (debugf e "live-test build-nodes failed: %s" @op)
-          (debugf "live-test build-nodes failed: %s" @op))
+          (debugf e "live-test build-nodes failed: %s" session)
+          (debugf "live-test build-nodes failed: %s" session))
         (throw
          (ex-info
           "live-test build-nodes failed"
           {:reason :live-test-failed-to-build-nodes
-           :fail-reason @op}
+           :fail-reason session}
           e))))
     (let [group-nodes (->>
-                       @op :targets
-                       (group-by (comp keyword name node/group-name :node)))
+                       session :targets
+                       (group-by :group-name))
           test-groups (map (comp keyword name) (keys node-types))]
       (tracef "build-nodes %s %s %s" group-nodes test-groups)
       (select-keys group-nodes test-groups))))
@@ -255,7 +252,8 @@
   "Build nodes using the phase and specs"
   [service group-names]
   (doseq [group-name group-names]
-    (compute/destroy-nodes-in-group service (name group-name))))
+    ;; TODO fix me
+    (compute/destroy-nodes service (name group-name))))
 
 (defmacro test-nodes
   "Top level testing macro.

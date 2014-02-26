@@ -2,6 +2,7 @@
   (:require
    [clojure.test :refer :all]
    [pallet.compute :refer [os-hierarchy]]
+   [pallet.test-utils]
    [pallet.version-dispatch :refer :all]))
 
 (defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
@@ -69,3 +70,17 @@
       (testing "assoc"
         (let [key2 {:os :debian :os-version [6]}]
           (is (= 1 (get (assoc m key2 1) key2 ::nil))))))))
+
+(deftest defmulti-version-test
+  (let [xxx (gensym "xxx")]
+    (is (thrown-cause-with-msg?
+         Exception
+         (re-pattern (str "Could not find defmulti-version " (name xxx)))
+         (eval `(defmethod-version ~xxx {} []))))))
+
+(deftest defmulti-version-plan-test
+  (let [xxx (gensym "xxx")]
+    (is (thrown-cause-with-msg?
+         Exception
+         (re-pattern (str "Could not find defmulti-version " (name xxx)))
+         (eval `(defmethod-version-plan ~xxx {} []))))))

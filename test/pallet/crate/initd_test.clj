@@ -2,12 +2,13 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
-   [pallet.api :refer [plan-fn] :as api]
    [pallet.build-actions :as build-actions]
    [pallet.crate.initd :as initd]
    [pallet.crate.service :refer [service-supervisor-config]]
    [pallet.crate.service-test :refer [service-supervisor-test]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script :refer [defimpl defscript]]
+   [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
    [pallet.test-utils :refer :all]))
 
@@ -17,22 +18,25 @@
   (service-supervisor-test :initd config {:process-name "sleep 100"}))
 
 (def initd-test-spec
-  (api/server-spec
+  (spec/server-spec
    :extends [(initd/server-spec {})]
-   :phases {:settings (plan-fn (service-supervisor-config
-                                :initd
-                                {:service-name "myjob"
-                                 :init-file {:content (fragment (init-script))}}
-                                {}))
-            :configure (plan-fn
+   :phases {:settings (plan-fn [session]
+                        (service-supervisor-config
+                         session
+                         :initd
+                         {:service-name "myjob"
+                          :init-file {:content (fragment (init-script))}}
+                         {}))
+            :configure (plan-fn [session]
                          (remote-file
+                          session
                           "/tmp/myjob"
                           :content (fragment
                                     ("#!/bin/bash")
                                     ("exec" "sleep" 100000000))
                           :mode "0755"))
-            :test (plan-fn
-                    (initd-test {:service-name "myjob"}))}))
+            :test (plan-fn [session]
+                    (initd-test session {:service-name "myjob"}))}))
 
 
 (defimpl init-script :default []

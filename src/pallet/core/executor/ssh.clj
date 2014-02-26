@@ -5,7 +5,8 @@
    [pallet.action :refer [implementation]]
    [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
-   [pallet.core.script-state :refer [node-state update-node-state]]
+   [pallet.core.script-state :as script-state :refer [update-node-state]]
+   [pallet.node :as node]
    [pallet.ssh.execute :as ssh]
    [pallet.transport :as transport]
    [pallet.user :refer [user?]]))
@@ -15,13 +16,27 @@
   (execute [executor target action]
     {:pre [(:node target)(map? action)]}
     (let [node (:node target)
-          script (direct-script action (node-state @state node))
-          {:keys [out] :as result} (ssh/ssh-script-on-target
-                                    transport (:node target)
-                                    (:user action) action script)]
-      (when out
-        (swap! state update-node-state node out))
-      result)))
+          [metadata value] (direct-script
+                             action
+                             (script-state/node-state @state (node/id node)))]
+      (logging/debugf "metadata %s" (pr-str metadata))
+      (logging/debugf "value %s" (pr-str value))
+      (case (:action-type metadata :script)
+        :script (let [{:keys [out] :as result} (ssh/ssh-script-on-target
+                                                transport (:node target)
+                                                (:user action) action
+                                                value)]
+                  (when out
+                    (swap! state update-node-state (node/id node) out))
+                  result)
+        :transfer/from-local {:return-value ((:f value) target)}
+        :transfer/to-local (ssh/ssh-to-local
+                            transport (:node target) (:user action)
+                            value))))
+
+  ActionExecutorState
+  (node-state [executor node]
+    (script-state/node-state @state (node/id node))))
 
 (defn ssh-executor
   []

@@ -69,7 +69,7 @@
                    :complete? true) -> User])
 (defn make-user
   "Creates a User record with the given username and options. Generally used
-   in conjunction with *admin-user* and pallet.api/with-admin-user, or passed
+   in conjunction with *admin-user* and with-admin-user, or passed
    to `lift` or `converge` as the named :user argument.
 
    Options:
@@ -124,6 +124,18 @@
      username)
    {:private-key-path (default-private-key-path)
     :public-key-path (default-public-key-path)}))
+
+(defmacro with-admin-user
+  "Specify the admin user for running remote commands.  The user is
+   specified either as user map (see the pallet.user/make-user
+   convenience fn).
+
+   This is mainly for use at the repl, since the admin user can be specified
+   functionally using the :user key in a lift or converge call, or in the
+   environment."
+  [user & exprs]
+  `(binding [*admin-user* ~user]
+     ~@exprs))
 
 (ann obfuscated-passwords [User -> User])
 (defn obfuscated-passwords

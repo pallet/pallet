@@ -2,7 +2,7 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [rsync* rsync-to-local*]]
+   [pallet.actions.decl :refer [rsync rsync-to-local]]
    [pallet.script.lib :refer [sudo]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.user :refer [sudo-username]]))
@@ -32,25 +32,27 @@
      from username
      address to)))
 
-(implement-action rsync* :direct {:action-type :script :location :origin}
-  [action-options from to {:keys [ip username port] :as options}]
+
+(defn rsync*
+  [{:keys [action-options state]}
+   from to {:keys [ip username port] :as options}]
   (logging/debugf "rsync %s to %s" from to)
-  (let [extra-options (dissoc options :port)
+  (let [extra-options (dissoc options :port :username)
         cmd (rsync-command
              from to
              username
              ip
              port
              (merge (default-options action-options) extra-options))]
-    [{:language :bash}
-     (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]))
+    (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)))
 
+(implement-action rsync :direct {:location :origin} {:language :bash} rsync*)
 
-(implement-action rsync-to-local* :direct
-                  {:action-type :script :location :origin}
-  [action-options from to {:keys [ip username port] :as options}]
+(defn rsync-to-local*
+  [{:keys [action-options state]}
+   from to {:keys [ip username port] :as options}]
   (logging/debugf "rsync %s to %s" from to)
-  (let [extra-options (dissoc options :port)
+  (let [extra-options (dissoc options :port :username)
         ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port
                    (format "-p %s" port)))
@@ -62,5 +64,7 @@
                      extra-options))
              username ip from to)]
     (logging/debugf "rsync-to-local %s" cmd)
-    [[{:language :bash}
-      (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]]))
+    (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)))
+
+(implement-action rsync-to-local :direct {:location :origin} {:language :bash}
+                  rsync-to-local*)

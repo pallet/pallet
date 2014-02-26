@@ -77,32 +77,6 @@
    "Tag the `nodes` in `compute-service` with the `tags`.  Any
    problems will be written to the channel, ch."))
 
-;;; # Compute Service
-;;; Synchronous compute service protocols.
-;; (defprotocol> ComputeService
-;;   (nodes [compute] "List nodes")
-;;   (run-nodes
-;;    [compute node-spec user node-count]
-;;    "Start `node-count` nodes using `node-spec`, authorising the public
-;;    key of the specified `user` if possible.")
-;;   (tag-nodes
-;;    [compute nodes tags]
-;;    "Tag the `nodes` in `compute-service` with the `tags`.")
-;;   (reboot [compute nodes] "Reboot the specified nodes")
-;;   (boot-if-down
-;;    [compute nodes]
-;;    "Boot the specified nodes, if they are not running.")
-;;   (shutdown-node [compute node user] "Shutdown a node.")
-;;   (shutdown [compute nodes user] "Shutdown specified nodes")
-;;   (ensure-os-family
-;;    [compute group-spec]
-;;    "Called on startup of a new node to ensure group-spec has an os-family
-;;    attached to it.")
-;;   (destroy-nodes [compute nodes])
-;;   (destroy-node [compute node])
-;;   (images [compute])
-;;   (close [compute]))
-
 (defprotocol> ComputeServiceProperties
   (service-properties [compute]
     "Return a map of service details.  Contains a :provider key at a minimum.

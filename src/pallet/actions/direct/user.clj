@@ -16,7 +16,8 @@
 
 (defn user*
   "Require a user"
-  [action-options username
+  [{:keys [action-options state]}
+   username
    & {:keys [action shell base-dir home system create-home
              password shell comment groups remove force append]
       :or {action :manage}
@@ -60,36 +61,31 @@
       (throw (IllegalArgumentException.
               (str action " is not a valid action for user action"))))))
 
+(implement-action user :direct {} {:language :bash} user*)
 
-(implement-action user :direct
-                  {:action-type :script :location :target}
-  [action-options & user-args]
-  [{:language :bash}
-   (apply user* user-args)])
+(defn group*
+  [{:keys [action-options state]}
+   groupname & {:keys [action system gid password]
+                :or {action :manage}
+                :as options}]
+  (case action
+    :create
+    (stevedore/script
+     (if-not (~lib/group-exists? ~groupname)
+       (~lib/create-group
+        ~groupname ~(select-keys options [:system :gid :password]))))
+    :manage
+    (stevedore/script
+     (if (~lib/group-exists? ~groupname)
+       (~lib/modify-group
+        ~groupname ~(select-keys options [:gid :password]))
+       (~lib/create-group
+        ~groupname ~(select-keys options [:system :gid :password]))))
+    :remove
+    (stevedore/script
+     (if (~lib/group-exists? ~groupname)
+       (~lib/remove-group ~groupname {})))
+    (throw (IllegalArgumentException.
+            (str action " is not a valid action for group action")))))
 
-
-(implement-action group :direct
-                  {:action-type :script :location :target}
-  [action-options groupname & {:keys [action system gid password]
-                               :or {action :manage}
-                               :as options}]
-  [{:language :bash}
-   (case action
-     :create
-     (stevedore/script
-      (if-not (~lib/group-exists? ~groupname)
-        (~lib/create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :manage
-     (stevedore/script
-      (if (~lib/group-exists? ~groupname)
-        (~lib/modify-group
-         ~groupname ~(select-keys options [:gid :password]))
-        (~lib/create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :remove
-     (stevedore/script
-      (if (~lib/group-exists? ~groupname)
-        (~lib/remove-group ~groupname {})))
-     (throw (IllegalArgumentException.
-             (str action " is not a valid action for group action"))))])
+(implement-action group :direct {} {:language :bash} group*)

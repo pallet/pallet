@@ -16,7 +16,7 @@
    [pallet.plan :refer [execute-action]]
    [pallet.session :as session :refer [target-session?]]
    [pallet.stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [maybe-assoc]]))
+   [pallet.utils :refer [maybe-assoc multi-fn?]]))
 
 ;;; ## Actions
 (defn action-map
@@ -123,47 +123,32 @@
                        (name action-name))
         metadata (meta action-name)
         args (args-with-map-as args)]
-    `(let [action# (make-action '~action-symbol ~action-meta)]
-       (defonce ~action-name
-         ^{:action action#}
-         (fn [~@args]
-           (let [session# ~(first args)]
-             (action-execute session# action# ~(arg-values (rest args)))))))))
+    (with-meta
+      `(let [action# (make-action '~action-symbol ~action-meta)]
+         (defonce ~action-name
+           ^{:action action#}
+           (fn [~@args]
+             (let [session# ~(first args)]
+               (action-execute session# action# ~(arg-values (rest args)))))))
+      (meta &form))))
 
 (defn implement-action
   "Define an implementation of an action given the `action-inserter`
   action function."
-  [action-inserter dispatch-val metadata script-data f]
-  {:pre [(fn? f)]}
-  (let [action (-> action-inserter meta :action)]
-    (add-action-implementation!
-     action dispatch-val metadata
-     (fn [& args]
-       (debugf "args %s" (vec args))
-       [script-data (apply f args)]))))
-
-;; (defmacro implement-action
-;;   "Define an implementation of an action. The dispatch-val is used to dispatch
-;;   on."
-;;   {:arglists '[[action-name dispatch-val attr-map? [params*]]]
-;;    :indent 2}
-;;   [action dispatch-val & body]
-;;   (let [[impl-name [args & body]] (name-with-attributes action body)]
-;;     (when-not (keyword? dispatch-val)
-;;       (throw
-;;        (ex-info
-;;         (format
-;;          (str
-;;           "Attempting to implement action %s with invalid dispatch value %s."
-;;           "  Dispatch value must be a keyword.")
-;;          action dispatch-val)
-;;         {})))
-;;     `(let [action# ~action]
-;;        (implement-action*
-;;         action# ~dispatch-val
-;;         ~(meta impl-name)
-;;         (fn ~(symbol (str impl-name "-" (name dispatch-val)))
-;;           [~@args] ~@body)))))
+  ([action-inserter dispatch-val metadata script-data f]
+     {:pre [(or (fn? f) (multi-fn? f))]}
+     (let [action (-> action-inserter meta :action)]
+       (add-action-implementation!
+        action dispatch-val metadata
+        (fn [& args]
+          [script-data (apply f args)]))))
+  ([action-inserter dispatch-val metadata f]
+     {:pre [(or (fn? f) (multi-fn? f))]}
+     (let [action (-> action-inserter meta :action)]
+       (add-action-implementation!
+        action dispatch-val metadata
+        (fn [& args]
+          (apply f args))))))
 
 (defn implementation
   "Returns the metadata and function for an implementation of an action from an

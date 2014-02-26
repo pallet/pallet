@@ -11,3 +11,7 @@
   "Predicate to test for an executor"
   [x]
   (satisfies? ActionExecutor x))
+
+(defprotocol ActionExecutorState
+  (node-state [executor node]
+    "Return the node state for the given node."))

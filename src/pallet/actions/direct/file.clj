@@ -2,8 +2,8 @@
   "File manipulation."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions.decl :refer [file checked-script checked-commands]]
-   [pallet.actions :refer [fifo sed symbolic-link]]
+   [pallet.actions.decl :refer [file fifo sed symbolic-link
+                                checked-script checked-commands]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
@@ -38,7 +38,7 @@
 
 
 (defn file*
-  [action-options state
+  [{:keys [action-options state]}
    path {:keys [action owner group mode force]
          :or {action :create force true}
          :as options}]
@@ -56,7 +56,7 @@
 (implement-action file :direct {} {:language :bash} file*)
 
 (defn symbolic-link*
-  [action-options state
+  [{:keys [action-options state]}
    from name & {:keys [action owner group mode force
                        no-deref]
                 :or {action :create force true}}]
@@ -72,9 +72,9 @@
 (implement-action symbolic-link :direct {} {:language :bash} symbolic-link*)
 
 (defn fifo*
-  [action-options state
-   path & {:keys [action owner group mode force]
-           :or {action :create} :as options}]
+  [{:keys [action-options state]}
+   path {:keys [action owner group mode force]
+         :or {action :create} :as options}]
   (case action
     :delete (checked-script
              (str "fifo " path)
@@ -89,8 +89,8 @@
 (implement-action fifo :direct {} {:language :bash} fifo*)
 
 (defn sed*
-  [action-options state
-   path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
+  [{:keys [action-options state]}
+   path exprs-map {:keys [seperator no-md5 restriction] :as options}]
   (checked-script
    (format "sed file %s" path)
    (~lib/sed-file ~path ~exprs-map ~options)

@@ -10,10 +10,13 @@
 
 (deftest retry-test
   (is (script-no-comment=
-       (first (build-actions {}
-                (loop-until "x" (script (file-exists? abc)) 5 2)))
-       (first (build-actions {}
+       (first (build-actions [session {}]
+                (loop-until session
+                            "x"
+                            (script (file-exists? abc)) 5 2)))
+       (first (build-actions [session {}]
                 (retry-until
+                 session
                  {:service-name "x"}
                  (script (file-exists? abc))))))))
 

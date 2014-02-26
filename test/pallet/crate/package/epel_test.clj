@@ -9,6 +9,7 @@
 
 (deftest epel-test
   (is
-   (build-actions
-    {:server {:packager :yum :image {:os-family :centos :os-version "5.5"}}}
-    (add-epel))))
+   (build-actions [session {:server
+                            {:packager :yum
+                             :image {:os-family :centos :os-version "5.5"}}}]
+    (add-epel session))))

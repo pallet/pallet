@@ -7,7 +7,6 @@
   "An action that always fails."
   [session])
 
-(implement-action fail :direct
-  {:action-type :script :location :target}
-  []
-  [{:language :bash} "echo fail action; exit 1"])
+(defn fail* [action-state]
+  "echo fail action; exit 1")
+(implement-action fail :direct {} {:language :bash} fail*)

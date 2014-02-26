@@ -4,7 +4,7 @@
    [pallet.action :refer [action-fn]]
    [pallet.actions :refer [remote-file]]
    [pallet.actions.decl :refer [remote-file-action]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.etc-default :as default]
    [pallet.plan :refer [plan-context]]
@@ -19,33 +19,35 @@
 (def remote-file* (action-fn remote-file-action :direct))
 
 (deftest default-test
-  (is (script-no-comment=
-       (first
-        (build-actions {:server {:image {:os-family :ubuntu}}}
-          (plan-context write {}
-            (remote-file
-             "/etc/default/tomcat6"
-             :owner "root"
-             :group "root"
-             :mode 644
-             :content
-             "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""))))
-       (first
-        (build-actions {:server {:image {:os-family :ubuntu}}}
-          (default/write "tomcat6"
-            :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
-            "JSP_COMPILER" "javac")))))
-  (is (script-no-comment=
-       (first
-        (build-actions {:server {:image {:os-family :ubuntu}}}
-          (plan-context write {}
-            (remote-file
-             "/etc/tomcat/tomcat6"
-             :owner "root"
-             :group "root"
-             :mode 644
-             :content "JAVA_OPTS=\"-Djava.awt.headless=true\""))))
-       (first
-        (build-actions {:server {:image {:os-family :ubuntu}}}
-          (default/write "/etc/tomcat/tomcat6"
-            :JAVA_OPTS "-Djava.awt.headless=true"))))))
+  (is (=
+       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+         (plan-context write {}
+           (remote-file
+            session
+            "/etc/default/tomcat6"
+            :owner "root"
+            :group "root"
+            :mode 644
+            :content
+            "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\"")))
+       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+         (default/write
+           session
+           "tomcat6"
+           :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
+           "JSP_COMPILER" "javac"))))
+  (is (=
+       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+         (plan-context write {}
+           (remote-file
+            session
+            "/etc/tomcat/tomcat6"
+            :owner "root"
+            :group "root"
+            :mode 644
+            :content "JAVA_OPTS=\"-Djava.awt.headless=true\"")))
+       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+         (default/write
+           session
+           "/etc/tomcat/tomcat6"
+           :JAVA_OPTS "-Djava.awt.headless=true")))))

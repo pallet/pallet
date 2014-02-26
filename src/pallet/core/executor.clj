@@ -17,3 +17,7 @@ recorded as the result, before re-throwing the exception."
   "Predicate to test for an executor"
   [x]
   (impl/executor? x))
+
+(defn node-state
+  [executor node]
+  (impl/node-state executor node))

@@ -3,12 +3,12 @@
    [clojure.test :refer :all]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [directory exec-checked-script file remote-file user]]
-   [pallet.api :refer [group-spec lift plan-fn]]
-   [pallet.build-actions :as build-actions]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
-   [pallet.plan :refer [phase-errors]]
    [pallet.crate.ssh-key :refer :all]
+   [pallet.group :refer [group-spec lift phase-errors]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.live-test :as live-test]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -31,81 +31,79 @@
   (assoc *admin-user* :username (test-username) :no-sudo true))
 
 (deftest authorize-key-test
-  (is (script-no-comment=
-       (first
-        (context/with-phase-context
-          {:kw :authorize-key :msg "authorize-key"}
-          (build-actions/build-actions
-           {}
-           (directory
-            "$(getent passwd fred | cut -d: -f6)/.ssh/"
-            :owner "fred" :mode "755")
-           (file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-            :owner "fred" :mode "644")
-           (exec-checked-script
-            "authorize-key on user fred"
-            (var auth_file
-                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not ("fgrep" (quoted "key1") @auth_file)
-              (println (quoted "key1") ">>" @auth_file)))
-           (exec-checked-script
-            "Set selinux permissions"
-            (~lib/selinux-file-type
-             "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t")))))
-       (first
-        (build-actions/build-actions
-         {}
-         (authorize-key "fred" "key1"))))))
+  (is (= (context/with-phase-context
+           {:kw :authorize-key :msg "authorize-key"}
+           (build-plan [session {}]
+             (directory
+              session
+              "$(getent passwd fred | cut -d: -f6)/.ssh/"
+              :owner "fred" :mode "755")
+             (file
+              session
+              "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+              :owner "fred" :mode "644")
+             (exec-checked-script
+              session
+              "authorize-key on user fred"
+              (var auth_file
+                   "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+              (if-not ("fgrep" (quoted "key1") @auth_file)
+                (println (quoted "key1") ">>" @auth_file)))
+             (exec-checked-script
+              session
+              "Set selinux permissions"
+              (~lib/selinux-file-type
+               "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t"))))
+         (build-plan [session {}]
+           (authorize-key session "fred" "key1")))))
 
 (deftest install-key-test
-  (is (script-no-comment=
-       (first
-        (context/with-phase-context
-          {:kw :install-key :msg "install-key"}
-          (build-actions/build-actions
-           {}
+  (is (=
+       (context/with-phase-context
+         {:kw :install-key :msg "install-key"}
+         (build-plan [session {}]
            (directory
+            session "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            {:owner "fred" :mode "755"})
+           (remote-file
+            session
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
+            {:content "private" :owner "fred" :mode "600"})
+           (remote-file
+            session
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
+            :content "public" :owner "fred" :mode "644")))
+       (first
+        (build-plan [session {}]
+          (install-key session "fred" "id" "private" "public")))))
+  (is (=
+       (context/with-phase-context
+         {:kw :install-key :msg "install-key"}
+         (build-plan [session {}]
+           (directory
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
            (remote-file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/id"
             :content "private" :owner "fred" :mode "600")
            (remote-file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-            :content "public" :owner "fred" :mode "644"))))
-       (first
-        (build-actions/build-actions
-         {} (install-key "fred" "id" "private" "public")))))
-  (is (script-no-comment=
-       (first
-        (context/with-phase-context
-          {:kw :install-key :msg "install-key"}
-          (build-actions/build-actions
-           {}
-           (directory
-            "$(getent passwd fred | cut -d: -f6)/.ssh/"
-            :owner "fred" :mode "755")
-           (remote-file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
-            :content "private" :owner "fred" :mode "600")
-           (remote-file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-            :content "public" :owner "fred" :mode "644"))))
-       (first
-        (build-actions/build-actions
-         {}
-         (install-key "fred" "id" "private" "public"))))))
+            :content "public" :owner "fred" :mode "644")))
+       (build-plan [session {}]
+         (install-key session "fred" "id" "private" "public")))))
 
 (deftest generate-key-test
-  (is (script-no-comment=
-       (first
-        (build-actions/build-actions
-         {:phase-context "generate-key"}
+  (is (=
+       (build-plan [session {:phase-context "generate-key"}]
          (directory
+          session
           "$(getent passwd fred | cut -d: -f6)/.ssh"
           :owner "fred" :mode "755")
          (exec-checked-script
+          session
           "ssh-keygen"
           (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa")
           (if-not (file-exists? @key_path)
@@ -114,26 +112,26 @@
                {:f (stevedore/script @key_path) :t "rsa" :N ""
                 :C "generated by pallet"}))))
          (file
+          session
           "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa"
           :owner "fred" :mode "0600")
          (file
+          session
           "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
-          :owner "fred" :mode "0644")))
-       (first
-        (build-actions/build-actions
-         {}
-         (generate-key "fred")))))
+          :owner "fred" :mode "0644"))
+       (build-plan [session {}]
+         (generate-key session "fred"))))
 
-  (is (script-no-comment=
-       (first
-        (pallet.context/with-phase-context
-          {:kw :generate-key :msg "generate-key"}
-          (build-actions/build-actions
-           {}
+  (is (=
+       (pallet.context/with-phase-context
+         {:kw :generate-key :msg "generate-key"}
+         (build-plan [session {}]
            (directory
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
            (exec-checked-script
+            session
             "ssh-keygen"
             (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa")
             (if-not (file-exists? @key_path)
@@ -142,25 +140,26 @@
                  {:f (stevedore/script @key_path) :t "dsa" :N ""
                   :C "generated by pallet"}))))
            (file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa"
             :owner "fred" :mode "0600")
            (file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
-            :owner "fred" :mode "0644"))))
-       (first
-        (build-actions/build-actions
-         {} (generate-key "fred" :type "dsa")))))
+            :owner "fred" :mode "0644")))
+       (build-plan [session {}]
+         (generate-key {} "fred" :type "dsa"))))
 
-  (is (script-no-comment=
-       (first
-        (pallet.context/with-phase-context
-          {:kw :generate-key :msg "generate-key"}
-          (build-actions/build-actions
-           {}
+  (is (=
+       (pallet.context/with-phase-context
+         {:kw :generate-key :msg "generate-key"}
+         (build-plan [session {}]
            (directory
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
            (exec-checked-script
+            session
             "ssh-keygen"
             (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/identity")
             (if-not (file-exists? @key_path)
@@ -169,20 +168,20 @@
                  {:f (stevedore/script @key_path) :t "rsa1" :N ""
                   :C "generated by pallet"}))))
            (file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/identity"
             :owner "fred" :mode "0600")
            (file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
-            :owner "fred" :mode "0644"))))
-       (first
-        (build-actions/build-actions
-         {} (generate-key "fred" :type "rsa1")))))
+            :owner "fred" :mode "0644")))
+       (build-plan [session {}]
+         (generate-key "fred" :type "rsa1"))))
 
-  (is (script-no-comment=
-       (first
-        (build-actions/build-actions
-         {:phase-context "generate-key"}
+  (is (=
+       (build-plan [session {:phase-context "generate-key"}]
          (exec-checked-script
+          session
           "ssh-keygen"
           (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/c")
           (if-not (file-exists? @key_path)
@@ -190,31 +189,32 @@
              ~(stevedore/map-to-arg-string
                {:f (stevedore/script @key_path)
                 :t "rsa1" :N "abc"  :C "my comment"}))))
-         (file "$(getent passwd fred | cut -d: -f6)/.ssh/c"
+         (file session "$(getent passwd fred | cut -d: -f6)/.ssh/c"
                :owner "fred" :mode "0600")
-         (file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
-               :owner "fred" :mode "0644")))
+         (file session "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
+               :owner "fred" :mode "0644"))
        (first
-        (build-actions/build-actions
-         {}
-         (generate-key
-          "fred" :type "rsa1" :filename "c" :no-dir true
-          :comment "my comment" :passphrase "abc"))))))
+        (build-plan [session {}]
+          (generate-key
+           session
+           "fred" :type "rsa1" :filename "c" :no-dir true
+           :comment "my comment" :passphrase "abc"))))))
 
 (deftest authorize-key-for-localhost-test
-  (is (script-no-comment=
-       (first
-        (pallet.context/with-phase-context
-          {:kw :generate-key :msg "authorize-key-for-localhost"}
-          (build-actions/build-actions
-           {}
+  (is (=
+       (pallet.context/with-phase-context
+         {:kw :generate-key :msg "authorize-key-for-localhost"}
+         (build-plan [session {}]
            (directory
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
             :owner "fred" :mode "755")
            (file
+            session
             "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
             :owner "fred" :mode "644")
            (exec-checked-script
+            session
             "authorize-key"
             (var key_file
                  "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
@@ -223,25 +223,24 @@
             (if-not ("grep" (quoted @("cat" @key_file)) @auth_file)
               (do
                 (print (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                ("cat" @key_file ">>" @auth_file)))))))
-       (first
-        (build-actions/build-actions
-         {}
-         (authorize-key-for-localhost "fred" "id_dsa.pub")))))
+                ("cat" @key_file ">>" @auth_file))))))
+       (build-plan [session {}]
+         (authorize-key-for-localhost session "fred" "id_dsa.pub"))))
 
-  (is (script-no-comment=
-       (first
-        (pallet.context/with-phase-context
-          {:kw :generate-key :msg "authorize-key-for-localhost"}
-          (build-actions/build-actions
-           {}
+  (is (=
+       (pallet.context/with-phase-context
+         {:kw :generate-key :msg "authorize-key-for-localhost"}
+         (build-plan [session {}]
            (directory
+            session
             "$(getent passwd tom | cut -d: -f6)/.ssh/"
             :owner "tom" :mode "755")
            (file
+            session
             "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
             :owner "tom" :mode "644")
            (exec-checked-script
+            session
             "authorize-key"
             (var key_file
                  "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
@@ -250,20 +249,18 @@
             (if-not ("grep" (quoted @("cat" @key_file)) @auth_file)
               (do
                 (print (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                ("cat" @key_file ">>" @auth_file)))))))
-       (first
-        (build-actions/build-actions
-         {}
+                ("cat" @key_file ">>" @auth_file))))))
+       (build-plan [session {}]
          (authorize-key-for-localhost
-          "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
+          session
+          "fred" "id_dsa.pub" :authorize-for-user "tom")))))
 
 (deftest invoke-test
-  (is (build-actions/build-actions
-       {}
-       (authorize-key "user" "pk")
-       (authorize-key-for-localhost "user" "pk")
-       (install-key "user" "name" "pk" "pubk")
-       (generate-key "user"))))
+  (is (build-plan [session {}]
+       (authorize-key session "user" "pk")
+       (authorize-key-for-localhost session "user" "pk")
+       (install-key session "user" "name" "pk" "pubk")
+       (generate-key session "user"))))
 
 (defn check-public-key
   [key]
@@ -278,12 +275,15 @@
     (let [compute (make-localhost-compute :group-name "local")
           op (lift
               (group-spec "local")
-              :phase (plan-fn
-                       (config "github.com" {"StrictHostKeyChecking" "no"}
+              :phase (plan-fn [session]
+                       (config session
+                               "github.com" {"StrictHostKeyChecking" "no"}
                                :config-file (.getPath tmp))
-                       (config "somewhere" {"StrictHostKeyChecking" "no"}
+                       (config session
+                               "somewhere" {"StrictHostKeyChecking" "no"}
                                :config-file (.getPath tmp))
-                       (config "github.com" {"StrictHostKeyChecking" "yes"}
+                       (config session
+                               "github.com" {"StrictHostKeyChecking" "yes"}
                                :config-file (.getPath tmp)))
               :compute compute
               :user (local-test-user)
@@ -305,14 +305,15 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (plan-fn
-                     (automated-admin-user)
-                     (user "testuser"))
-         :configure (plan-fn (generate-key "testuser"))
-         :verify1 (plan-fn
-                    (public-key "testuser"))
-         :verify2 (plan-fn
-                   (check-public-key))}}}
+        {:bootstrap (plan-fn [session]
+                     (automated-admin-user session)
+                     (user session "testuser"))
+         :configure (plan-fn [session]
+                      (generate-key session "testuser"))
+         :verify1 (plan-fn [session]
+                    (public-key session "testuser"))
+         :verify2 (plan-fn [session]
+                   (check-public-key session))}}}
       (lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]
                  :compute compute)))))

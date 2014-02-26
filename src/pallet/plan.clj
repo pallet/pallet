@@ -9,6 +9,7 @@ functions with more defaults, etc."
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
+   [clojure.tools.logging :refer [debugf]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.core.type-annotations]
    [pallet.core.types                   ; before any protocols
@@ -25,6 +26,7 @@ functions with more defaults, etc."
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
+   [pallet.exception :refer [compiler-exception]]
    [pallet.node :refer [node?]]
    [pallet.session
     :refer [base-session?
@@ -101,7 +103,7 @@ The result is also written to the recorder in the session."
       (with-script-for-node target (plan-state session)
         ;; We need the script context for script blocks in the plan
         ;; functions.
-
+        (debugf "execute* %s" target)
         (let [rv (try
                    (plan-fn session)
                    (catch Exception e
@@ -262,6 +264,14 @@ The result is also written to the recorder in the session."
   (letfn [(output-body [[args & body]]
             (let [no-context? (final-fn-sym? sym body)
                   [session-arg session-ref] (map-arg-and-ref (first args))]
+              (when-not (vector? args)
+                (throw
+                 (compiler-exception
+                  &form "defplan requires an argument vector" {})))
+              (when-not (pos? (count args))
+                (throw
+                 (compiler-exception
+                  &form "defplan requires at least a session argument" {})))
               `([~session-arg ~@(rest args)]
                   ;; if the final function call is recursive, then
                   ;; don't add a plan-context, so that just
@@ -346,5 +356,5 @@ The result is also written to the recorder in the session."
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (plan-fn 1))
+;; eval: (define-clojure-indent (plan-fn 1) (plan-context 2))
 ;; End:

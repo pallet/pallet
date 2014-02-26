@@ -13,9 +13,10 @@
    [pallet.ssh.execute :refer [with-connection]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
-   [pallet.target :refer [admin-user node]]
    [pallet.stevedore :refer [fragment]]
+   [pallet.target :refer [admin-user node]]
    [pallet.transport :as transport]
+   [pallet.user :refer [effective-username]]
    [pallet.utils :refer [base64-md5]])
   (:import
    [java.security MessageDigest DigestInputStream]
@@ -50,8 +51,11 @@
         (fragment (str (user-home ~username) ~path-rest))))
     (str upload-root "/" username)))
 
-(defn target
+(defn upload-path
   [upload-root username target-path]
+  {:pre [(not (blank? upload-root))
+         (not (blank? username))
+         (not (blank? target-path))]}
   (str (upload-dir upload-root username)  "/" (base64-md5 target-path)))
 
 (defn sftp-ensure-dir
@@ -77,14 +81,14 @@
 
 (defn sftp-upload-file
   "Upload a file via SFTP"
-  [connection local-path target-path]
+  [connection local-path upload-path]
   (debugf "sftp-upload-file %s:%s from %s"
           (:server (transport/endpoint connection))
-          target-path local-path)
+          upload-path local-path)
   (transport/send-stream
        connection
        (input-stream local-path)
-       target-path
+       upload-path
        {:mode 0600}))
 
 (defn sftp-remote-md5
@@ -98,32 +102,48 @@
 
 (defn sftp-put-md5
   [connection path md5]
-  (transport/send-text connection md5 path {:mode 0600}))
+  (try
+    (transport/send-text connection md5 path {:mode 0600})
+    (catch Exception e
+      (throw (ex-info (str "Failed to upload md5 to " path) {})))))
 
-(defrecord SftpUpload [upload-root]
+(defrecord SftpUpload [upload-root ssh-connection]
   FileUpload
   (upload-file-path [_ target-path action-options]
-    (target upload-root (:username action-options) target-path))
+    (assert (:user action-options))
+    (assert (not (blank? (-> action-options :user :username))))
+    (upload-path
+     upload-root (-> action-options :user :username) target-path))
   (user-file-path [_ target-path action-options]
-    (target upload-root action-options target-path))
+    (upload-path
+     upload-root (effective-username (:user action-options)) target-path))
   (upload-file
-    [_ session local-path target-path action-options]
-    (let [target (target
-                  upload-root (:username (admin-user session)) target-path)
-          target-md5-path (str target ".md5")]
-      (with-connection (node (target session)) (admin-user session) [connection]
+    [_ target local-path target-path action-options]
+    (let [upload-path (upload-path
+                       upload-root
+                       (-> action-options :user :username)
+                       target-path)
+          target-md5-path (str upload-path ".md5")]
+      (with-connection ssh-connection (node target)
+                       (:user action-options)
+                       [connection]
         (let [target-md5 (sftp-remote-md5 connection target-md5-path)
               local-md5 (md5 local-path)]
+          (when (= target-md5 local-md5)
+            (debugf "upload-file of file %s to %s suppressed (matching md5s)"
+                    local-path upload-path))
           (when-not (= target-md5 local-md5)
-            (sftp-ensure-dir connection target)
-            (sftp-upload-file connection local-path target)
+            (debugf "upload-file %s to %s" local-path upload-path)
+            (sftp-ensure-dir connection upload-path)
+            (sftp-upload-file connection local-path upload-path)
             (sftp-put-md5 connection target-md5-path local-md5)))))))
 
 (defn sftp-upload
   "Create an instance of the SFTP upload strategy."
-  [{:keys [upload-root] :as options}]
+  [{:keys [upload-root ssh-connection] :as options}]
   (map->SftpUpload (merge
-                    {:upload-root "/tmp"}
+                    {:upload-root "/tmp"
+                     :ssh-connection (transport/factory :ssh {})}
                     options)))
 
 (defmethod file-uploader :sftp

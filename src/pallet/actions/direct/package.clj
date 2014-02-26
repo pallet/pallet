@@ -21,10 +21,12 @@
                                 package-repository-action
                                 package-source-action
                                 remote-file-action]]
+   [pallet.actions.direct.file :refer [sed*]]
    [pallet.script.lib :as lib]
    [pallet.target :refer [os-family]]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [checked-script fragment with-source-line-comments]]
+   [pallet.script :refer [with-script-context *script-context*]]
+   [pallet.stevedore :as stevedore
+    :refer [checked-script fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map]]
    [pallet.version-dispatch :refer [os-map os-map-lookup]]))
 
@@ -32,9 +34,6 @@
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
-
-(def ^{:private true}
-  sed* (action-fn sed :direct))
 
 (defmulti adjust-packages
   (fn [packager & _]
@@ -240,29 +239,17 @@
      (update-in [:enable] as-seq)
      (update-in [:disable] as-seq))))
 
-(implement-action package-action :direct
-  "Install or remove a package.
-
-   Options
-    - :action [:install | :remove | :upgrade]
-    - :purge [true|false]          when removing, whether to remove all config
-    - :enable [repo|(seq repo)]    enable specific repository
-    - :disable [repo|(seq repo)]   disable specific repository
-    - :priority n                  priority (0-100, default 50)
-    - :allow-unsigned [true|false] allow unsigned packages
-    - :disable-service-start       disable service startup (default false)
-
-   Package management occurs in one shot, so that the package manager can
-   maintain a consistent view."
-  {:action-type :script
-   :location :target}
-  [action-options package-name options]
+(defn package*
+  [action-state package-name options]
   (logging/tracef "package %s" package-name)
   [{:language :bash
     :summary (str "package " package-name)}
-   (adjust-packages
-    (:packager options)
-    [(package-map package-name (dissoc options :packager))])])
+   (with-script-context (conj *script-context* (:packager options))
+     (adjust-packages
+      (:packager options)
+      [(package-map package-name (dissoc options :packager))]))])
+
+(implement-action package-action :direct {} package*)
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -310,7 +297,7 @@
 
 (defmulti package-source*
   "Add a packager source."
-  (fn [name {:keys [packager] :as options}]
+  (fn [action-state name {:keys [packager] :as options}]
     packager))
 
 (def ubuntu-ppa-add
@@ -364,15 +351,15 @@
       (stevedore/script ("apt-key" add aptkey.tmp))))))
 
 (defmethod package-source* :aptitude
-  [name {:keys [apt aptitude yum] :as options}]
+  [action-state name {:keys [apt aptitude yum] :as options}]
   (package-source-apt name options))
 
 (defmethod package-source* :apt
-  [name {:keys [apt aptitude yum] :as options}]
+  [action-state name {:keys [apt aptitude yum] :as options}]
   (package-source-apt name options))
 
 (defmethod package-source* :yum
-  [name {:keys [packager gpgkey] :as options}]
+  [action-state name {:keys [packager gpgkey] :as options}]
   (checked-commands
    "Package source"
    (->
@@ -387,7 +374,7 @@
      (stevedore/script ("rpm" "--import" ~gpgkey)))))
 
 (defmethod package-source* :default
-  [name {:keys [packager] :as options}]
+  [action-state name {:keys [packager] :as options}]
   (checked-commands
    "Package source"
    (->
@@ -398,39 +385,17 @@
       :flag-on-changed package-source-changed-flag})
     first second)))
 
-(implement-action package-source-action :direct
-                  "Control package sources.
-   Options are the package manager specific keywords.
+(implement-action
+    package-source-action :direct {} {:language :bash} package-source*)
 
-   :aptitude
-     - :source-type string   - source type (deb)
-     - :url url              - repository url
-     - :scopes seq           - scopes to enable for repository
-     - :key-url url          - url for key
-     - :key-id id            - id for key to look it up from keyserver
-     - :key-server           - the hostname of the key server to lookup keys
-
-   :yum
-     - :name                 - repository name
-     - :url url          - repository base url
-     - :gpgkey url           - gpg key url for repository
-
-   Example
-       (package-source \"Partner\"
-         :aptitude {:url \"http://archive.canonical.com/\"
-                    :scopes [\"partner\"]})"
-  {:action-type :script :location :target}
-  [action-options name options]
-  [{:language :bash
-    :summary (str "package-source " name)}
-   (package-source* name options)])
-
-(implement-action package-repository-action :direct
-                  {:action-type :script :location :target}
+(defn package-repository-action*
   [action-options options]
   [{:language :bash
     :summary (str "package-repository " (:repository-name options))}
-   (package-source* options)])
+   (package-source* (:repository-name options) options)])
+
+(implement-action
+    package-repository-action :direct {} package-repository-action*)
 
 (defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
@@ -559,124 +524,77 @@
 
 (defn package-manager*
   "Package management."
-  [action {:keys [packager packages scope] :as options}]
-  (checked-commands
-   (format "package-manager %s %s" (name action) (string/join " " options))
-   (case action
-     :update (stevedore/script (apply ~lib/update-package-list ~packages))
-     :upgrade (stevedore/script (~lib/upgrade-all-packages))
-     :list-installed (stevedore/script (~lib/list-installed-packages))
-     :add-scope (add-scope scope)
-     :multiverse (add-scope (merge {:scope "multiverse"} options))
-     :universe (add-scope (merge {:scope "universe"} options))
-     ;; :debconf (if (#{:aptitude :apt} packager)
-     ;;            (stevedore/script
-     ;;             (apply ~lib/debconf-set-selections ~options)))
-     :configure (configure-package-manager packager options)
-     (throw (IllegalArgumentException.
-             (str action
-                  " is not a valid action for package-manager action"))))))
-
-(implement-action package-manager-action :direct
-  "Package manager controls.
-
-   `action` is one of the following:
-   - :update          - update the list of available packages
-   - :list-installed  - output a list of the installed packages
-   - :add-scope       - enable a scope (eg. multiverse, non-free)
-
-   To refresh the list of packages known to the pakage manager:
-       (package-manager :update)
-
-   To enable multiverse on ubuntu:
-       (package-manager :add-scope :scope :multiverse)
-
-   To enable non-free on debian:
-       (package-manager :add-scope :scope :non-free)"
-  {:action-type :script :location :target}
-  [action-options action package-manager-args]
-  (logging/tracef "package-manager-args %s" (vec package-manager-args))
+  [action-state action {:keys [packager packages scope] :as options}]
   [{:language :bash
-    :summary (str "package-manager " (string/join " " package-manager-args))}
-   (package-manager* action package-manager-args)])
+    :summary (str "package-manager " action)}
+   (checked-commands
+    (format "package-manager %s" (name action))
+    (case action
+      :update (stevedore/script (apply ~lib/update-package-list ~packages))
+      :upgrade (stevedore/script (~lib/upgrade-all-packages))
+      :list-installed (stevedore/script (~lib/list-installed-packages))
+      :add-scope (add-scope scope)
+      :multiverse (add-scope (merge {:scope "multiverse"} options))
+      :universe (add-scope (merge {:scope "universe"} options))
+      ;; :debconf (if (#{:aptitude :apt} packager)
+      ;;            (stevedore/script
+      ;;             (apply ~lib/debconf-set-selections ~options)))
+      :configure (configure-package-manager packager options)
+      (throw (IllegalArgumentException.
+              (str action
+                   " is not a valid action for package-manager action")))))])
 
-(implement-action add-rpm :direct
-                  {:action-type :script :location :target}
+(implement-action package-manager-action :direct {} package-manager*)
+
+(defn add-rpm*
   [action-options rpm-name & {:as options}]
-  [{:language :bash}
-   (stevedore/do-script
-    (->
-     (remote-file*
-      {}
-      rpm-name
-      (merge
-       {:install-new-files pallet.actions.impl/*install-new-files*
-        :overwrite-changes pallet.actions.impl/*force-overwrite*}
-       options))
-     second)
-    (checked-script
-     (format "Install rpm %s" rpm-name)
-     (if-not ("rpm" -q @("rpm" -pq ~rpm-name) > "/dev/null" "2>&1")
-       (do ("rpm" -U --quiet ~rpm-name)))))])
+  (stevedore/do-script
+   (->
+    (remote-file*
+     {}
+     rpm-name
+     (merge
+      {:install-new-files pallet.actions.impl/*install-new-files*
+       :overwrite-changes pallet.actions.impl/*force-overwrite*}
+      options))
+    second)
+   (checked-script
+    (format "Install rpm %s" rpm-name)
+    (if-not ("rpm" -q @("rpm" -pq ~rpm-name) > "/dev/null" "2>&1")
+      (do ("rpm" -U --quiet ~rpm-name))))))
 
-(implement-action install-deb :direct
-                  "Install a deb file.  Source options are as for remote file."
-  {:action-type :script :location :target}
+(implement-action add-rpm :direct {} {:language :bash} add-rpm*)
+
+(defn install-deb*
   [action-options deb-name & {:as options}]
-  [{:language :bash}
-   (stevedore/do-script
-    (-> (remote-file*
-         {}
-         deb-name
-         (merge
-          {:install-new-files pallet.actions.impl/*install-new-files*
-           :overwrite-changes pallet.actions.impl/*force-overwrite*}
-          options))
-        second)
-    (checked-script
-     (format "Install deb %s" deb-name)
-     ("dpkg" -i --skip-same-version ~deb-name)))])
+  (stevedore/do-script
+   (-> (remote-file*
+        {}
+        deb-name
+        (merge
+         {:install-new-files pallet.actions.impl/*install-new-files*
+          :overwrite-changes pallet.actions.impl/*force-overwrite*}
+         options))
+       second)
+   (checked-script
+    (format "Install deb %s" deb-name)
+    ("dpkg" -i --skip-same-version ~deb-name))))
 
-(implement-action debconf-set-selections :direct
-                  "Set debconf selections.
-Specify :line, or the other options."
-  {:action-type :script :location :target}
+(implement-action install-deb :direct {} {:language :bash} install-deb*)
+
+(defn debconf-set-selections*
   [action-options {:keys [line package question type value]}]
   {:pre [(or line (and package question type (not (nil? value))))]}
-  [{:language :bash}
-   (stevedore/do-script
-    (checked-script
-     (format "Preseed %s"
-             (or line (string/join " " [package question type value])))
-     (pipe
-      (println
-       (quoted ~@(if line
-                   [line]
-                   [(name package) question (name type) (pr-str value)])))
-      ("/usr/bin/debconf-set-selections"))))])
+  (stevedore/do-script
+   (checked-script
+    (format "Preseed %s"
+            (or line (string/join " " [package question type value])))
+    (pipe
+     (println
+      (quoted ~@(if line
+                  [line]
+                  [(name package) question (name type) (pr-str value)])))
+     ("/usr/bin/debconf-set-selections")))))
 
-(implement-action minimal-packages :direct
-  "Add minimal packages for pallet to function"
-  {:action-type :script :location :target}
-  [action-options]
-  (let [os-family (os-family)]
-    [{:language :bash}
-     (cond
-      (#{:ubuntu :debian} os-family) (checked-script
-                                      "Add minimal packages"
-                                      (~lib/update-package-list)
-                                      (~lib/install-package "coreutils")
-                                      (~lib/install-package "sudo"))
-      (= :arch os-family) (checked-script
-                           "Add minimal packages"
-                           ("{" (chain-or pacman-db-upgrade true) "; } "
-                            "2> /dev/null")
-                           (~lib/update-package-list)
-                           (~lib/upgrade-package "pacman")
-                           (println "  checking for pacman-db-upgrade")
-                           ("{" (chain-or (chain-and
-                                           pacman-db-upgrade
-                                           (~lib/update-package-list))
-                                          true) "; } "
-                                          "2> /dev/null")
-                           (~lib/install-package "sudo")))]))
+(implement-action
+    debconf-set-selections :direct {} {:language :bash} debconf-set-selections*)

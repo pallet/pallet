@@ -22,7 +22,7 @@ E.g.,
     (version-vector \"1.2\") => [1 2]"
   [version-string]
   (let [v (->>
-           (string/split version-string #"\.-")
+           (string/split version-string #"[\.-]")
            (map read-version-number)
            (filterv identity))]
     (assert (every? number? v))

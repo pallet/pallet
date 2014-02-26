@@ -6,7 +6,7 @@
    [pallet.actions
     :refer [exec-checked-script package package-manager repository]]
    [pallet.actions.decl :refer [remote-file-action]]
-   [pallet.crate :refer [defplan]]
+   [pallet.plan :refer [defplan]]
    [pallet.utils :refer [apply-map]]))
 
 ;;; TODO remove this and use plan-when

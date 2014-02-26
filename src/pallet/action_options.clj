@@ -29,7 +29,7 @@
   [session & m]
   (apply update-in session [:execution-state action-options-key] assoc m))
 
-(defmacro ^{:indent 1} with-action-options
+(defmacro with-action-options
   "Set up local options for actions, and allow override of user
 options.
 
@@ -53,6 +53,8 @@ options.
 : Force a new ssh login after the action.  Useful if the action effects the
   login environment and you want the affect to be visible immediately."
   [session m & body]
+  (when-not (symbol? session)
+    (throw (ex-info "with-action-options expects a symbol as first argument." {})))
   `(let [~session (merge-action-options ~session ~m)]
      ~@body))
 

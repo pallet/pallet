@@ -47,7 +47,8 @@
       (is (= [{:target (session/target session)
                :result {:args [:a]
                         :action (:action (meta b))
-                        :options nil}}]
+                        :options {:user user/*admin-user*
+                                  :m 1}}}]
              (plan/plan (session/executor session))))))
   (testing "action execution with action options"
     (let [session (test-session)]
@@ -56,7 +57,9 @@
       (is (= [{:target (session/target session)
                :result {:args [:a]
                         :action (:action (meta b))
-                        :options {:n 2}}}]
+                        :options {:n 2
+                                  :m 1
+                                  :user user/*admin-user*}}}]
              (plan/plan (session/executor session)))))))
 
 (deftest effective-user-test
@@ -73,4 +76,4 @@
   (is (thrown? Exception
                (eval `(implement-action b 'fred {} [action-options] nil)))
       "implement-action with non-keyword dispatch should fail to compile")
-  (is (implement-action b :x {} [action-options] nil)))
+  (is (implement-action b :x {} (fn [_]))))

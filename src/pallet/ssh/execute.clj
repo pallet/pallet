@@ -103,7 +103,7 @@
          :else r)
         r))))
 
-(defmacro ^{:indent 2} with-connection
+(defmacro with-connection
   "Execute the body with a connection to the current target node,"
   [ssh-connection node user [connection] & body]
   `(with-connection* ~ssh-connection ~node ~user
@@ -183,19 +183,19 @@
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
-  [session connection file remote-name]
+  [user connection file remote-name]
   (logging/infof
    "Transferring file %s from local to %s:%s"
    file (:server (transport/endpoint connection)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
-    (let [prefix (or (script-builder/prefix :sudo session nil) "")
+    (let [prefix (or (script-builder/prefix :sudo user nil) "")
           {:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
                                        (~prefix (mkdir ~dir :path true))
                                        (~prefix
                                         (chown
-                                         ~(-> session :user :username) ~dir))
+                                         ~(-> :username user) ~dir))
                                        (exit "$?"))}
                                  {})]
       (if (zero? exit)
@@ -207,53 +207,51 @@
     (transport/send-stream
      connection (io/input-stream file) remote-name {:mode 0600})))
 
-;; (defn ssh-from-local
-;;   "Transfer a file from the origin machine to the target via ssh."
-;;   [session value]
-;;   (logging/tracef "ssh-from-local %s" value)
-;;   (logging/tracef "ssh-from-local %s" session)
-;;   (assert (-> session :server) "Target server in session")
-;;   (assert (-> session :server :node) "Target node in session")
-;;   (with-connection session [connection]
-;;     (let [endpoint (transport/endpoint connection)]
-;;       (let [{:keys [local-path remote-path remote-md5-path]} value]
-;;         (logging/debugf
-;;          "Remote local-path %s:%s from %s"
-;;          (:server endpoint) remote-md5-path local-path)
-;;         (let [md5 (try
-;;                     (filesystem/with-temp-file [md5-copy]
-;;                       (transport/receive
-;;                        connection remote-md5-path (.getPath md5-copy))
-;;                       (slurp md5-copy))
-;;                     (catch Exception _ nil))]
-;;           (if md5
-;;             (filesystem/with-temp-file [local-md5-file]
-;;               (logging/debugf "Calculating md5 for %s" local-path)
-;;               (local/local-script
-;;                ((~lib/md5sum ~local-path) ">" ~(.getPath local-md5-file))
-;;                (~lib/normalise-md5 ~(.getPath local-md5-file)))
-;;               (let [local-md5 (slurp local-md5-file)]
-;;                 (logging/debugf
-;;                  "md5 check - remote: %s local: %s" md5 local-md5)
-;;                 (if (not=
-;;                      (first (string/split md5 #" "))
-;;                      (first (string/split local-md5 #" ")) )
-;;                   (ssh-upload session connection local-path remote-path)
-;;                   (logging/infof
-;;                    "%s:%s is already up to date"
-;;                    (:server endpoint) remote-path))))
-;;             (ssh-upload session connection local-path remote-path))))
-;;       [value session])))
+(defn ssh-from-local
+  "Transfer a file from the origin machine to the target via ssh."
+  [ssh-connection node user value]
+  {:pre [node]}
+  (logging/debugf "ssh-from-local %s" value)
+  (with-connection ssh-connection node user [connection]
+    (let [endpoint (transport/endpoint connection)]
+      (let [{:keys [local-path remote-path remote-md5-path]} value]
+        (logging/debugf
+         "Remote local-path %s:%s from %s"
+         (:server endpoint) remote-md5-path local-path)
+        (let [md5 (try
+                    (filesystem/with-temp-file [md5-copy]
+                      (transport/receive
+                       connection remote-md5-path (.getPath md5-copy))
+                      (slurp md5-copy))
+                    (catch Exception _ nil))]
+          (if md5
+            (filesystem/with-temp-file [local-md5-file]
+              (logging/debugf "Calculating md5 for %s" local-path)
+              (local/local-script
+               ((~lib/md5sum ~local-path) ">" ~(.getPath local-md5-file))
+               (~lib/normalise-md5 ~(.getPath local-md5-file)))
+              (let [local-md5 (slurp local-md5-file)]
+                (logging/debugf
+                 "md5 check - remote: %s local: %s" md5 local-md5)
+                (if (not=
+                     (first (string/split md5 #" "))
+                     (first (string/split local-md5 #" ")) )
+                  (ssh-upload user connection local-path remote-path)
+                  (logging/infof
+                   "%s:%s is already up to date"
+                   (:server endpoint) remote-path))))
+            (ssh-upload user connection local-path remote-path))))
+      value)))
 
-;; (defn ssh-to-local
-;;   "Transfer a file from the target machine to the origin via ssh."
-;;   [session value]
-;;   (with-connection session [connection]
-;;     (let [{:keys [remote-path local-path]} value]
-;;       (logging/infof
-;;        "Transferring file %s from node to %s" remote-path local-path)
-;;       (transport/receive connection remote-path local-path))
-;;     [value session]))
+(defn ssh-to-local
+  "Transfer a file from the target machine to the origin via ssh."
+  [ssh-connection node user value]
+  (with-connection ssh-connection node user [connection]
+    (let [{:keys [remote-path local-path]} value]
+      (logging/infof
+       "Transferring file %s from node to %s" remote-path local-path)
+      (transport/receive connection remote-path local-path))
+    value))
 
 
 (defmacro with-ssh-tunnel
@@ -273,3 +271,8 @@
      (transport/with-ssh-tunnel
        connection# ~tunnels
        ~@body)))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (with-connection 4))
+;; End:

@@ -2,7 +2,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer :all]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.user :refer [*admin-user*]]
    [pallet.script.lib :refer [file user-home]]
    [pallet.ssh.file-upload.sftp-upload :refer :all]
    [pallet.stevedore :refer [fragment]]
@@ -24,13 +24,13 @@
   (is (= (fragment (file (user-home "user") "a" "b"))
          (upload-dir ":home/a/b" "user"))))
 
-(deftest target-test
+(deftest upload-path-test
   (is (= "/tmp/user/Bjl2fz6eqtcptUA3p-Kr9Q"
-         (target "/tmp" "user" "/a")))
+         (upload-path "/tmp" "user" "/a")))
   (is (= (fragment (file (user-home "user") "Bjl2fz6eqtcptUA3p-Kr9Q"))
-         (target ":home" "user" "/a")))
+         (upload-path ":home" "user" "/a")))
   (is (= (fragment (file (user-home "user") "d" "Bjl2fz6eqtcptUA3p-Kr9Q"))
-         (target ":home/d" "user" "/a"))))
+         (upload-path ":home/d" "user" "/a"))))
 
 (def ssh-connection (transport/factory :ssh {}))
 

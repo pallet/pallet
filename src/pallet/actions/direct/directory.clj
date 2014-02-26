@@ -3,8 +3,7 @@
    with given ownership and mode."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [directories directory]]
-   [pallet.actions.decl :refer [checked-script checked-commands]]
+   [pallet.actions.decl :refer [checked-script checked-commands directory]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
@@ -33,22 +32,24 @@
     (~lib/mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
    (adjust-directory dir-path opts)))
 
+(defn directory*
+  [{:keys [action-options state]}
+   dir-path {:keys [action recursive force path mode verbose owner group]
+             :or {action :create recursive true force true path true}
+             :as options}]
+  (case action
+    :delete (checked-script
+             (str "Delete directory " dir-path)
+             (~lib/rm ~dir-path :recursive ~recursive :force ~force))
+    :create (make-directory
+             dir-path
+             :path path :mode mode :verbose verbose
+             :owner owner :group group :recursive recursive)
+    :touch (make-directory
+            dir-path
+            :path path :mode mode :verbose verbose
+            :owner owner :group group :recursive recursive)))
+
 (implement-action directory :direct
   {:action-type :script :location :target}
-  [action-options
-   dir-path & {:keys [action recursive force path mode verbose owner group]
-               :or {action :create recursive true force true path true}
-               :as options}]
-  [{:language :bash}
-   (case action
-     :delete (checked-script
-              (str "Delete directory " dir-path)
-              (~lib/rm ~dir-path :recursive ~recursive :force ~force))
-     :create (make-directory
-              dir-path
-              :path path :mode mode :verbose verbose
-               :owner owner :group group :recursive recursive)
-      :touch (make-directory
-              dir-path
-              :path path :mode mode :verbose verbose
-              :owner owner :group group :recursive recursive))])
+  {:language :bash} directory*)

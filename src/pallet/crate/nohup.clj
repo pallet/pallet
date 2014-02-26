@@ -6,15 +6,14 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions :refer [directory exec-checked-script remote-file]]
-   [pallet.api :as api]
-   [pallet.api :refer [plan-fn]]
-   [pallet.crate :refer [target-flag?]]
    [pallet.crate.service
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script.lib :refer [file state-root]]
    [pallet.settings :refer [get-settings update-settings]]
+   [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 
@@ -41,23 +40,24 @@
   true)
 
 (defn write-service
-  [service-name {:keys [run-file user] :as service-options} options]
-  (directory (service-script-file service-name) :owner user)
-  (apply-map
-   remote-file
+  [session service-name {:keys [run-file user] :as service-options} options]
+  (directory session (service-script-file service-name) :owner user)
+  (remote-file
+   session
    (service-script-path service-name)
-   :mode "0755"
-   :owner user
-   run-file))
+   (merge
+    {:mode "0755"
+     :owner user}
+    run-file)))
 
 (defn jobs
   "Write out job definitions."
-  [{:keys [instance-id] :as options}]
-  (let [{:keys [jobs]} (get-settings :nohup {:instance-id instance-id})]
+  [session {:keys [instance-id] :as options}]
+  (let [{:keys [jobs]} (get-settings session :nohup {:instance-id instance-id})]
     (debugf "Writing service files for %s jobs" (count jobs))
     (doseq [[job {:keys [run-file] :as service-options}] jobs
             :let [service-name (name job)]]
-      (write-service service-name service-options options))))
+      (write-service session service-name service-options options))))
 
 (defmethod service-supervisor-config :nohup
   [_ {:keys [service-name run-file user] :as service-options} options]
@@ -101,7 +101,8 @@
       (warnf "Requested action %s on service %s not implemented via nohup"
              action service-name)
       (if if-flag
-        (when (target-flag? if-flag)
+        ;; TODO fix me
+        (when false ;; (target-flag? if-flag)
           (exec-checked-script
            (str ~(name action) " " ~service-name " if config changed")
            (~(service-script-path service-name) ~(name action))))
@@ -119,5 +120,6 @@
                        (start-nohup-service service-name user))))))))
 
 (defn server-spec [settings & {:keys [instance-id] :as options}]
-  (api/server-spec
-   :phases {:configure (plan-fn (jobs options))}))
+  (spec/server-spec
+   :phases {:configure (plan-fn [session]
+                         (jobs session options))}))

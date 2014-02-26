@@ -3,12 +3,13 @@
   (:require
    [clojure.string :as string]
    [pallet.actions :refer [directory exec-checked-script]]
-   [pallet.crate :refer [defplan]]))
+   [pallet.plan :refer [defplan]]))
 
 (defplan make-xfs-filesytem
   "Format a device as an XFS filesystem."
-  [device]
+  [session device]
   (exec-checked-script
+   session
    (format "Format %s as XFS" device)
    ("mkfs.xfs" -f ~device)))
 
@@ -33,13 +34,14 @@
 
 (defplan mount
   "Mount a device."
-  [device mount-point
+  [session device mount-point
    & {:keys [fs-type device-type automount no-automount dump-frequency
              boot-check-pass]
       :or {dump-frequency 0 boot-check-pass 0}
       :as options}]
-  (directory mount-point)
+  (directory session mount-point)
   (exec-checked-script
+   session
    (format "Mount %s at %s" device mount-point)
    (if-not @("mountpoint" -q ~mount-point)
      ("mount" ~(if fs-type (str "-t " fs-type) "")

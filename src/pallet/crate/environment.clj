@@ -5,13 +5,14 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-script* remote-file]]
    [pallet.actions.decl :refer [checked-commands*]]
-   [pallet.crate :refer [defplan os-family]]
+   [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   [pallet.target :refer [os-family]]))
 
 (defn system-environment-file
-  [env-name {:keys [path shared] :or {shared ::not-set} :as options}]
-  (let [os-family (os-family)
+  [session env-name {:keys [path shared] :or {shared ::not-set} :as options}]
+  (let [os-family (os-family session)
         shared (if (= shared ::not-set)
                  (not (#{:rhel :centos :fedora} os-family))
                  shared)
@@ -24,12 +25,13 @@
    On redhat based systems, this is set in /etc/profile.d, so is only
    valid within a login shell. On debian based systems, /etc/environment
    is used."
-  [env-name key-value-pairs & {:keys [path shared literal] :as options}]
-  (let [[path shared] (system-environment-file env-name options)
+  [session env-name key-value-pairs & {:keys [path shared literal] :as options}]
+  (let [[path shared] (system-environment-file session env-name options)
         quote (if literal "'" "\"")]
     (when shared
-      (with-action-options {:new-login-after-action true}
+      (with-action-options session {:new-login-after-action true}
         (exec-script*
+         session
          (checked-commands*
           (format "Add %s environment to %s" env-name path)
           (conj
@@ -54,14 +56,15 @@
                    -e (quoted "$ a \\\\\n${s}") ~path))
                  ("exit" 1))))))))))
     (when-not shared
-      (with-action-options {:new-login-after-action true}
+      (with-action-options session {:new-login-after-action true}
         (remote-file
+         session
          path
-         :owner "root"
-         :group "root"
-         :mode 644
-         :content (string/join
-                   \newline
-                   (for [[k v] key-value-pairs]
-                     (str (name k) "=" (pr-str v))))
-         :literal literal)))))
+         {:owner "root"
+          :group "root"
+          :mode 644
+          :content (string/join
+                    \newline
+                    (for [[k v] key-value-pairs]
+                      (str (name k) "=" (pr-str v))))
+          :literal literal})))))

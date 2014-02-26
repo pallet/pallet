@@ -2,9 +2,9 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
-   [pallet.api :refer [group-spec]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.group :refer [group-spec]]
    [pallet.strint :as strint]
    [pallet.template
     :refer [apply-templates
@@ -14,7 +14,6 @@
             pathname]]
    [pallet.test-utils
     :refer [make-node
-            test-session
             with-bash-script-language
             with-ubuntu-script-template]]
    [pallet.utils :as utils]))
@@ -40,14 +39,12 @@
           "a/b/c.d" "resources/a/b/c.d"]
            (#'pallet.template/candidate-templates
             "a/b/c.d" "t"
-            (test-session
-             {:server {:node (make-node :id :group-name :c)}}))))
+            {:server {:node (make-node :id :group-name :c)}})))
   (is (= ["c_t.d" "resources/c_t.d" "c_ubuntu.d" "resources/c_ubuntu.d"
           "c_apt.d" "resources/c_apt.d" "c.d" "resources/c.d"]
          (#'pallet.template/candidate-templates
           "c.d" "t"
-          (test-session
-           {:server {:node (make-node :id :group-name :c)}})))))
+          {:server {:node (make-node :id :group-name :c)}}))))
 
 
 (deftest apply-template-file-test
@@ -73,12 +70,13 @@ chown user ${file}"
 
 (deftest apply-template-file-test
   (is (= (first
-          (build-actions {}
-            (remote-file "/etc/file" :content "some content")
-            (remote-file "/etc/file2" :content "some content2")))
+          (build-actions [session {}]
+            (remote-file session "/etc/file" {:content "some content"})
+            (remote-file session "/etc/file2" {:content "some content2"})))
          (first
-          (build-actions {}
+          (build-actions [session {}]
             (apply-templates
+             session
              (fn [] {{:path "/etc/file"} "some content"
                      {:path "/etc/file2"} "some content2"})
              nil))))))
@@ -89,9 +87,8 @@ chown user ${file}"
          #"resources/template/strint"
          (str (find-template
                "template/strint"
-               (test-session
-                {:group a
-                 :server {:node (make-node :id :group-name "a")}})))))
+               {:group a
+                :server {:node (make-node :id :group-name "a")}}))))
     (is (= "a ~{a}\n"
            (utils/load-resource-url
             (find-template

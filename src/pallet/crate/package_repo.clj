@@ -1,9 +1,10 @@
 (ns pallet.crate.package-repo
   "Package repositories"
   (:require
-   [pallet.actions :refer [exec-checked-script packages]]
+   [pallet.actions :refer [exec-checked-script package]]
    [pallet.plan :refer [defplan]]
-   [pallet.script :refer [defimpl defscript]]))
+   [pallet.script :refer [defimpl defscript]]
+   [pallet.target :refer [packager]]))
 
 ;; https://help.ubuntu.com/community/Repositories/Personal
 ;; http://odzangba.wordpress.com/2006/10/13/how-to-build-local-apt-repositories/
@@ -27,4 +28,5 @@
 (defplan repository-packages
   "Install packages required for building repositories"
   [session]
-  (packages session :aptitude ["dpkg-dev"]))
+  (case (packager session)
+    :aptitude (package session "dpkg-dev")))

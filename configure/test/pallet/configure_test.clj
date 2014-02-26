@@ -2,7 +2,6 @@
   (:require
    [clojure.java.io :refer [file]]
    [clojure.test :refer :all]
-   [pallet.api]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
    [pallet.configure :refer :all]
@@ -80,7 +79,7 @@
 
 ;;; define user in pallet.config
 (in-ns 'pallet.config)
-(def admin-user (pallet.api/make-user "fred"))
+(def admin-user (pallet.user/make-user "fred" {:password "fred"}))
 (in-ns 'pallet.configure-test)
 
 (deftest admin-user-from-config-var-test

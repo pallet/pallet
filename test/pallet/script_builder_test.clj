@@ -97,3 +97,16 @@
             :execv ["/bin/bash"]}
            (build-code {:user {:no-sudo true}} {:sudo-user "fred"}))
         "A :sudo-user in the action overrides :no-sudo in the admin user")))
+
+
+
+
+;; TODO fix these
+;; (defmethod interpreter :python
+;;   [_]
+;;   "/usr/bin/python")
+
+
+;; (def print-action
+;;   (script-action [x]
+;;    [{:language :python} (str "print '" x "'")]))

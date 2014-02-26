@@ -7,10 +7,10 @@
    [simple-check.generators :as gen]
    [simple-check.properties :as prop]))
 
-(deftest timeout-chan-test
-  (let [c (chan)
-        t (timeout-chan c 100)]
-    (is (nil? (first (<!! t))))))
+;; (deftest timeout-chan-test
+;;   (let [c (chan)
+;;         t (timeout-chan c 100)]
+;;     (is (nil? (first (<!! t))))))
 
 (def gen-non-empty-vector-of-non-nils
   (gen/not-empty (gen/vector (gen/such-that (complement nil?) gen/any))))

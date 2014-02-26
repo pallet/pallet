@@ -3,15 +3,14 @@
    [clojure.test :refer :all]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [file]]
-   [pallet.api :refer [group-spec lift plan-fn]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-actions build-script]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute.node-list :refer [make-localhost-node]]
-   [pallet.plan :refer [phase-errors]]
    [pallet.crate.environment :refer [system-environment
                                      system-environment-file]]
+   [pallet.group :refer [lift group-spec phase-errors]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script :refer [with-script-context]]
-   [pallet.session :refer [with-session]]
    [pallet.stevedore :refer [with-script-language]]
    [pallet.test-utils :refer [make-node test-username]]
    [pallet.user :refer [*admin-user*]]
@@ -27,27 +26,27 @@
   (with-script-language :pallet.stevedore.bash/bash
     (is (= ["/etc/environment" true]
            (with-script-context [:ubuntu]
-             (with-session {:server {:node (make-node "n1" :os-family :ubuntu)}}
-               (system-environment-file "xx" {})))))
+             (system-environment-file
+              {:server {:node (make-node "n1" :os-family :ubuntu)}}
+              "xx" {}))))
     (is (= ["/etc/profile.d/xx.sh" false]
            (with-script-context [:centos]
-             (with-session {:server {:node (make-node "n1" :os-family :centos)}}
-               (system-environment-file "xx" {})))))))
+             (system-environment-file
+              {:server {:node (make-node "n1" :os-family :centos)}}
+              "xx" {}))))))
 
 
 (deftest service-test
   (is
    (script-no-comment=
     "echo 'system-environment: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv=\"1\"\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv=\"b\"\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: Add testenv environment to /etc/environment : SUCCESS'\n"
-    (first
-     (build-actions {}
-       (system-environment "testenv" {"A" 1 :B "b"})))))
+    (build-script [session {}]
+      (system-environment session "testenv" {"A" 1 :B "b"}))))
   (is
    (script-no-comment=
     "echo 'system-environment: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv='1'\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv='b'\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: Add testenv environment to /etc/environment : SUCCESS'\n\n"
-    (first
-     (build-actions {}
-       (system-environment "testenv" {"A" 1 :B "b"} :literal true))))))
+    (build-script [session {}]
+      (system-environment session "testenv" {"A" 1 :B "b"} :literal true)))))
 
 (deftest service-local-test
   (with-temporary [env-file (tmpfile)]
@@ -63,10 +62,12 @@
       (testing "insert"
         (let [result (lift {local node}
                            :user user
-                           :phase (plan-fn
+                           :phase (plan-fn [session]
                                     (with-action-options
+                                      session
                                       {:script-trace true}
                                       (system-environment
+                                       session
                                        "pallet-testenv"
                                        {"a" "$xxxx"}
                                        :literal true
@@ -86,8 +87,9 @@
           (.startsWith (slurp path) "# ")))
       (testing "replace"
         (let [result (lift {local node} :user user
-                           :phase (plan-fn
+                           :phase (plan-fn [session]
                                     (system-environment
+                                     session
                                      "pallet-testenv"
                                      {"a" "$xxyy"}
                                      :literal true

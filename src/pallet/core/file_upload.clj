@@ -13,17 +13,12 @@
   (impl/user-file-path uploader target-path action-options))
 
 (defn upload-file
-  "Upload a file to the target-path, and return any script needed to
-    be run on the node to get the file into place.
+  "Upload a file to the target-path.
 
-    file-options is a map of options as passed to remote-file, for file
-    ownership, permissions, etc.
-
-    action-options can contain a :sudo-user, specify the user to install
-    the file as."
-  [uploader session local-path target-path action-options]
-  (impl/upload-file
-   uploader session local-path target-path action-options))
+   action-options must contain a :user, specifying the user to install
+   the file as."
+  [uploader target local-path target-path action-options]
+  (impl/upload-file uploader target local-path target-path action-options))
 
 (defmulti file-uploader
   "Instantiate a file-upload provider based on keyword and option map."

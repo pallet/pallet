@@ -77,7 +77,8 @@
             result (transport/exec
                     local-connection cmd
                     {:output-f (log-script-output "localhost" nil)})
-            [result session] (execute/parse-shell-result session result)
+            ;; [result session] (execute/parse-shell-result session result)
+
             result (assoc result :script script)]
         (when-let [e (:err result)]
           (when-not (string/blank? e)

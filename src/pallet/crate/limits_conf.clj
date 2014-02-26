@@ -3,9 +3,10 @@
   (:require
    [clojure.string :as string]
    [pallet.actions :refer [exec-checked-script file remote-file]]
-   [pallet.api :refer [plan-fn] :as api]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script :refer [defscript defimpl]]
    [pallet.script.lib :as lib]
+   [pallet.spec :as spec]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
@@ -32,10 +33,11 @@
   specify :domain, :type, :item and :value fields.  Each vectors specifies
   strings for the fields (in domain, type, item, value order).  The type and
   item values may optionally be keywords."
-  [{:keys [entries config-file instance-id] :as settings}]
+  [session {:keys [entries config-file instance-id] :as settings}]
   (let [settings (merge (default-settings) settings)
         settings (update-in settings [:entries] #(mapv normalise-entry %))]
     (assoc-settings
+     session
      :limits-conf settings (select-keys settings [:instance-id]))))
 
 (defn ulimit
@@ -61,10 +63,11 @@
 
 (defn configure
   "Writes the limit.conf file."
-  [{:keys [instance-id] :as options}]
+  [session {:keys [instance-id] :as options}]
   (let [{:keys [config-file entries group owner]}
-        (get-settings :limits-conf options)]
+        (get-settings session :limits-conf options)]
     (remote-file
+     session
      config-file
      :owner owner
      :group group
@@ -77,9 +80,10 @@
 function for options to the settings map"
   [{:keys [entries config-file] :as settings}
    & {:keys [instance-id] :as options}]
-  (api/server-spec
-   :phases {:settings (plan-fn
+  (spec/server-spec
+   :phases {:settings (plan-fn [session]
                         (pallet.crate.limits-conf/settings
+                         session
                          (merge settings options)))
-            :configure (plan-fn
-                         (configure options))}))
+            :configure (plan-fn [session]
+                         (configure session options))}))

@@ -2,17 +2,17 @@
   "Provides service supervision via initd"
   (:require
    [clojure.tools.logging :refer [debugf]]
-   [pallet.actions :refer [exec-checked-script plan-when remote-file]]
+   [pallet.actions :refer [exec-checked-script remote-file]]
    [pallet.actions.direct.service :refer [service-impl]]
-   [pallet.api :as api]
-   [pallet.api :refer [plan-fn]]
    [pallet.crate.service
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script.lib :refer [etc-init file]]
-   [pallet.session :refer [session]]
+   [pallet.session :refer []]
    [pallet.settings :refer [get-settings update-settings]]
+   [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 
@@ -54,21 +54,24 @@
 
 (defmethod service-supervisor :initd
   [_
+   session
    {:keys [service-name]}
    {:keys [action if-flag if-stopped instance-id]
     :or {action :start}
     :as options}]
   (if if-flag
-    (plan-when (target-flag? if-flag)
+    ;;; TODO
+    (when false ;; (target-flag? if-flag)
       (exec-checked-script
        (str "Initd " (name action) " " service-name)
-       ~(apply-map service-impl (session) service-name
+       ~(apply-map service-impl session service-name
                    (assoc options :service-impl :initd))))
     (exec-checked-script
        (str "Initd " (name action) " " service-name)
-       ~(apply-map service-impl (session) service-name
+       ~(apply-map service-impl session service-name
                    (assoc options :service-impl :initd)))))
 
 (defn server-spec [settings & {:keys [instance-id] :as options}]
-  (api/server-spec
-   :phases {:configure (plan-fn (jobs options))}))
+  (spec/server-spec
+   :phases {:configure (plan-fn [session]
+                         (jobs session options))}))

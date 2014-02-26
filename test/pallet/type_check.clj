@@ -2,4 +2,4 @@
   (:require
    [clojure.core.typed :refer [check-ns]]))
 
-(check-ns 'pallet.session)
+;; (check-ns 'pallet.session)

@@ -7,18 +7,13 @@
    [pallet.actions
     :refer [exec-checked-script exec-script remote-file sed]]
    [pallet.compute :refer [os-hierarchy]]
-   [pallet.crate
-    :refer [defmethod-plan
-            defmulti-plan
-            os-family
-            target-name
-            target-node
-            target-node]]
    [pallet.node :as node :refer [primary-ip private-ip]]
-   [pallet.plan :refer [defplan]]
+   [pallet.plan :refer [defmethod-plan defmulti-plan defplan]]
    [pallet.script.lib :as lib]
+   [pallet.session :refer [target]]
    [pallet.settings :refer [get-settings update-settings]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.target :as target]
    [pallet.utils :as utils]))
 
 ;;; ## Add entries to the host file settings
@@ -27,38 +22,43 @@
 
 (defplan add-host
   "Declare a host entry. Names should be a sequence of names."
-  [ip-address names]
-  (update-settings :hosts merge-hosts
-                   {ip-address (if (string? names) [names] names)}))
+  [session ip-address names]
+  (update-settings
+   session
+   :hosts merge-hosts
+   {ip-address (if (string? names) [names] names)}))
 
 (defplan add-hosts
   "Add a map of ip address to a sequence of hostname/aliases, to the host file
   settings."
-  [hosts-map]
+  [session hosts-map]
   {:pre [(every? (complement string?) (vals hosts-map))]}
-  (update-settings :hosts merge-hosts hosts-map))
+  (update-settings session :hosts merge-hosts hosts-map))
 
 ;;; ## Query Hostname and DNS
 (defplan hostname
   "Get the hostname as reported on the node."
-  [{:keys [fqdn]}]
+  [session {:keys [fqdn]}]
   (let [r (exec-checked-script
+           session
            "hostname"
            (hostname ~(if fqdn "-f" "")))]
     (:out r)))
 
 (defplan reverse-dns
   "Get the hostname reported for the specified ip."
-  [ip]
+  [session ip]
   (let [r (exec-checked-script
+           session
            (str "reverse DNS for " ip)
            (pipe ("host" ~ip) ("awk" "'{print $NF}'")))]
     (:out r)))
 
 (defplan resolve-dns
   "Get the ip for a hostname."
-  [hostname]
+  [session hostname]
   (let [r (exec-checked-script
+           session
            (str "Resolve DNS for " hostname)
            (pipe ("host" ~hostname) ("awk" "'{print $NF}'")))]
     (:out r)))
@@ -68,17 +68,18 @@
   "Get a host entry for the current node. Options all default to true
   and hostname takes priority over target-name, and private-ip over
   primary-ip."
-  [{:keys [use-hostname use-private-ip]
+  [session
+   {:keys [use-hostname use-private-ip]
     :or {use-hostname true use-private-ip true}}]
   (let [h (when use-hostname (hostname {:fqdn true}))
-        n (target-node)]
-    {(or (and use-private-ip (private-ip n))
-         (primary-ip n))
+        n (target session)]
+    {(or (and use-private-ip (target/private-ip n))
+         (target/primary-ip n))
      (vec
       (filter identity
               [(if (and use-hostname (not (blank? (:out @h))))
                  (:out @h)
-                 (target-name))]))}))
+                 (target/hostname session))]))}))
 
 
 ;;; ## Localhost and other Aliases
@@ -107,58 +108,66 @@
   (string/join "\n" (map format-entry (sort-by key entries))))
 
 (defplan format-hosts
-  []
-  (let [settings (get-settings :hosts)]
+  [session]
+  (let [settings (get-settings session :hosts)]
     (format-hosts* settings)))
 
 (defplan hosts
   "Writes the hosts files"
-  []
-  (let [content (format-hosts)]
-    (remote-file (stevedore/fragment (~lib/etc-hosts))
-     :owner "root"
-     :group "root"
-     :mode 644
-     :content content)))
+  [session]
+  (let [content (format-hosts session)]
+    (remote-file
+     session
+     (stevedore/fragment (~lib/etc-hosts))
+     {:owner "root"
+      :group "root"
+      :mode 644
+      :content content})))
 
 ;;; ## Set hostname
 (defmulti-plan set-hostname*
-  (fn [hostname]
+  (fn [session hostname]
     (assert hostname "Must specify a valid hostname")
     (debugf "hostname dispatch %s" hostname)
-    (let [os (os-family)]
+    (let [os (target/os-family session)]
       (debugf "hostname for os %s" os)
       os))
   :hierarchy #'os-hierarchy)
 
-(defmethod-plan set-hostname* :linux [hostname]
+(defmethod-plan set-hostname* :linux
+  [session hostname]
   ;; change the hostname now
   (exec-checked-script
+   session
    "Set hostname"
    ("hostname " ~hostname))
   ;; make sure this change will survive reboots
   (remote-file
+   session
    "/etc/hostname"
-   :owner "root" :group "root" :mode "0644"
-   :content hostname))
+   {:owner "root" :group "root" :mode "0644"
+    :content hostname}))
 
-(defmethod-plan set-hostname* :rh-base [hostname]
+(defmethod-plan set-hostname* :rh-base
+  [session hostname]
   ;; change the hostname now
-  (exec-checked-script "Set hostname" ("hostname " ~hostname))
+  (exec-checked-script session "Set hostname" ("hostname " ~hostname))
   ;; make sure this change will survive reboots
-  (sed "/etc/sysconfig/network"
+  (sed session "/etc/sysconfig/network"
        {"HOSTNAME=.*" (str "HOSTNAME=" hostname)}))
 
 (defplan set-hostname
   "Set the hostname on a node. Note that sudo may stop working if the
 hostname is not in /etc/hosts."
-  [& {:keys [update-etc-hosts] :or {update-etc-hosts true}}]
-  (let [node-name (target-name)]
+  [session & {:keys [update-etc-hosts] :or {update-etc-hosts true}}]
+  (let [node-name (target/hostname (target session))]
     (when update-etc-hosts
-      (when-not (:exit (exec-script ("grep" ~node-name (lib/etc-hosts))))
+      (when-not (:exit
+                 (exec-script session ("grep" ~node-name (lib/etc-hosts))))
         (exec-checked-script
+         session
          "Add self hostname"
          (println ">>" (lib/etc-hosts))
-         ((println ~(node/primary-ip (target-node)) " " ~node-name)
+         ((println ~(target/primary-ip (target session)) " " ~node-name)
           ">>" (lib/etc-hosts)))))
-    (set-hostname* node-name)))
+    (set-hostname* session node-name)))

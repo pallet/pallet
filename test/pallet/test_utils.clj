@@ -1,21 +1,23 @@
 (ns pallet.test-utils
   (:require
    [clojure.java.io :as io]
+   [clojure.stacktrace :refer [root-cause]]
    [clojure.string :as string]
    [clojure.test :refer :all]
-   [clojure.tools.logging]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.action :refer [declare-action implement-action]]
    [pallet.actions.impl :as actions-impl]
    [pallet.common.context :refer [throw-map]]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
    [pallet.execute :as execute]
-   [pallet.execute :refer [target-flag?]]
+   [pallet.core.executor :refer [node-state]]
    [pallet.group :refer [group-spec]]
    [pallet.script :as script]
-   [pallet.session.verify :refer [add-session-verification-key]]
+   [pallet.session :as session]
    [pallet.spec :refer [server-spec]]
    [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [apply-map]]))
 
@@ -138,14 +140,14 @@ list, Alan Dipert and MeikelBrandmeyer."
        'pallet.build-actions/build-actions))
      ((resolve 'pallet.build-actions/build-actions) ~@args)))
 
-(defn test-session
-  "Build a test session"
-  [& components]
-  (add-session-verification-key
-   (reduce
-    merge
-    {:user *admin-user* :server {:node (make-node :id)}}
-    components)))
+;; (defn test-session
+;;   "Build a test session"
+;;   [& components]
+;;   (add-session-verification-key
+;;    (reduce
+;;     merge
+;;     {:user *admin-user* :server {:node (make-node :id)}}
+;;     components)))
 
 (defn server
   "Build a server for the session map"
@@ -185,6 +187,12 @@ list, Alan Dipert and MeikelBrandmeyer."
          ~@impl)
        action#)))
 
+(defn target-node-state
+  [session key]
+  (get (node-state (session/executor session)
+                   (target/node (session/target session)))
+       key))
+
 ;; (defn verify-flag-set
 ;;   "Verify that the specified flag is set for the current target."
 ;;   [flag]
@@ -207,6 +215,7 @@ list, Alan Dipert and MeikelBrandmeyer."
   [{:language :bash} (apply str bash-strings)])
 
 (defn remove-source-line-comments [script]
+  {:pre [(string? script)]}
   (-> script
       (string/replace #"(?sm)^( *# [\w\d_]+.clj:\d+)+\n" "")
       (string/replace #"\s+# [\w\d_]+.clj:\d+" "")
@@ -230,3 +239,44 @@ list, Alan Dipert and MeikelBrandmeyer."
            :expected (list '= [expected# expected-norm#] [actual# actual-norm#])
            :actual (list 'not (list '= [expected# expected-norm#]
                                        [actual# actual-norm#]))})))))
+
+
+(defmethod assert-expr 'thrown-cause? [msg form]
+  ;; (is (thrown? c expr))
+  ;; Asserts that evaluating expr throws an exception with a cause of class c.
+  ;; Returns the exception thrown.
+  (let [klass (second form)
+        body (nthnext form 2)]
+    `(try ~@body
+          (do-report {:type :fail, :message ~msg,
+                   :expected '~form, :actual nil})
+          (catch Throwable e#
+            (if (instance? ~klass (root-cause e#))
+              (do
+                (do-report {:type :pass, :message ~msg,
+                            :expected '~form, :actual e#})
+                (root-cause e#))
+              (throw (root-cause e#)))))))
+
+(defmethod assert-expr 'thrown-cause-with-msg? [msg form]
+  ;; (is (thrown-with-msg? c re expr))
+  ;; Asserts that evaluating expr throws an exception with a cause of class c.
+  ;; Also asserts that the message string of the exception matches
+  ;; (with re-find) the regular expression re.
+  (let [klass (nth form 1)
+        re (nth form 2)
+        body (nthnext form 3)]
+    `(try ~@body
+          (do-report
+           {:type :fail, :message ~msg, :expected '~form, :actual nil})
+          (catch Throwable e#
+            (debugf "thrown-cause-with-msg? %s %s" e# (root-cause e#))
+            (let [m# (.getMessage (root-cause e#))]
+              (if (instance? ~klass e#)
+                (do (if (and m# (re-find ~re m#))
+                      (do-report {:type :pass, :message ~msg,
+                                  :expected '~form, :actual (root-cause e#)})
+                      (do-report {:type :fail, :message ~msg,
+                                  :expected '~form, :actual (root-cause e#)}))
+                    (root-cause e#))
+                (throw (root-cause e#))))))))

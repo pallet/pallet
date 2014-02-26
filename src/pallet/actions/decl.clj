@@ -93,16 +93,17 @@ to deal with local file transfer."
 
 
 (defaction remote-directory-action
-  [path {:keys [action url local-file remote-file
-                unpack tar-options unzip-options jar-options
-                strip-components md5 md5-url owner group recursive]
-         :or {action :create
-              tar-options "xz"
-              unzip-options "-o"
-              jar-options "xf"
-              strip-components 1
-              recursive true}
-         :as options}])
+  [session path
+   {:keys [action url local-file remote-file
+           unpack tar-options unzip-options jar-options
+           strip-components md5 md5-url owner group recursive]
+    :or {action :create
+         tar-options "xz"
+         unzip-options "-o"
+         jar-options "xf"
+         strip-components 1
+         recursive true}
+    :as options}])
 
 (def package-source-changed-flag "packagesourcechanged")
 
@@ -234,4 +235,13 @@ to deal with local file transfer."
                  :scopes [\"partner\"]})"
   [session name {:keys [packager]}])
 
+
 (defaction file [session path options])
+(defaction symbolic-link [session from name options])
+(defaction fifo [session path options])
+(defaction sed [session path exprs-map options])
+
+(defaction directory [session dir-path options])
+
+(defaction rsync [session local-path remote-path {:keys [port]}])
+(defaction rsync-to-local [session remote-path local-path {:keys [port]}])

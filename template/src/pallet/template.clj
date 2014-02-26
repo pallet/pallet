@@ -3,7 +3,8 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [remote-file]]
-   [pallet.session :refer [group-name os-family packager]]
+   [pallet.target :refer [os-family packager]]
+   [pallet.session :refer [target]]
    [pallet.strint :as strint]
    [pallet.utils :as utils]
    [pallet.utils :refer [apply-map]]))
@@ -54,7 +55,7 @@
   {:pre [(map? session) (session :server)]}
   (some
    get-resource
-   (candidate-templates path (group-name session) session)))
+   (candidate-templates path (:group-name (target session)) session)))
 
 (defn interpolate-template
   "Interpolate the given template."

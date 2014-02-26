@@ -12,35 +12,34 @@
    (re-find
     #"netstat -lnt"
     (first
-     (build-actions/build-actions
-      {}
-      (network-service/wait-for-port-listen 80)))))
+     (build-actions/build-actions [session {}]
+       (network-service/wait-for-port-listen session 80)))))
   (doseq [[protocol switch] [[:raw "w"] [:tcp "t"] [:udp "u"] [:udplite "U"]]]
     (is
      (re-find
       (re-pattern (format "netstat -ln%s" switch))
       (first
-       (build-actions/build-actions
-        {}
-        (network-service/wait-for-port-listen 80 :protocol protocol)))))))
+       (build-actions/build-actions [session {}]
+         (network-service/wait-for-port-listen
+          session 80 :protocol protocol)))))))
 
 (deftest wait-for-http-status-test
   (is
    (first
-    (build-actions/build-actions
-     {}
-     (network-service/wait-for-http-status "http://localhost/" 200))))
+    (build-actions/build-actions [session {}]
+      (network-service/wait-for-http-status
+       session "http://localhost/" 200))))
   (re-find
    #"-b 'x=y'"
    (first
-    (build-actions/build-actions
-     {}
-     (network-service/wait-for-http-status
-      "http://localhost/" 200 :cookie "x=y"))))
+    (build-actions/build-actions [session {}]
+      (network-service/wait-for-http-status
+       session
+       "http://localhost/" 200 :cookie "x=y"))))
   (re-find
    #"--header 'Cookie: x=y'"
    (first
-    (build-actions/build-actions
-     {}
-     (network-service/wait-for-http-status
-      "http://localhost/" 200 :cookie "x=y")))))
+    (build-actions/build-actions [session {}]
+      (network-service/wait-for-http-status
+       session
+       "http://localhost/" 200 :cookie "x=y")))))

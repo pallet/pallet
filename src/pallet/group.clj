@@ -1002,7 +1002,7 @@ the admin-user on the nodes.
                 _ (lift-op*
                    session
                    (concat
-                    (when os-detect [:pallet/os])
+                    (when os-detect [:pallet/os :pallet/os-bs])
                     [:settings])
                    nodes-set
                    {}
@@ -1010,7 +1010,8 @@ the admin-user on the nodes.
                 [settings-results e] (<! c)
                 errs (errors settings-results)
                 result {:results settings-results
-                        :session session}]
+                        :session session
+                        :targets nodes-set}]
             (cond
              e [result e]
              errs [result (ex-info "settings phase failed" {:errors errs})]
@@ -1052,27 +1053,6 @@ of group specs to nodes. Examples:
 `:user`
 the admin-user on the nodes.
 
-### Partitioning
-
-`:partition-f`
-: a function that takes a sequence of targets, and returns a sequence of
-  sequences of targets.  Used to partition or filter the targets.  Defaults to
-  any :partition metadata on the phase, or no partitioning otherwise.
-
-## Post phase options
-
-`:post-phase-f`
-: specifies an optional function that is run after a phase is applied.  It is
-  passed `targets`, `phase` and `results` arguments, and is called before any
-  error checking is done.  The return value is ignored, so this is for side
-  affect only.
-
-`:post-phase-fsm`
-: specifies an optional fsm returning function that is run after a phase is
-  applied.  It is passed `targets`, `phase` and `results` arguments, and is
-  called before any error checking is done.  The return value is ignored, so
-  this is for side affect only.
-
 ### Asynchronous and Timeouts
 
 `:async`
@@ -1086,16 +1066,6 @@ the admin-user on the nodes.
 
 `:timeout-val`
 : a value to be returned should the operation time out.
-
-### Algorithm options
-
-`:phase-execution-f`
-: specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/build-and-execute-phase`.
-
-`:execution-settings-f`
-: specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
 
 ### OS detection
 
@@ -1190,3 +1160,35 @@ insufficient.
     ;; TODO
     ;; (exec-operation group-nodes* options)
     ))
+
+
+;;; # Exception reporting
+(defn phase-errors
+  "Return a sequence of phase errors for an operation.
+   Each element in the sequence represents a failed action, and is a map,
+   with :target, :error, :context and all the return value keys for the return
+   value of the failed action."
+  [result]
+  (->>
+   (:results result)
+   (map #(update-in % [:action-results] (fn [r] (filter :error r))))
+   (mapcat
+    #(map (fn [r] (merge (dissoc % :action-results) r)) (:action-results %)))
+   seq))
+
+(defn phase-error-exceptions
+  "Return a sequence of exceptions from phase errors for an operation. "
+  [result]
+  (->>  (phase-errors result)
+        (map (comp :cause :error))
+        (filter identity)))
+
+(defn throw-phase-errors
+  [result]
+  (when-let [e (phase-errors result)]
+    (throw
+     (ex-info
+      (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
+      {:errors e}
+      (or (-> (first e) :message :exception)
+          (-> (first (remove nil? (map (comp :cause :error) e)))))))))

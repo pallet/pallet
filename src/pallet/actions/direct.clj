@@ -25,7 +25,7 @@ that will be executed on the remote target."
   [{:keys [options args] :as action} state-map]
   (debugf "direct-script args %s" args)
   (let [{:keys [metadata f]} (implementation action :direct)
-        script-vec (apply f options state-map args)]
+        script-vec (apply f {:options options :state state-map} args)]
     (tracef "direct-script %s %s" f (vec args))
     (tracef "direct-script %s" script-vec)
-    script-vec))
+    [metadata script-vec]))

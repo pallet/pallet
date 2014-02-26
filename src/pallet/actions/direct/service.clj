@@ -10,14 +10,16 @@
    [pallet.utils :refer [apply-map]]))
 
 (defmulti service-impl
-  (fn [service-name & {:keys [action if-flag if-stopped
-                                      service-impl]
-                               :or {action :start service-impl :initd}
-                               :as options}]
+  (fn [{:keys [action-options state]}
+       service-name & {:keys [action if-flag if-stopped
+                              service-impl]
+                       :or {action :start service-impl :initd}
+                       :as options}]
     service-impl))
 
 (defmethod service-impl :initd
-  [service-name & {:keys [action if-flag if-stopped
+  [{:keys [action-options state]}
+   service-name & {:keys [action if-flag if-stopped
                           service-impl]
                    :or {action :start}
                    :as options}]
@@ -35,7 +37,8 @@
        (~(init-script-path service-name) ~(name action))))))
 
 (defmethod service-impl :upstart
-  [service-name & {:keys [action if-flag if-stopped
+  [{:keys [action-options state]}
+   service-name & {:keys [action if-flag if-stopped
                           service-impl]
                    :or {action :start}
                    :as options}]
@@ -58,8 +61,4 @@
          ("service" ~service-name ~(name action)))))))
 
 
-(implement-action service :direct
-  {:action-type :script :location :target}
-  [action-options service-name & {:as options}]
-  [{:language :bash}
-   (apply-map service-impl service-name options)])
+(implement-action service :direct {} {:language :bash} service-impl)

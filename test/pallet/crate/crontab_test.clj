@@ -3,57 +3,53 @@
    [clojure.string :refer [trim]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-checked-script remote-file remote-file-content]]
-   [pallet.api :refer [extend-specs plan-fn]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.plan :refer [phase-errors]]
-   [pallet.core.operations :refer [lift]]
-   [pallet.core.primitives :refer [async-operation]]
-   [pallet.crate :refer [admin-user]]
    [pallet.crate.automated-admin-user :refer [with-automated-admin-user]]
-   [pallet.crate.crontab
+   [pallet.crate.crontab :as crontab
     :refer [system-crontabs
             system-settings
             user-crontabs
-            user-settings
-            with-crontab]]
-   [pallet.session :refer [session]]
-   [pallet.environment-impl :refer [get-for]]
+            user-settings]]
+   [pallet.environment :refer [get-environment]]
+   [pallet.group :refer [lift phase-errors]]
    [pallet.live-test :refer [images test-for test-nodes]]
+   [pallet.plan :refer [plan-fn]]
    [pallet.script.lib :refer [user-home]]
+   [pallet.session :refer []]
+   [pallet.spec :refer [extend-specs]]
    [pallet.stevedore :refer [script]]
+   [pallet.target :refer [admin-user]]
    [pallet.test-utils :refer [no-location-info]]))
 
 (use-fixtures :once (logging-threshold-fixture) no-location-info)
 
 (deftest user-crontab-test
-  (is (script-no-comment=
-       (first
-        (build-actions
-            {:phase-context "user-crontabs: create-user-crontab"}
-          (remote-file
-           "$(getent passwd fred | cut -d: -f6)/crontab.in"
-           :content "contents" :owner "fred" :mode "0600")
-          (exec-checked-script
-           "Load crontab"
-           ("crontab -u fred"
-            "$(getent passwd fred | cut -d: -f6)/crontab.in"))))
-       (first
-        (build-actions {}
-          (user-settings "fred" {:content "contents"})
-          (user-crontabs))))))
+  (is (=
+       (build-plan [session {:phase-context "user-crontabs: create-user-crontab"}]
+         (remote-file
+          session
+          "$(getent passwd fred | cut -d: -f6)/crontab.in"
+          :content "contents" :owner "fred" :mode "0600")
+         (exec-checked-script
+          session
+          "Load crontab"
+          ("crontab -u fred"
+           "$(getent passwd fred | cut -d: -f6)/crontab.in")))
+       (build-plan [session {}]
+         (user-settings session "fred" {:content "contents"})
+         (user-crontabs session)))))
 
 (deftest system-crontab-test
-  (is (script-no-comment=
-       (first
-        (build-actions {:phase-context "system-crontabs: create-system-crontab"}
-          (remote-file
-           "/etc/cron.d/fred"
-           :content "contents" :owner "root" :group "root" :mode "0644")))
-       (first
-        (build-actions {}
-          (system-settings "fred" {:content "contents"})
-          (system-crontabs))))))
+  (is (=
+       (build-plan [session {:phase-context "system-crontabs: create-system-crontab"}]
+         (remote-file
+          session
+          "/etc/cron.d/fred"
+          :content "contents" :owner "root" :group "root" :mode "0644"))
+       (build-plan [session {}]
+         (system-settings session "fred" {:content "contents"})
+         (system-crontabs session)))))
 
 (def crontab-for-test
   "0 1 1 1 1 ls > /dev/null")
@@ -66,27 +62,27 @@
           {:image image
            :count 1
            :phases
-           {:settings (plan-fn
-                        (let [user (admin-user)]
+           {:settings (plan-fn [session]
+                        (let [user (admin-user session)]
                           (user-settings
+                           session
                            (:username user) {:content crontab-for-test})))
-            :configure (plan-fn
-                         (system-crontabs :action :create)
-                         (user-crontabs :action :create))
-            :verify (plan-fn
-                      (let [user (admin-user)
+            :configure (plan-fn [session]
+                         (system-crontabs session :action :create)
+                         (user-crontabs session :action :create))
+            :verify (plan-fn [session]
+                      (let [user (admin-user session)
                             fcontent (remote-file-content
+                                      session
                                       (str
                                        (script (~user-home ~(:username user)))
                                        "/crontab.in"))
-                            v (let [f (get-for (session) [:file-checker])]
-                                (f (session) fcontent))]
+                            v (let [f (get-environment session [:file-checker])]
+                                (f session fcontent))]
                         v))}}
           [with-automated-admin-user
-          with-crontab])}
-        (let [op (async-operation {})
-              res (lift
-                   op
+           (crontab/server-spec {})])}
+        (let [res (lift
                    [(:crontab node-types)] nil [:verify] compute
                    {:file-checker
                     (bound-fn [session fcontent]
@@ -94,5 +90,4 @@
                         (is (= crontab-for-test (trim content))
                             "Remote file matches")))}
                    {})]
-        @op
-        (is (not (phase-errors @op)))))))
+        (is (not (phase-errors res)))))))

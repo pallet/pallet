@@ -14,12 +14,12 @@ data may provide a version."
   (:require
    [clojure.string :as string]
    [pallet.compute :refer [os-hierarchy]]
-   [pallet.versions :refer [version-spec?]]
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
+   [pallet.exception :refer [compiler-exception]]
    [pallet.plan :refer [plan-context]]
    [pallet.target :refer [os-family os-version]]
-   [pallet.versions :refer [as-version-vector version-matches?]]))
+   [pallet.versions :refer [as-version-vector version-matches? version-spec?]]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
@@ -76,16 +76,22 @@ refers to a software package version of some sort, on the specified `os` and
   {:indent 3}
   [multi-version {:keys [os os-version version] :as dispatch-value}
    [& args] & body]
-  (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
-        h (var-get hierarchy)]
-    (when-not ((hierarchy-vals h) os)
-      (throw (Exception. (str os " is not part of the hierarchy"))))
-    `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-            (fn
-              ~(symbol
-                (str (name os) "-" os-version "-" (string/join "" version)))
-              [~@args]
-              ~@body))))
+  (let [v (resolve multi-version)]
+    (when-not v
+      (throw
+       (compiler-exception
+        &form
+        (str "Could not find defmulti-version " (name multi-version)) {})))
+    (let [{:keys [hierarchy methods]} (meta v)
+          h (var-get hierarchy)]
+      (when-not ((hierarchy-vals h) os)
+        (throw (Exception. (str os " is not part of the hierarchy"))))
+      `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+              (fn
+                ~(symbol
+                  (str (name os) "-" os-version "-" (string/join "" version)))
+                [~@args]
+                ~@body)))))
 
 (defmacro defmulti-version-plan
   "Defines a multi-version function used to abstract over an operating system
@@ -111,19 +117,25 @@ refers to a software package version of some sort, on the specified `os` and
   {:indent 3}
   [multi-version {:keys [os os-version version] :as dispatch-value}
    [& args] & body]
-  (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
-        h (var-get hierarchy)]
-    (when-not ((hierarchy-vals h) os)
-      (throw (Exception. (str os " is not part of the hierarchy"))))
-    `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-            (fn ~(symbol
-                  (str (name os) "-" os-version "-" (string/join "" version)))
-              [~@args]
-              (plan-context
-                  ~(symbol
+  (let [v (resolve multi-version)]
+    (when-not v
+      (throw
+       (compiler-exception
+        &form
+        (str "Could not find defmulti-version " (name multi-version)) {})))
+    (let [{:keys [hierarchy methods]} (meta v)
+          h (var-get hierarchy)]
+      (when-not ((hierarchy-vals h) os)
+        (throw (Exception. (str os " is not part of the hierarchy"))))
+      `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+              (fn ~(symbol
                     (str (name os) "-" os-version "-" (string/join "" version)))
-                  {}
-                ~@body)))))
+                [~@args]
+                (plan-context
+                    ~(symbol
+                      (str (name os) "-" os-version "-" (string/join "" version)))
+                    {}
+                  ~@body))))))
 
 (defn os-map
   "Construct an os version map. The keys should be maps with :os-family
