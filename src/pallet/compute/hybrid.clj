@@ -6,9 +6,9 @@
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.protocols :as impl :refer [node-tag]]
+   [pallet.core.node :as node]
    [pallet.core.protocols :as core-impl]
    [pallet.environment]
-   [pallet.node :as node]
    [pallet.utils :refer [combine-exceptions]]
    [pallet.utils.async :refer [go-try]]))
 

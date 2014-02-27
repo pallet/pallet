@@ -6,9 +6,10 @@
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
-   [pallet.core.types :refer [BaseSession PlanExecFn PlanFn PlanResult TargetMap]]
-   [pallet.node :as node]
-   [pallet.plan :as api :refer [errors plan-fn]]
+   [pallet.core.node :as node]
+   [pallet.core.types
+    :refer [BaseSession PlanExecFn PlanFn PlanResult TargetMap]]
+   [pallet.plan :as plan :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
    [pallet.target :as target]))
@@ -23,7 +24,7 @@
          (middleware session target plan-fn)
          (execute-f session target plan-fn))))
   ([session target plan-fn]
-     (execute session target plan-fn api/execute)))
+     (execute session target plan-fn plan/execute)))
 
 ;;; # Admin-user setting middleware
 (ann image-user-middleware [PlanExecFn -> PlanExecFn])

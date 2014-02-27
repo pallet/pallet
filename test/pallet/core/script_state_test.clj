@@ -2,9 +2,9 @@
   (:require
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.script-state :refer :all]
-   [pallet.node :refer [id]]
-   [pallet.core.nodes :refer [localhost]]))
+   [pallet.core.node :refer [id]]
+   [pallet.core.nodes :refer [localhost]]
+   [pallet.core.script-state :refer :all]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

@@ -19,11 +19,10 @@
    [pallet.contracts :refer [check-spec]]
    [pallet.core.file-upload :refer :all]
    [pallet.environment :refer [get-environment]]
-   [pallet.node :refer [primary-ip ssh-port]]
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
    [pallet.session :refer [target target-session?]]
-   [pallet.target :refer [admin-user node packager]]
+   [pallet.target :refer [admin-user node packager primary-ip ssh-port]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
@@ -743,18 +742,18 @@ The :id key must contain a recognised repository."
   [session local-path remote-path {:keys [port]
                                    :as options}]
   (decl/rsync session local-path remote-path
-              (merge {:port (ssh-port (node (target session)))
+              (merge {:port (ssh-port (target session))
                       :username (:username (admin-user session))
-                      :ip (primary-ip (node (target session)))}
+                      :ip (primary-ip (target session))}
                      options)))
 
 (defn rsync-to-local
   "Use rsync to copy files from remote-path to local-path"
   [session remote-path local-path {:keys [port ip username] :as options}]
   (decl/rsync-to-local session local-path remote-path
-                       (merge {:port (ssh-port (node (target session)))
+                       (merge {:port (ssh-port (target session))
                                :username (:username (admin-user session))
-                               :ip (primary-ip (node (target session)))}
+                               :ip (primary-ip (target session))}
                               options)))
 
 (defn rsync-directory

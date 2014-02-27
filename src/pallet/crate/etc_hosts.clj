@@ -7,7 +7,6 @@
    [pallet.actions
     :refer [exec-checked-script exec-script remote-file sed]]
    [pallet.compute :refer [os-hierarchy]]
-   [pallet.node :as node :refer [primary-ip private-ip]]
    [pallet.plan :refer [defmethod-plan defmulti-plan defplan]]
    [pallet.script.lib :as lib]
    [pallet.session :refer [target]]

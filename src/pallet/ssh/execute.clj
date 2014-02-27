@@ -8,10 +8,10 @@
    [pallet.actions.decl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.core.node :as node]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
-   [pallet.node :as node]
    [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]

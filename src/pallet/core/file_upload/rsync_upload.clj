@@ -4,14 +4,13 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions.direct.rsync
     :refer [default-options rsync-command]]
-   [pallet.local.execute :refer [local-checked-script]]
-   [pallet.session :as session]
-   [pallet.user :refer [effective-username]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
-   [pallet.node :refer [ssh-port]]
+   [pallet.local.execute :refer [local-checked-script]]
+   [pallet.session :as session]
    [pallet.ssh.file-upload.sftp-upload :refer [upload-path]]
-   [pallet.target :as target]))
+   [pallet.target :as target]
+   [pallet.user :refer [effective-username]]))
 
 (defn rsync-upload-file
   [local-path target-path address port username options]

@@ -5,8 +5,8 @@
    [pallet.action :refer [implementation]]
    [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
+   [pallet.core.node :as node]
    [pallet.core.script-state :as script-state :refer [update-node-state]]
-   [pallet.node :as node]
    [pallet.ssh.execute :as ssh]
    [pallet.transport :as transport]
    [pallet.user :refer [user?]]))

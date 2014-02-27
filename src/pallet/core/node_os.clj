@@ -11,10 +11,10 @@
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.compute :refer [packager-for-os]]
    [pallet.compute.protocols :refer [Node]]
+   [pallet.core.node :as node]
    [pallet.core.plan-state
     :refer [assoc-settings get-settings plan-state? update-settings]]
    [pallet.map-merge :refer [merge-keys]]
-   [pallet.node :as node]
    [pallet.script :refer [with-script-context]]
    [pallet.stevedore :refer [with-script-language]]
    [pallet.utils :refer [maybe-assoc]]))

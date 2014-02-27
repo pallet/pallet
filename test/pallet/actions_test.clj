@@ -8,9 +8,9 @@
     :refer [logging-threshold-fixture with-log-to-string]]
    [pallet.plan :refer [plan-fn]]
    [pallet.group :refer [group-spec lift]]
-   [pallet.node :refer [primary-ip]]
    [pallet.script.lib :refer [ls]]
    [pallet.stevedore :as stevedore]
+   [pallet.target :refer [primary-ip]]
    [pallet.test-utils :refer [make-localhost-compute test-username
                               with-location-info]]
    [pallet.user :refer [*admin-user*]]))

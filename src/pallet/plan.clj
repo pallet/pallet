@@ -21,13 +21,13 @@ functions with more defaults, etc."
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.executor :as executor]
+   [pallet.core.node :refer [node?]]
    [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
    [pallet.exception :refer [compiler-exception]]
-   [pallet.node :refer [node?]]
    [pallet.session
     :refer [base-session?
             executor plan-state recorder

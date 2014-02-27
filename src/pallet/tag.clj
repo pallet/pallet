@@ -11,9 +11,9 @@ level?"
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :refer [debugf tracef]]
    [clojure.string :refer [blank?]]
+   [pallet.core.node :refer [id image-user node? tag tag! taggable?]]
    [pallet.core.types                   ; before any protocols
-    :refer [assert-type-predicate keyword-map? Node]]
-   [pallet.node :refer [id image-user node? tag tag! taggable?]]))
+    :refer [assert-type-predicate keyword-map? Node]]))
 
 ;;; # Node state tagging
 (ann state-tag-name String)

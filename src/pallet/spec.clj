@@ -15,6 +15,7 @@ service."
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
    [pallet.contracts :refer [check-spec]]
+   [pallet.core.node :refer [node?]]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.types
@@ -22,7 +23,6 @@ service."
             Node Spec SpecSeq TargetMapSeq]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
-   [pallet.node :as node :refer [node?]]
    [pallet.phase :as phase :refer [phases-with-meta]]
    [pallet.plan :refer [execute]]
    [pallet.session :as session

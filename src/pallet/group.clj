@@ -26,6 +26,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             service-properties]]
    [pallet.contracts :refer [check-spec]]
    [pallet.core.executor.ssh :as ssh]
+   [pallet.core.node :as node :refer [node?]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.types
@@ -34,7 +35,6 @@ Uses a TargetMap to describe a node with its group-spec info."
             Node ScopeMap Session TargetMap
             TargetMapSeq User]]
    [pallet.environment :refer [merge-environments]]
-   [pallet.node :as node :refer [node?]]
    [pallet.phase :as phase :refer [phases-with-meta process-phases]]
    [pallet.plan :as api :refer [errors]]
    [pallet.session :as session

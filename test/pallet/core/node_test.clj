@@ -1,8 +1,8 @@
-(ns pallet.node-test
+(ns pallet.core.node-test
   (:require
    [clojure.test :refer :all]
    [pallet.compute.node-list :as node-list :refer [make-node node]]
-   [pallet.node :as node :refer [node-address]]))
+   [pallet.core.node :as node :refer [node-address]]))
 
 (deftest node-address-test
   (let [ip "1.2.3.4"]

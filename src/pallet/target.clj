@@ -4,15 +4,15 @@ specific node (or some other target)."
   (:refer-clojure :exclude [proxy])
   (:require
    [pallet.compute :as compute :refer [packager-for-os]]
+   [pallet.core.node :as node :refer [node? node-map]]
    [pallet.core.node-os :refer [node-os node-os-merge!]]
-   [pallet.node :as node :refer [node? node-map]]
    [pallet.session :as session :refer [plan-state target target-session?]]
    [pallet.tag :as tag]))
 
 ;;; # Target accessors
 (defmacro defnodefn
   [fname]
-  (let [node-sym (symbol "pallet.node" (name fname))
+  (let [node-sym (symbol "pallet.core.node" (name fname))
         v (resolve node-sym)
         m (meta v)
         fname (vary-meta fname merge (dissoc m :line :file :ns))

@@ -20,11 +20,10 @@
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
+   [pallet.core.node :as node]
    [pallet.group :refer [converge phase-errors service-state]]
    [pallet.plan :refer []]
-   [pallet.environment :refer [environment]]
-   [pallet.node :as configure]
-   [pallet.node :as node]))
+   [pallet.environment :refer [environment]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -193,7 +192,9 @@
   []
   (or
    @service
-   (set-service! (configure/compute-service service-name))))
+   ;; TODO fix me
+   ;; (set-service! (configure/compute-service service-name))
+   ))
 
 (defn- effective-group-name
   [group-name spec]

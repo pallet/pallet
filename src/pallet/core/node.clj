@@ -1,5 +1,5 @@
-(ns pallet.node
-  "API for nodes in pallet"
+(ns pallet.core.node
+  "Provider level API for nodes in pallet"
   (:refer-clojure :exclude [proxy])
   (:require
    [clojure.core.typed :refer [ann AnyInteger Map Nilable]]

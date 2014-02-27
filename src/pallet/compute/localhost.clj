@@ -12,9 +12,9 @@ Node removal functions are no-ops."
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
-   [pallet.plan :refer [set-state-for-node]]
    [pallet.compute.protocols :as impl]
-   [pallet.node :as node]))
+   [pallet.core.node :as node]
+   [pallet.plan :refer [set-state-for-node]]))
 
 (deftype NodeTagEphemeral
     [tags]

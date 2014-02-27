@@ -7,21 +7,11 @@ that are pallet plan functions.
 
 Phase maps enable composition of operations across heterogenous nodes."
   (:require
-   [clojure.core.async :as async :refer [go <!]]
-   [clojure.core.typed
-    :refer [ann ann-form def-alias doseq> fn> for> letfn> inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
-            NonEmptySeqable Seq Seqable]]
-   [clojure.tools.logging :as logging :refer [debugf tracef]]
-   [pallet.core.plan-state :as plan-state]
+   [clojure.core.typed :refer [ann Nilable Seqable]]
+   [clojure.tools.logging :refer [debugf tracef]]
    [pallet.core.types
     :refer [BaseSession Keyword Node Phase PhaseTarget PlanResult]]
-   [pallet.middleware :as middleware]
-   [pallet.node :as node]
-   [pallet.plan :as api]
-   [pallet.tag :as tag]
-   [pallet.user :refer [obfuscated-passwords]]
-   [pallet.utils :refer [deep-merge]]))
+   [pallet.middleware :as middleware]))
 
 ;;; # Phase specification functions
 (ann phase-args [Phase -> (Nilable (Seqable Any))])

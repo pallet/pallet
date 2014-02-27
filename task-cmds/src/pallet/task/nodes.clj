@@ -4,7 +4,7 @@
    [clojure.pprint :refer [pprint]]
    [pallet.api :refer [print-nodes]]
    [pallet.compute :as compute]
-   [pallet.node :refer [node-map]]
+   [pallet.core.node :refer [node-map]]
    [pallet.task-utils :refer [process-args]]))
 
 (def nodes-switches

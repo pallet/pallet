@@ -53,7 +53,6 @@ The session is a map with well defined keys:
    [pallet.core.recorder :refer [recorder?]]
    [pallet.core.recorder.protocols :refer [Record]]
    [pallet.core.recorder.null :refer [null-recorder]]
-   [pallet.node :as node]
    [pallet.user :refer [user?]]
    [pallet.utils :as utils]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
