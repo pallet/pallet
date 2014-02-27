@@ -16,9 +16,9 @@
    [pallet.utils :as utils]))
 
 (use-fixtures :once
-   with-ubuntu-script-template
-   with-bash-script-language
-   with-no-source-line-comments
+  with-ubuntu-script-template
+  with-bash-script-language
+  with-no-source-line-comments
   (logging-threshold-fixture))
 
 (deftest rsync-test

@@ -65,7 +65,8 @@
                            #(or
                              %
                              (group-spec
-                                 (or ;; (when-let [node (-> session :target :node)]
+                                 (or
+                                  ;; (when-let [node (-> session :target :node)]
                                   ;; (node/group-name node))
                                   :id))))
         session (update-in session [:target :override :os-family]
@@ -82,14 +83,16 @@
                                      "10.04")
                      :packager (or (-> session :target :override :packager)
                                    (compute/packager-for-os
-                                    (or (-> session :target :override :os-family)
+                                    (or (-> session
+                                            :target :override :os-family)
                                         :ubuntu)
                                     nil))
                      ;; :id (or (-> session :target :node) :id)
-                     ;; :is-64bit (get-in session [:is-64bit] true)
-                     })))
+                     :is-64bit (get-in session
+                                       [:target :override :is-64bit] true)})))
         ;; session (update-in session [:server] merge (:group session))
-        ;; session (update-in session [:service-state] #(or % [(:target session)]))
+        ;; session (update-in session [:service-state]
+        ;            #(or % [(:target session)]))
         session (update-in session [:execution-state :action-options]
                            #(merge {:script-comments nil} %))
         session (update-in session [:execution-state :executor]

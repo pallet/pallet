@@ -2,7 +2,6 @@
   (:require
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.node :refer [id]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.script-state :refer :all]))
 
@@ -20,6 +19,6 @@
 (deftest parse-shell-result-test
   (let [out (str "SETVALUE: a 1 :SETVALUE xyz SETVALUE: b 0 :SETVALUE"
                  "SETFLAG: changed :SETFLAG")
-        node (localhost)]
-    (is (= {(id node)  {:changed true :a "1" :b "0"}}
-           (update-node-state {} node out)))))
+        id "mid"]
+    (is (= {id  {:changed true :a "1" :b "0"}}
+           (update-node-state {} id out)))))

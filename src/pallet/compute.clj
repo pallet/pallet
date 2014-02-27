@@ -371,14 +371,11 @@ Provider specific options may also be passed."
      (format "Unknown packager for %s %s" os-family os-version)
      {:type :unknown-packager}))))
 
-(ann admin-group (Fn [TargetMap -> String]
-                     [Keyword (Nilable String) -> String]))
+(ann admin-group [Keyword (Nilable String) -> String])
 (defn admin-group
   "Default admin group for host"
-  ([target]
-     (admin-group (-> target :image :os-family) nil))
-  ([os-family os-version]
-     (case os-family
-       :centos "wheel"
-       :rhel "wheel"
-       "adm")))
+  [os-family os-version]
+  (case os-family
+    :centos "wheel"
+    :rhel "wheel"
+    "adm"))

@@ -9,15 +9,17 @@ actions from occurring on group-name changes.
 
 Node removal functions are no-ops."
   (:require
+   [clojure.core.async :refer [>! <! close! go]]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
    [pallet.compute.protocols :as impl]
    [pallet.core.node :as node]
-   [pallet.plan :refer [set-state-for-node]]))
+   [pallet.core.protocols]
+   [pallet.tag :refer [set-state-for-node]]
+   [pallet.utils.async :refer [go-try]]))
 
-(deftype NodeTagEphemeral
-    [tags]
+(deftype NodeTagEphemeral [tags]
   pallet.compute.protocols.NodeTagReader
   (node-tag [_ node tag-name]
     (@tags tag-name))
@@ -32,25 +34,19 @@ Node removal functions are no-ops."
 
 (deftype LocalhostService [node environment tag-provider]
   impl/ComputeService
-  (nodes [compute] [@node])
-  (run-nodes [compute group-spec node-count user init-script options]
-    (reset! node (node-list/make-localhost-node
-                  :group-name (:group-name group-spec)
-                  :service compute))
-    ;; make sure we don't bootstrap
-    (set-state-for-node :bootstrapped {:node @node})
-    [@node])
-  (reboot [compute nodes])
-  (boot-if-down [compute nodes])
-  (shutdown-node [compute node user])
-  (shutdown [compute nodes user])
-  (ensure-os-family [compute group-spec]
-    (update-in group-spec [:image]
-               #(merge {:os-family (node/os-family @node)
-                        :os-version (node/os-version @node)})))
-  (destroy-nodes-in-group [compute group-name])
-  (destroy-node [compute node])
-  (images [compute])
+  (nodes [compute ch]
+    (go-try
+        (>! ch [@node])))
+
+  ;; (run-nodes [compute group-spec node-count user init-script options]
+  ;;   (reset! node (node-list/make-localhost-node
+  ;;                 :group-name (:group-name group-spec)
+  ;;                 :service compute))
+  ;;   ;; make sure we don't bootstrap
+  ;;   (set-state-for-node :bootstrapped {:node @node})
+  ;;   [@node])
+
+  pallet.core.protocols/Closeable
   (close [compute])
   pallet.environment.protocols.Environment
   (environment [_] environment)

@@ -247,7 +247,7 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
          (remote-file
           session
           "/etc/sudoers"
-          {:mode "0440" :owner "root" :group (admin-group session)
+          {:mode "0440" :owner "root" :group "root"
            :content
            "User_Alias FULLTIMERS = millert,mikef,dowdy
 User_Alias PARTTIMERS = bostley,jwfox,crawl

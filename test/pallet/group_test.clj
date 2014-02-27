@@ -18,7 +18,11 @@
    [pallet.group :as group]
    [pallet.plan :refer :all]
    [pallet.session :as session :refer [executor plan-state recorder]]
+   [pallet.user :as user]
    [pallet.test-utils :refer [make-localhost-compute]]))
+
+(use-fixtures :once
+  (logging-threshold-fixture))
 
 ;; (deftest service-state-test
 ;;   (testing "default groups"
@@ -264,11 +268,10 @@
 (deftest node-count-adjuster-test
   (testing "node-count-adjuster"
     (let [session (session/create {:executor (ssh/ssh-executor)
-                                   :plan-state (in-memory-plan-state)})
+                                   :plan-state (in-memory-plan-state)
+                                   :user user/*admin-user*})
           service (make-localhost-compute :group-name :local)
-          g (group/group-spec :g
-              :count 1
-              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+          g (group/group-spec :local :count 1)
           c (chan)
           targets (group/service-state
                    (compute/nodes service) [(group/group-spec :local)])
@@ -280,11 +283,12 @@
              c)
           [res e] (<!! c)]
       (is (map? res) "Result is a map")
-      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+      (is (= #{:targets :old-node-ids :results} (set (keys res)))
           "Result has the correct keys")
+      (is (= 1 (count (:targets res))) "Result has a target")
       (is (empty? (:new-nodes res)) "Result has no new nodes")
-      (is (empty? (:old-nodes res)) "Result has no new nodes")
-      (is (seq (:results res)) "Has phase results")
+      (is (empty? (:old-node-ids res)) "Result has no old nodes")
+      (is (empty? (:results res)) "Has no phase results")
       (is (nil? e) "No exception thrown")
       (when e
         (print-cause-trace e)))))
@@ -296,7 +300,7 @@
           service (make-localhost-compute :group-name :local)
           g (group/group-spec :local
               :count 1
-              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+              :phases {:configure (plan-fn [session] (exec-script* session "ls"))})
           c (chan)
           targets (group/service-state
                    (compute/nodes service) [(group/group-spec :local)])
@@ -307,7 +311,7 @@
       (is (= #{:targets :old-node-ids :results} (set (keys res)))
           "Result has the correct keys")
       (is (empty? (:new-nodes res)) "Result has no new nodes")
-      (is (empty? (:old-node-ids res)) "Result has no new nodes")
+      (is (empty? (:old-node-ids res)) "Result has no old nodes")
       (is (seq (:results res)) "Has phase results")
       (is (nil? e) "No exception thrown")
       (when e
@@ -324,7 +328,7 @@
       (is (= #{:targets :old-node-ids :results} (set (keys res)))
           "Result has the correct keys")
       (is (empty? (:new-nodes res)) "Result has no new nodes")
-      (is (empty? (:old-nodes res)) "Result has no new nodes")
+      (is (empty? (:old-node-ids res)) "Result has no old nodes")
       (is (seq (:results res)) "Has phase results"))))
 
 

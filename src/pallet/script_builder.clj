@@ -122,7 +122,7 @@ future)."
                                   (or script-prefix
                                       default-script-prefix
                                       :sudo)
-                                  (:user action)
+                                  user
                                   action)]
                  (debugf "prefix %s" prefix)
                  (string/split prefix #" "))

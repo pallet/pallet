@@ -99,10 +99,10 @@ and does not need to consider a host, group tuple.
 (ann ^:no-check sort-scopes
      [ScopeMap -> (Nilable (NonEmptySeqable ScopeValue))])
 (defn sort-scopes
-  [scope-map]
-  (->> (keys scope-map)
-       (sort scope-comparator)
-       (map #(find scope-map %))
+  [scope-tuples]
+  (->> (map first scope-tuples)
+       (sort-by first (comp scope-comparator))
+       (map #(first (filter (fn [x] (= % (first x))) scope-tuples)))
        (remove nil?)))
 
 (ann ^:no-check merge-scopes [ScopeMap -> (HMap)])

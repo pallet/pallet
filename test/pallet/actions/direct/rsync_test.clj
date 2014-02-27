@@ -17,8 +17,8 @@
        (stevedore/checked-script
         "rsync file1 to /dest/file1"
         ("/usr/bin/rsync"
-         -e "'/usr/bin/ssh -o \"StrictHostKeyChecking no\" -p 22'"
-         -F -F --ip "\"1.2.3.4\"" -r --delete --copy-links
+         -e "'/usr/bin/ssh -o \"StrictHostKeyChecking no\" -o \"NumberOfPasswordPrompts 0\" -p 22'"
+         -F -F -r --delete --copy-links
          --rsync-path "\"/usr/bin/sudo -u root rsync\""
          --owner --perms file1
          "fred@1.2.3.4:/dest/file1"))

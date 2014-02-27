@@ -15,16 +15,18 @@
    [pallet.test-utils
     :refer [make-localhost-compute
             no-location-info
+            no-source-line-comments
             test-username
             with-ubuntu-script-template]]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [with-temp-file]]))
 
 (use-fixtures
- :once
- with-ubuntu-script-template
- (logging-threshold-fixture)
- no-location-info)
+  :once
+  with-ubuntu-script-template
+  (logging-threshold-fixture)
+  no-location-info
+  no-source-line-comments)
 
 (defn- local-test-user
   []
@@ -73,9 +75,8 @@
             session
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
             {:content "public" :owner "fred" :mode "644"})))
-       (first
-        (build-plan [session {}]
-          (install-key session "fred" "id" "private" "public")))))
+       (build-plan [session {}]
+         (install-key session "fred" "id" "private" "public"))))
   (is (=
        (context/with-phase-context
          {:kw :install-key :msg "install-key"}

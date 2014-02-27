@@ -6,7 +6,7 @@
    [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils
     :refer [logging-threshold-fixture with-log-to-string]]
-   [pallet.plan :refer [plan-fn]]
+   [pallet.plan :refer [plan-context plan-fn]]
    [pallet.group :refer [group-spec lift]]
    [pallet.script.lib :refer [ls]]
    [pallet.stevedore :as stevedore]
@@ -120,26 +120,23 @@
            (build-plan [session {}]
              (exec-script session (~ls "file1") (~ls "file2")))))))
 
-(alter-var-root #'*script-location-info* (constantly false))
 (deftest exec-checked-script-test
-  (stevedore/with-source-line-comments false
-    (is (= [{:action 'pallet.actions.decl/exec-script*,
-             :args
-             [(str "echo 'check...';\n{\nls file1\n } || "
-                   "{ echo '#> check : FAIL'; exit 1;} >&2 \n"
-                   "echo '#> check : SUCCESS'\n")]}]
-           (build-plan [session {}]
-             (exec-checked-script session "check" (ls "file1"))))))
-  ;; (testing "with context"
-  ;;   (is (script-no-comment=
-  ;;        (stevedore/checked-commands
-  ;;         "context: check"
-  ;;         "ls file1")
-  ;;        (first
-  ;;         (build-actions {:phase-context "context"}
-  ;;           (exec-checked-script "check" (~ls "file1")))))))
-  )
-(alter-var-root #'*script-location-info* (constantly true))
+  (binding [*script-location-info* false]
+    (stevedore/with-source-line-comments false
+      (is (= [{:action 'pallet.actions.decl/exec-script*,
+               :args
+               [(str "echo 'check...';\n{\nls file1\n } || "
+                     "{ echo '#> check : FAIL'; exit 1;} >&2 \n"
+                     "echo '#> check : SUCCESS'\n")]}]
+             (build-plan [session {}]
+               (exec-checked-script session "check" (ls "file1")))))
+      (testing "with context"
+        (is (=
+             (build-plan [session {}]
+               (exec-checked-script session "context: check" (~ls "file1")))
+             (build-plan [session {}]
+               (plan-context context {}
+                 (exec-checked-script session "check" (~ls "file1"))))))))))
 
 
 (deftest remote-file-test

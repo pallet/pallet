@@ -58,13 +58,13 @@
             :env nil
             :env-fwd [:SSH_AUTH_SOCK]
             :execv ["/bin/bash"]}
-           (build-code {:user {:no-sudo true}} {})))
+           (build-code {:no-sudo true} {})))
     (is (= {:prefix nil
             :env-cmd "/usr/bin/env"
             :env nil
             :env-fwd [:SSH_AUTH_SOCK]
             :execv ["/bin/bash"]}
-           (build-code {:user {}} {:script-prefix :no-prefix})))
+           (build-code {} {:script-prefix :no-prefix})))
     (is (= {:prefix ["/usr/bin/sudo" "-n" "-u" "fred"]
             :env-cmd "/usr/bin/env"
             :env nil
@@ -77,25 +77,25 @@
             :env nil
             :env-fwd [:SSH_AUTH_SOCK]
             :execv ["/bin/bash"]}
-           (build-code {:user {:sudo-user "fred"}} {})))
+           (build-code {:sudo-user "fred"} {})))
     (is (= {:prefix ["/usr/bin/sudo" "-n"]
             :env-cmd "/usr/bin/env"
             :env {:a "1"}
             :env-fwd [:SSH_AUTH_SOCK]
             :execv ["/bin/bash"]}
-           (build-code {:user {}} {:script-env {:a "1"}})))
+           (build-code {} {:script-env {:a "1"}})))
     (is (= {:prefix ["/usr/bin/sudo" "-n"]
             :env-cmd "/usr/bin/env"
             :env nil
             :env-fwd [:a]
             :execv ["/bin/bash"]}
-           (build-code {:user {}} {:script-env-fwd [:a]})))
+           (build-code {} {:script-env-fwd [:a]})))
     (is (= {:prefix ["/usr/bin/sudo" "-n" "-u" "fred"]
             :env-cmd "/usr/bin/env"
             :env nil
             :env-fwd [:SSH_AUTH_SOCK]
             :execv ["/bin/bash"]}
-           (build-code {:user {:no-sudo true}} {:sudo-user "fred"}))
+           (build-code {:no-sudo true} {:sudo-user "fred"}))
         "A :sudo-user in the action overrides :no-sudo in the admin user")))
 
 

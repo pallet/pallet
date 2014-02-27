@@ -7,24 +7,16 @@
    [simple-check.generators :as gen]
    [simple-check.properties :as prop]))
 
-;; (deftest sort-scopes-test
-;;   (is (= [[:host :h] [:group :g] [:service :s]]
-;;          (sort-scopes {:group :g :service :s :host :h}))))
-
 (deftest sort-scopes-test
   (is (= [[[:host :h] :hv] [[:group :g] :gv] [[:service :s] :sv]]
-         (sort-scopes {[:group :g] :gv [:service :s] :sv [:host :h] :hv}))))
+         (sort-scopes
+          [[[:group :g] :gv] [[:service :s] :sv] [[:host :h] :hv]]))))
 
 (deftest merge-scopes-test
   (is (= {:p :hv}
          (merge-scopes {[:group :g] {:p :gv}
                         [:service :s] {:p :sv}
                         [:host :h] {:p :hv}}))))
-
-;; (deftest paths-for-test
-;;   (is (= [[:host :h]
-;;           [:group :g :host :h]]
-;;          (paths-for {:host :h :group :g}))))
 
 (def gen-in-memory
   (gen/fmap in-memory-plan-state (gen/map gen/keyword gen/keyword)))
@@ -45,8 +37,3 @@
     (let [result (sc/quick-check 100 plan-state-read-write-test)]
       (is (nil? (:fail result)))
       (is (:result result)))))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (for-all 1))
-;; End:
