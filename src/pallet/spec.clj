@@ -188,13 +188,13 @@ specified in the `:extends` argument."
 (defn ^:internal add-target
   "Record the target-map in the session :groups extension."
   [session target]
-  {:pre [(node? (target/node target))]}
+  {:pre [(target/has-node? target)]}
   (update-extension session targets-extension (fnil conj []) target))
 
 (defn ^:internal set-targets
   "Set the target-maps in the session :groups extension."
   [session targets]
-  {:pre [(every? (comp node? target/node) targets)]}
+  {:pre [(every? target/has-node? targets)]}
   (set-extension session targets-extension targets))
 
 (ann targets [BaseSession -> (Nilable TargetMapSeq)])

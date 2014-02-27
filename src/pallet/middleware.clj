@@ -6,7 +6,6 @@
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
-   [pallet.core.node :as node]
    [pallet.core.types
     :refer [BaseSession PlanExecFn PlanFn PlanResult TargetMap]]
    [pallet.plan :as plan :refer [errors plan-fn]]
@@ -32,7 +31,7 @@
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]
   (fn> [session :- BaseSession target :- TargetMap plan-fn :- Fn]
-    {:pre [(node/node? (target/node target))]}
+    {:pre [(target/has-node? target)]}
     (let [user (into {}
                      (filter (inst val Any) (target/image-user target)))
           user (if (or (get user :private-key-path) (get user :private-key))
@@ -56,7 +55,7 @@
   have the state flag set."
   [handler state-flag]
   (fn execute-one-shot-flag [session target plan-fn]
-    {:pre [(node/node? (target/node target))]}
+    {:pre [(target/has-node? target)]}
     (when-not (target/has-state-flag? target state-flag)
       (let [result (handler session target plan-fn)]
         (target/set-state-flag target state-flag)
@@ -69,7 +68,7 @@
   (logging/tracef "execute-on-filtered")
   (fn execute-on-filtered
     [session target plan-fn]
-    {:pre [(node/node? (target/node target))]}
+    {:pre [(target/has-node? target)]}
     (when (filter-f target)
       (handler session target plan-fn))))
 

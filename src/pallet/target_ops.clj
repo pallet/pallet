@@ -14,7 +14,6 @@
    [pallet.crate.os :refer [os]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
-   [pallet.core.node :refer [node?]]
    [pallet.phase :as phase :refer [phases-with-meta]]
    [pallet.plan :as api :refer [execute plan-fn]]
    [pallet.session :as session

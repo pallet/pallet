@@ -53,6 +53,11 @@ specific node (or some other target)."
   [target]
   (:node target))
 
+(defn has-node?
+  "Predicate to test whether the target has a target node."
+  [target]
+  (node? (:node target)))
+
 (defn set-state-flag
   "Sets the boolean `state-name` flag on `target`."
   [target state-name]

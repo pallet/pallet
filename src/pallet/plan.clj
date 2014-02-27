@@ -21,7 +21,6 @@ functions with more defaults, etc."
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.executor :as executor]
-   [pallet.core.node :refer [node?]]
    [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.recorder :refer [record results]]
@@ -32,7 +31,7 @@ functions with more defaults, etc."
     :refer [base-session?
             executor plan-state recorder
             set-executor set-recorder target-session? user]]
-   [pallet.target :refer [set-target]]
+   [pallet.target :refer [has-node? set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils
     :refer [apply-map local-env map-arg-and-ref]])
@@ -87,7 +86,7 @@ The result is also written to the recorder in the session."
   {:pre [(base-session? session)
          (map? target)
          (or (nil? plan-fn) (fn? plan-fn))
-         (or (nil? (:node target)) (node? (:node target)))
+         (or (nil? (:node target)) (has-node? target))
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
          (executor session)]}
