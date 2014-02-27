@@ -1,5 +1,5 @@
 (ns pallet.target
-  "A target-map is a server-spec, with a :node element targeting a
+  "A target is a spec map, with a :node element targeting a
 specific node (or some other target)."
   (:refer-clojure :exclude [proxy])
   (:require
@@ -62,13 +62,19 @@ specific node (or some other target)."
   "Sets the boolean `state-name` flag on `target`."
   [target state-name]
   {:pre [(map? target)]}
-  (tag/set-state-for-node (node target) state-name))
+  (tag/set-state-for-node (:node target) state-name))
 
 (defn has-state-flag?
   "Return a predicate for state-flag set on target."
   [target state-flag]
   (tag/has-state-flag? (:node target) state-flag))
 
+
+;;; # Target Information base on Session
+
+;;; These functions allow for information coming from the plan-state,
+;;; as well as from the target node itself, so take a session argument
+;;; rather than a target argument.
 
 (defn os-map
   [session]
@@ -123,12 +129,3 @@ specific node (or some other target)."
        (:node target) plan-state
        (select-keys (:override target) [:os-family :os-version :packager]))))
   (session/set-target session target))
-
-;; (defn effective-username
-;;   "Return the effective username."
-;;   [session]
-;;   {:post [%]}
-;;   (or
-;;    (-> session :action :sudo-user)
-;;    (-> session :environment :user :sudo-user)
-;;    (-> session :environment :user :username)))
