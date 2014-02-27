@@ -6,9 +6,11 @@
             inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
+   [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
    [pallet.core.plan-state :as plan-state]
+   [pallet.core.types :refer [ComputeService TargetMapSeq]]
    [pallet.crate.os :refer [os]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
@@ -178,7 +180,8 @@
 
 ;;; # Creating and Removing Nodes
 
-(ann destroy-targets [ComputeService TargetMapSeq Channel -> Channel])
+(ann destroy-targets
+  [ComputeService TargetMapSeq ReadOnlyPort -> WriteOnlyPort])
 (defn destroy-targets
   "Run the targets' :destroy-server phase, then destroy the nodes in
   `targets` nodes.  If the destroy-server phase fails, then the

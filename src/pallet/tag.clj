@@ -7,12 +7,12 @@ level?"
   (:require
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
+            AnyInteger Keyword Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :refer [debugf tracef]]
    [clojure.string :refer [blank?]]
    [pallet.core.types                   ; before any protocols
-    :refer [assert-type-predicate keyword-map?]]
+    :refer [assert-type-predicate keyword-map? Node]]
    [pallet.node :refer [id image-user node? tag tag! taggable?]]))
 
 ;;; # Node state tagging

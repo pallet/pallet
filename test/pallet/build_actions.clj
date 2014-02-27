@@ -3,7 +3,6 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.action-options :refer [action-options-key]]
    [pallet.compute :as compute]
    [pallet.context :as context :refer [with-phase-context]]
    [pallet.core.node-os :refer [with-script-for-node]]
@@ -200,9 +199,3 @@
 (defn action-phase-errors
   [result]
   (filter :error (:result result)))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (build-actions 1)(build-script 1)(build-plan 1))
-;; eval: (define-clojure-indent (let-actions 1))
-;; End:

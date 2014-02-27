@@ -42,9 +42,3 @@
     (let [result (sc/quick-check 20 concat-chans-verify)]
       (is (nil? (:fail result)))
       (is (:result result)))))
-
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (for-all 1))
-;; End:

@@ -8,10 +8,10 @@
             optional-path
             seq-schema
             wild]]
-   [clojure.core.typed :refer [ann ann-record Nilable]]
+   [clojure.core.typed :refer [ann ann-record pred Nilable NonEmptySeq]]
    [clojure.java.io :refer [file]]
    [pallet.contracts :refer [bytes? check-spec]]
-   [pallet.core.types :refer [User]]
+   [pallet.core.types :refer [Bytes User]]
    [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]))
 
 (def-map-schema user-schema
@@ -34,23 +34,27 @@
   [m]
   (check-spec m `user-schema &form))
 
+(ann key-files '[(Value "id_rsa") (Value "id_dsa")])
 (def key-files ["id_rsa" "id_dsa"])
+
+(ann ssh-home java.io.File)
 (def ssh-home (file (System/getProperty "user.home") ".ssh"))
 
-(ann default-private-key-path [-> String])
+(ann default-private-key-path [-> (U nil String)])
 (defn default-private-key-path
   "Return the default private key path."
   []
   (if-let [f (first-existing-file ssh-home key-files)]
     (str f)))
 
-(ann default-public-key-path [-> String])
+(ann default-public-key-path [-> (U nil String)])
 (defn default-public-key-path
   "Return the default public key path"
   []
   (if-let [f (first-existing-file ssh-home (map #(str % ".pub") key-files))]
     (str f)))
 
+(ann user? (predicate User))
 (defn user? [user]
   (check-user user))
 
@@ -59,8 +63,8 @@
      [String (HMap :optional
                    {:public-key-path String
                     :private-key-path String
-                    :public-key String
-                    :private-key String
+                    :public-key (U String Bytes)
+                    :private-key (U String Bytes)
                     :passphrase String
                     :password String
                     :sudo-password String

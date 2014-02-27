@@ -3,15 +3,16 @@
   (:require
    [clojure.core.typed
     :refer [ann fn> letfn> loop>
-            Atom1 Coll Map Nilable NilableNonEmptySeq NonEmptySeq
-            NonEmptySeqable Seq Seqable Vec]]
+            AnyInteger Atom1 Coll Map Nilable NilableNonEmptySeq
+            NonEmptySeq NonEmptySeqable Option Seq Seqable Vec]]
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.common.deprecate :refer [deprecated]]
    [pallet.core.type-annotations]
-   [pallet.core.types :refer [assert-not-nil assert-instance Keyword Symbol]])
+   [pallet.core.types
+    :refer [assert-not-nil assert-instance Keyword MapDestructure Symbol]])
   (:import
    (java.security MessageDigest NoSuchAlgorithmException)
    (org.apache.commons.codec.binary Base64)
@@ -53,67 +54,6 @@
 (defmacro apply-map
   [& args]
   `(apply ~@(drop-last args) (apply concat ~(last args))))
-
-(ann resource-path [String -> (Nilable String)])
-(defn resource-path [name]
-  (let [loader (.getContextClassLoader (Thread/currentThread))
-        resource (. loader getResource name)]
-    (when resource
-      (.getFile resource))))
-
-(ann load-resource [String -> (Nilable java.io.InputStream)])
-(defn load-resource
-  [name]
-  (let [loader (.getContextClassLoader (Thread/currentThread))]
-    (.getResourceAsStream loader name)))
-
-;; TODO - remove no-check when core.typed doesn't type check finally clauses
-(ann ^:no-check load-resource-url [java.net.URL -> String])
-(defn load-resource-url
-  [^java.net.URL url]
-  (logging/tracef "load-resource-url %s" url)
-  (with-open [^java.io.InputStream stream (assert-instance
-                                           java.io.InputStream
-                                           (.getContent url))
-              r (new java.io.BufferedReader
-                     (new java.io.InputStreamReader
-                          stream
-                          (.name (java.nio.charset.Charset/defaultCharset))))]
-    (let [sb (new StringBuilder)]
-      (loop> [c :- long (long (.read r))]
-        (if (neg? c)
-          (str sb)
-          (do
-            (.append sb (char c))
-            (recur (long (.read r)))))))))
-
-(ann ^:no-check resource-properties [String -> (Nilable (Map String String))])
-(defn resource-properties
-  "Given a resource `path`, load it as a java properties file.
-   Returns nil if resource not found."
-  [path]
-  (let [loader (.getContextClassLoader (Thread/currentThread))
-        stream (.getResourceAsStream loader path)]
-    (when stream
-      (with-open [stream stream]
-        (let [properties (new java.util.Properties)]
-          (.load properties stream)
-          (let [keysseq (enumeration-seq (. properties propertyNames))]
-            (assert (every? string? keysseq))
-            (reduce
-             (fn> [a :- (Map String String)
-                   b :- String]
-                  (assoc a b (assert-not-nil (. properties getProperty b))))
-             {} keysseq)))))))
-
-(ann slurp-as-byte-array [java.io.File -> (Array Byte)])
-(defn slurp-as-byte-array
-  "Read the given file as a byte array."
-  [#^java.io.File file]
-  (let [size (.length file)
-        bytes #^bytes (byte-array size)
-        stream (new java.io.FileInputStream file)]
-    bytes))
 
 ;; TODO - Remove :no-check
 (ann ^:no-check find-var-with-require
@@ -243,7 +183,10 @@
       (assoc-in m ks v)
       m)))
 
-(ann maybe-assoc [(Map Any Any) Any Any -> (Map Any Any)])
+(ann ^:no-check maybe-assoc
+     (All [b c d ...]
+       (Fn [(Map b c) b c -> (Map b c)]
+           [(Map b c) b c Any * -> (Map b c)])))
 (defn maybe-assoc
   "'Assoc a value in an associative structure, where k is a key and v is the
 value to assoc. The assoc only occurs if the value is non-nil."
@@ -256,10 +199,12 @@ value to assoc. The assoc only occurs if the value is non-nil."
        (if key-vals
          (if (next key-vals)
            (recur ret (first key-vals) (second key-vals) (nnext key-vals))
-           (throw (IllegalArgumentException.
-                   "maybe-assoc expects even number of arguments after map, found odd number")))
+           (throw
+            (IllegalArgumentException.
+             "maybe-assoc expects even number of arguments after map, found odd number")))
          ret))))
 
+(ann map-seq (All [x] [x -> (Nilable x)]))
 (defn map-seq
   "Given an argument, returns the argument, or nil if passed an empty map."
   [m]
@@ -411,6 +356,7 @@ value to assoc. The assoc only occurs if the value is non-nil."
   [coll arg]
   (vec (distinct (conj (or coll []) arg))))
 
+(ann combine-exceptions [(Seqable Throwable) -> (Nilable Throwable)])
 (defn combine-exceptions
   "Wrap a sequence of exceptions into a single exception.  The first
   element of the sequence is used as the cause of the composite
@@ -426,6 +372,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
      {:exceptions exceptions}
      (first exceptions))))
 
+(ann ^:no-check map-arg-and-ref
+     [(U Symbol MapDestructure) -> '[MapDestructure Symbol]])
 (defn map-arg-and-ref
   "Ensure a symbolic argument, arg, can be referred to.
   Returns a tuple with a modifed argument and an argument reference."
@@ -443,26 +391,41 @@ value to assoc. The assoc only occurs if the value is non-nil."
   [^String unsafe-id]
   (base64-md5 unsafe-id))
 
+(ann count-by (All [x y] [[x -> y] (Seqable x) -> (Map y AnyInteger)]))
 (defn count-by
   "Take a sequence and a key function, and returns a map with the
   count of each key."
   [key-fn s]
-  (reduce (fn [cnts e] (update-in cnts [(key-fn e)] (fnil inc 0))) {} s))
+  (reduce
+   (fn> [cnts :- (Map y AnyInteger)
+         e :- x]
+     (update-in cnts [(key-fn e)] (fnil inc 0)))
+   {} s))
 
+(ann count-values (All [x] [(Seqable x) -> (Map x AnyInteger)]))
 (defn count-values
   "Take a sequence, and returns a map with the count of each value."
   [s]
-  (reduce (fn [cnts e] (update-in cnts [e] (fnil inc 0))) {} s))
+  (reduce
+   (fn> [cnts :- (Map x AnyInteger)
+         e :- x]
+     (update-in cnts [e] (fnil inc 0)))
+   {} s))
 
+(ann first-existing-file
+  [(U String java.io.File) (Seqable (U String java.io.File))
+   -> (Option java.io.File)])
 (defn ^java.io.File first-existing-file
   "Return the first file that exists.  Each name in filenames is
   tested under root for existence.  Returns a java.io.File."
   [root filenames]
   (->>
-   (map #(io/file root %) filenames)
-   (filter #(.exists ^java.io.File %))
+   filenames
+   (map  #(io/file root %))
+   (filter (fn> [f :- java.io.File] (.exists ^java.io.File f)))
    first))
 
+(ann multi-fn? (predicate clojure.lang.MultiFn))
 (defn multi-fn?
   "Predicate for a multi-method."
   [x]

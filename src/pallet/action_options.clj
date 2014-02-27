@@ -5,29 +5,10 @@
 
 ;;; # Action Options
 
-;;; Options for actions can be overridden by setting the options map
-;;; on the session.
-(def ^{:no-doc true :internal true} action-options-key :action-options)
-
 (defn action-options
   "Return any action-options currently defined on the session."
   [session]
   (session/action-options session))
-
-;; (defn get-action-options
-;;   "Return any action-options currently defined on the session."
-;;   []
-;;   (action-options (session)))
-
-(defn merge-action-options
-  "Update the default action options modifiers defined on the session"
-  [session m]
-  (update-in session [:execution-state action-options-key] merge m))
-
-(defn assoc-action-options
-  "Set the default action options defined on the session."
-  [session & m]
-  (apply update-in session [:execution-state action-options-key] assoc m))
 
 (defmacro with-action-options
   "Set up local options for actions, and allow override of user
@@ -54,11 +35,7 @@ options.
   login environment and you want the affect to be visible immediately."
   [session m & body]
   (when-not (symbol? session)
-    (throw (ex-info "with-action-options expects a symbol as first argument." {})))
-  `(let [~session (merge-action-options ~session ~m)]
+    (throw
+     (Exception. "with-action-options expects a symbol as first argument.")))
+  `(let [~session (session/merge-action-options ~session ~m)]
      ~@body))
-
-(defn file-uploader
-  "Return the file-uploader specified in the action options"
-  [session]
-  (:file-uploader (action-options session)))

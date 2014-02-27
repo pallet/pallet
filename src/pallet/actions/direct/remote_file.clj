@@ -33,7 +33,18 @@
 
 (defn file-uploader
   [action-options]
-  (or (:file-uploader action-options) default-file-uploader))
+  (or (:file-uploader action-options)
+      default-file-uploader))
+
+(defn file-checksum
+  [action-options]
+  (or (:file-checksum action-options)
+      default-checksum))
+
+(defn file-backup
+  [action-options]
+  (or (:file-backup action-options)
+      default-backup))
 
 (defn transfer-file-to-local*
   [{:keys [options]} remote-path local-path]
@@ -49,8 +60,7 @@
    :remote-path (.getPath (io/file remote-path))
    :f (fn [target]
         ;; return function that will do the upload
-        (let [uploader (or (:file-uploader options)
-                           default-file-uploader)]
+        (let [uploader (file-uploader options)]
           (upload-file uploader
                        target
                        (.getPath (io/file local-path))
@@ -94,7 +104,7 @@
                         (apply concat)
                         (map pr-str))))}
    (let [action-options (:options action-state)
-         uploader (or (:file-uploader action-options) default-file-uploader)
+         uploader (file-uploader action-options)
          file-checksum (or (:file-checksum action-options) default-checksum)
          file-backup (or (:file-backup action-options) default-backup)
 

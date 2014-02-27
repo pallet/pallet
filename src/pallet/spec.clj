@@ -17,6 +17,9 @@ service."
    [pallet.contracts :refer [check-spec]]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.plan-state :as plan-state]
+   [pallet.core.types
+    :refer [BaseSession IncompleteGroupTargetMap IncompleteGroupTargetMapSeq
+            Node Spec SpecSeq TargetMapSeq]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node :refer [node?]]
@@ -83,7 +86,7 @@ service."
 
 ;; TODO remove :no-check
 (ann ^:no-check merge-specs
-     [KeyAlgorithms GroupSpec GroupSpec -> GroupSpec])
+     [KeyAlgorithms Spec Spec -> Spec]) ;; TODO do this properly with All and :>
 (defn merge-specs
   "Merge specs using the specified algorithms."
   [algorithms a b]
@@ -163,7 +166,7 @@ specified in the `:extends` argument."
     (dissoc :extends :node-spec :phases-meta)
     (vary-meta assoc :type ::server-spec))))
 
-(ann default-phases [ServerSpecSeq -> (Seqable Keword)])
+(ann default-phases [SpecSeq -> (Seqable Keyword)])
 (defn default-phases
   "Return a sequence with the default phases for `specs`.  Applies a
   total ordering to the default-phases specified in all the specs."
@@ -216,7 +219,7 @@ specified in the `:extends` argument."
 
 ;; TODO remove :no-check
 (ann ^:no-check node->target
-     [(Nilable (NonEmptySeqable '[[Node -> Boolean] ServerSpec])) Node
+     [(Nilable (NonEmptySeqable '[[Node -> Boolean] Spec])) Node
       -> IncompleteGroupTargetMap])
 (defn node->target
   "Build a target map from a node and a sequence of predicate, spec pairs.
@@ -231,7 +234,7 @@ specified in the `:extends` argument."
    predicate-spec-pairs))
 
 (ann node-targets
-  [(Nilable (NonEmptySeqable '[[Node -> Boolean] ServerSpec]))
+  [(Nilable (NonEmptySeqable '[[Node -> Boolean] Spec]))
    (NonEmptySeqable Node)
    -> IncompleteGroupTargetMapSeq])
 (defn node-targets

@@ -4,7 +4,7 @@
    [clojure.core.typed
     :refer [ann ann-protocol def-alias non-nil-return
             Atom1 Coll Map Nilable NilableNonEmptySeq NonEmptySeq
-            NonEmptySeqable Seq Seqable Set]]
+            NonEmptySeqable Option Seq Seqable Set]]
    [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
    [clojure.java.io]
    [clojure.string]
@@ -30,78 +30,80 @@
 (ann ^:no-check clojure.core/*loaded-libs* (Set clojure.lang.Symbol))
 
 (ann ^:no-check clojure.core/slurp [(U File String URL) -> String])
-(ann ^:no-check clojure.core/print-str [Any -> String])
+;; (ann ^:no-check clojure.core/print-str [Any -> String])
 (ann ^:no-check clojure.pprint/pprint [Any -> nil])
 
-(ann ^:no-check clojure.core/commute
-     (All [x]
-          [clojure.lang.Ref [Any Any * -> x] Any * -> x]))
+;; (ann ^:no-check clojure.core/commute
+;;      (All [x]
+;;           [clojure.lang.Ref [Any Any * -> x] Any * -> x]))
 
 (ann ^:no-check clojure.core/enumeration-seq
      [java.util.Enumeration -> (Seqable Any)])
 
-(ann ^:no-check clojure.core/var-get
-     [clojure.lang.Var -> Any])
+;; (ann ^:no-check clojure.core/var-get
+;;      [clojure.lang.Var -> Any])
 
-(ann ^:no-check clojure.core/assoc-in
-     (All [[x :< (Map Any Any)]]
-          [x (NonEmptySeqable Any) Any -> x]))
+;; (ann ^:no-check clojure.core/assoc-in
+;;      (All [[x :< (Map Any Any)]]
+;;           [x (NonEmptySeqable Any) Any -> x]))
 
 (ann ^:no-check clojure.core/update-in
      (All [x y z ...]
           [x (NonEmptySeqable Any) [y z ... z -> y] z ... z -> x]))
 
-(ann ^:no-check clojure.core/get-in
-     (Fn
-      [(Map Any Any) (NonEmptySeqable Any) -> Any]
-      [(Map Any Any) (NonEmptySeqable Any) Any -> Any]))
+;; (ann ^:no-check clojure.core/get-in
+;;      (Fn
+;;       [(Map Any Any) (NonEmptySeqable Any) -> Any]
+;;       [(Map Any Any) (NonEmptySeqable Any) Any -> Any]))
 
-(ann ^:no-check clojure.core/select-keys
-     (U (All [k v]
-          [(Map k v) (Seqable k) -> (Map k v)])
-        [nil (Seqable Any) -> (HMap :mandatory {} :complete? true)]))
+;; (ann ^:no-check clojure.core/select-keys
+;;      (U (All [k v]
+;;           [(Map k v) (Seqable k) -> (Map k v)])
+;;         [nil (Seqable Any) -> (HMap :mandatory {} :complete? true)]))
+
 (ann ^:no-check clojure.core/val
      (All [x]
           [(clojure.lang.IMapEntry Any x) -> x]))
 
 (ann ^:no-check clojure.core/satisfies?
-     [Any Any -> boolean])
+     (All [x] [x Any -> boolean]))
+
 (ann ^:no-check clojure.core/sequential?
      (predicate clojure.lang.Sequential))
 
-(ann ^:no-check clojure.core/distinct
-     (All [x]
-          (Fn
-           [(Seqable x) -> (Seqable x)]
-           [(clojure.lang.IPersistentVector x)
-            -> (clojure.lang.IPersistentVector x)])))
+;; (ann ^:no-check clojure.core/distinct
+;;      (All [x]
+;;           (Fn
+;;            [(Seqable x) -> (Seqable x)]
+;;            [(clojure.lang.IPersistentVector x)
+;;             -> (clojure.lang.IPersistentVector x)])))
 
-(ann ^:no-check clojure.core/compare-and-set!
-     (All [x] [(Atom1 x) x x -> x]))
+;; (ann ^:no-check clojure.core/compare-and-set!
+;;      (All [x] [(Atom1 x) x x -> x]))
 
-(ann ^:no-check clojure.core/ex-info
-     (Fn [String (HMap) -> Exception]
-         [String (HMap) (Nilable Throwable) -> Exception]))
+;; (ann ^:no-check clojure.core/ex-info
+;;      (Fn [String (HMap) -> Exception]
+;;          [String (HMap) (Nilable Throwable) -> Exception]))
 
-(ann ^:no-check clojure.core/find-ns
-     [clojure.lang.Symbol -> clojure.lang.Namespace])
-(ann ^:no-check clojure.core/remove-ns
-     [clojure.lang.Symbol -> nil])
+;; (ann ^:no-check clojure.core/find-ns
+;;      [clojure.lang.Symbol -> clojure.lang.Namespace])
+;; (ann ^:no-check clojure.core/remove-ns
+;;      [clojure.lang.Symbol -> nil])
 
 
-(ann ^:no-check clojure.core/sort
-     (All [x]
-          (Fn [(Seqable x) -> (Coll x)]
-              [java.util.Comparator (Seqable x) -> (Coll x)])))
+;; (ann ^:no-check clojure.core/sort
+;;      (All [x]
+;;           (Fn [(Seqable x) -> (Coll x)]
+;;               [java.util.Comparator (Seqable x) -> (Coll x)])))
 
 (ann ^:no-check clojure.core/sort-by
      (All [x]
        (Fn [(Fn [x -> Any]) (Seqable x) -> (Coll x)]
            [(Fn [x -> Any]) java.util.Comparator (Seqable x) -> (Coll x)])))
 
-(ann ^:no-check clojure.core/comparator
-     (All [x]
-          [[x x -> Boolean] -> java.util.Comparator]))
+;; (ann ^:no-check clojure.core/comparator
+;;      (All [x]
+;;           [[x x -> Boolean] -> java.util.Comparator]))
 
 (ann ^:no-check clojure.core/juxt
      (All [x y z]
@@ -110,12 +112,13 @@
 (ann ^:no-check clojure.core/fn?
      (predicate clojure.lang.IFn))
 
-(ann ^:no-check clojure.core/vary-meta
-     (All [x b ...]
-       [x (Fn [(Map Any Any) b ... b -> (Map Any Any)]) b ... b -> x]))
+;; (ann ^:no-check clojure.core/vary-meta
+;;      (All [x b ...]
+;;        [x (Fn [(Map Any Any) b ... b -> (Map Any Any)]) b ... b -> x]))
 
 (ann ^:no-check clojure.set/union [Set * -> Set])
 (ann ^:no-check clojure.java.io/resource [String -> URL])
+(ann ^:no-check clojure.java.io/file [Any * -> java.io.File])
 (ann ^:no-check clojure.stacktrace/print-cause-trace [Throwable -> nil])
 
 (ann ^:no-check clojure.string/trim [CharSequence -> String])
@@ -188,9 +191,3 @@
 
 (ann ^:no-check schema.core/Any Schema)
 (ann ^:no-check schema.core/Keyword Schema)
-
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (ann 1)(All 1))
-;; End:

@@ -5,16 +5,35 @@
    [clojure.core.typed
     :refer [ann ann-protocol def-alias
             AnyInteger Atom1 Coll Map Nilable NilableNonEmptySeq NonEmptySeqable
-            NonEmptyVec Set Seq Seqable]]
-   [pallet.blobstore.protocols :refer [Blobstore]]
-   [pallet.compute.protocols :refer [ComputeService Node]]
-   [pallet.core.protocols :refer :all]
-   [pallet.core.recorder.protocols :refer :all]
-   [pallet.core.plan-state.protocols :refer :all]
-   [pallet.environment.protocols :refer :all])
+            NonEmptyVec Set Seq Seqable Vec]]
+   [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
+   [pallet.blobstore.protocols]
+   [pallet.compute.protocols]
+   [pallet.core.protocols]
+   [pallet.core.recorder.protocols]
+   [pallet.core.plan-state.protocols]
+   [pallet.environment.protocols])
   (:import
    clojure.lang.IMapEntry
+   clojure.lang.Named
    clojure.lang.PersistentHashSet))
+
+
+;;; # Clojure Types
+
+(def-alias Keyword
+  "A simple alias for clojure.lang.Keyword"
+  clojure.lang.Keyword)
+
+(def-alias Symbol
+  "A simple alias for clojure.lang.Symbol"
+  clojure.lang.Symbol)
+
+(def-alias Bytes
+  "A byte array"
+  (Array Byte))
+
+(def-alias MapDestructure (HMap :optional {:keys (Vec Symbol) :as Symbol}))
 
 ;;; # Pallet Types
 
@@ -22,26 +41,21 @@
 ;; types declared in other namespaces, when they are used only within
 ;; a single namespace.
 
-(ann-protocol pallet.core.protocols/Status
-  status [Status -> (Seqable Any)])
+;;; # Protocols
 
-(ann-protocol pallet.core.protocols/Abortable
-  abort! [Abortable Any -> nil])
+;;; We alias protocols, so they can be referred unqualified from this namespace.
 
-(ann-protocol pallet.core.protocols/StatusUpdate
-  status! [StatusUpdate Any -> nil])
+;;; We annotate protocols here, as they use other types, and we want to avoid
+;;; circular dependencies.
 
-(ann-protocol pallet.core.protocols/DeliverValue
-  deliver! [DeliverValue Any -> nil])
+(def-alias Closeable pallet.core.protocols/Closeable)
 
-(ann ^:no-check pallet.core.protocols/operation? [Any -> Boolean])
+(ann-protocol pallet.core.protocols/Closeable
+  close [Closeable -> Any])
 
-(def-alias Keyword
-  "A simple alias for clojure.lang.Keyword"
-  clojure.lang.Keyword)
-(def-alias Symbol
-  "A simple alias for clojure.lang.Symbol"
-  clojure.lang.Symbol)
+(def-alias Node pallet.compute.protocols/Node)
+(def-alias StateGet pallet.core.plan-state.protocols/StateGet)
+
 
 (def-alias ProviderIdentifier
   "Pallet providers are identified using keywords."
@@ -61,16 +75,43 @@
   "Pallet group names are keywords."
   Keyword)
 
+(declare Session)
+
 (def-alias PlanFn
   "Type for plan functions"
   (Fn [Session -> Any]
       [Session Any * -> Any]))
+
 
 (def-alias ^:internal TargetMap
   "A minimal target map."
   (HMap :mandatory
         {:node Node}))
 
+
+
+(def-alias Spec
+  (HMap :optional {:group-name GroupName
+                   :group-names (PersistentHashSet GroupName)
+                   :image (HMap :mandatory {:os-family Keyword})
+                   :node-filter [Node -> boolean]
+                   :roles (PersistentHashSet Keyword)
+                   :phases (Map Keyword PlanFn)
+                   :count AnyInteger
+                   :target-type (Value :group)}
+        :absent-keys #{:node})
+  ;; (HMap :mandatory {:group-name GroupName}
+  ;;       :optional {:group-names (PersistentHashSet GroupName)
+  ;;                  :image (HMap :mandatory {:os-family Keyword})
+  ;;                  :node-filter [Node -> boolean]
+  ;;                  :roles (PersistentHashSet Keyword)
+  ;;                  :phases (Map Keyword [Any * -> Any])
+  ;;                  :count AnyInteger
+  ;;                  :target-type (Value :group)}
+  ;;       :absent-keys #{:node})
+  )
+
+(def-alias SpecSeq (NonEmptySeqable Spec))
 
 (def-alias GroupSpec
   (HMap :mandatory {:group-name GroupName}
@@ -133,14 +174,14 @@ a priviledged user."
   (HMap :mandatory {:username String}
         :optional {:public-key-path String
                    :private-key-path String
-                   :public-key String
-                   :private-key String
+                   :public-key (U String Bytes)
+                   :private-key (U String Bytes)
                    :passphrase String
                    :password String
                    :sudo-password String
-                   :no-sudo boolean
+                   :no-sudo (U nil Boolean)
                    :sudo-user String
-                   :temp-key boolean}))
+                   :temp-key (U nil Boolean)}))
 
 (def-alias Hardware
   "A description of the hardware on a node."
@@ -154,6 +195,12 @@ a priviledged user."
   "Tags on nodes are represented as a map from a String or Named to a
   String or Named value."
   (Map (U String Named) (U String Named)))
+
+(ann-protocol pallet.compute.protocols/ComputeService
+  nodes [ComputeService -> (Nilable (NonEmptySeqable (ReadOnlyPort TargetMap)))])
+
+(def-alias ComputeService pallet.compute.protocols/ComputeService)
+(def-alias Blobstore pallet.blobstore.protocols/Blobstore)
 
 ;; (ann-protocol pallet.compute.protocols/ComputeService
 ;;   nodes [ComputeService -> (Nilable (NonEmptySeqable (ReadOnlyPort TargetMap)))]
@@ -239,6 +286,7 @@ a priviledged user."
   get-state [StateGet ScopeMap (NonEmptyVec Keyword) Any
              -> (Map Any Any)]) ;; TODO wanted (HVec Keyword Any) as key type
 
+(def-alias StateUpdate pallet.core.plan-state.protocols/StateUpdate)
 (ann-protocol pallet.core.plan-state.protocols/StateUpdate
   update-state [StateUpdate Keyword Any (Fn [Any * -> Any])
                 (Nilable (NonEmptySeqable Any))
@@ -325,6 +373,7 @@ a priviledged user."
                           :execute-status-fn ExecuteStatusFn})
                    :provider-options (Map Any Any)}))
 
+(def-alias Environment pallet.environment.protocols/Environment)
 (ann-protocol pallet.environment.protocols/Environment
   environment [Environment -> EnvironmentMap])
 
@@ -395,11 +444,17 @@ a priviledged user."
                    :os-version VersionSpec
                    :version VersionSpec}))
 
+(def-alias Record pallet.core.recorder.protocols/Record)
 (ann-protocol pallet.core.recorder.protocols/Record
   record [Record ActionResult -> Any])
 
+(def-alias Results pallet.core.recorder.protocols/Results)
 (ann-protocol pallet.core.recorder.protocols/Results
   results [Results -> (Nilable (NonEmptySeqable ActionResult))])
+
+(def-alias PlanExecFn [Session TargetMap PlanFn -> PlanResult])
+
+(def-alias FlagValues (Map Keyword Any))
 
 ;;; # Typing Utilities
 
@@ -439,8 +494,3 @@ complain that they can't return values of type Any."
   `(let [x# ~x]
      (assert (instance? ~type-sym x#))
      x#))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (doseq> 1)(fn> 1)(for> 3)(loop> 1))
-;; End:

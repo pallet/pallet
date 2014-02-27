@@ -6,6 +6,7 @@
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
+   [pallet.core.types :refer [BaseSession PlanExecFn PlanFn PlanResult TargetMap]]
    [pallet.node :as node]
    [pallet.plan :as api :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
@@ -13,7 +14,7 @@
    [pallet.target :as target]))
 
 ;;; # Middleware aware plan execution
-(ann execute [BaseSession TargetMap Fn -> PlanResult])
+(ann execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute
   "Apply a plan function with metadata to the target."
   ([session target plan-fn execute-f]
@@ -25,7 +26,7 @@
      (execute session target plan-fn api/execute)))
 
 ;;; # Admin-user setting middleware
-(ann image-user-middleware [-> ExecSettingsFn])
+(ann image-user-middleware [PlanExecFn -> PlanExecFn])
 (defn image-user-middleware
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]

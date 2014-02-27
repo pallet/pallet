@@ -145,8 +145,3 @@ version string."
                                     (not
                                      (version-less to version)))))
    (nil? spec) true))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (loop> 1))
-;; End:

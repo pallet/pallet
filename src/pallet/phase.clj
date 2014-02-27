@@ -14,6 +14,8 @@ Phase maps enable composition of operations across heterogenous nodes."
             NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.core.plan-state :as plan-state]
+   [pallet.core.types
+    :refer [BaseSession Keyword Node Phase PhaseTarget PlanResult]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
    [pallet.plan :as api]

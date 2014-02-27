@@ -209,8 +209,3 @@ range vector."
      (VersionMap. os-value-pairs hierarchy base-key version-key))
   ([hierarchy base-key version-key]
      (VersionMap. {} hierarchy base-key version-key)))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (letfn> 1))
-;; End:

@@ -119,11 +119,11 @@ specific node (or some other target)."
        (select-keys (:override target) [:os-family :os-version :packager]))))
   (session/set-target session target))
 
-(defn effective-username
-  "Return the effective username."
-  [session]
-  {:post [%]}
-  (or
-   (-> session :action :sudo-user)
-   (-> session :environment :user :sudo-user)
-   (-> session :environment :user :username)))
+;; (defn effective-username
+;;   "Return the effective username."
+;;   [session]
+;;   {:post [%]}
+;;   (or
+;;    (-> session :action :sudo-user)
+;;    (-> session :environment :user :sudo-user)
+;;    (-> session :environment :user :username)))

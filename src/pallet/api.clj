@@ -214,8 +214,3 @@
 ;;   be put into the plan-state."
 ;;   [session targets]
 ;;   (execute-plan-fns session targets (os-detect-phases)))
-
-;; ;; Local Variables:
-;; ;; mode: clojure
-;; ;; eval: (define-clojure-indent (cluster-spec 1)(group-spec 1))
-;; ;; End:

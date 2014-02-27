@@ -7,11 +7,11 @@
    [clojure.core.typed
     :refer [ann
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
-            Seq]]
+            Seq Seqable]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.core.types                   ; before any protocols
-    :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
-            User]]
+    :refer [ComputeService GroupSpec GroupName Keyword ProviderIdentifier
+            Tags TargetMap User]]
    [pallet.compute.protocols :as impl :refer [Node]]
    [pallet.compute.implementation :as implementation]
    [pallet.contracts :refer [check-spec]]

@@ -16,7 +16,7 @@ functions with more defaults, etc."
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult BaseSession EnvironmentMap
             ErrorMap ExecSettings ExecSettingsFn Keyword Phase PlanResult
-            PlanFn PlanState Result Session User]]
+            PlanFn PlanState Result Session TargetMap User]]
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]
@@ -352,9 +352,3 @@ The result is also written to the recorder in the session."
              {:msg ~(name multifn) :kw ~(keyword (name multifn))
               :dispatch-val ~dispatch-val}
            ~@body)))))
-
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (plan-fn 1) (plan-context 2))
-;; End:

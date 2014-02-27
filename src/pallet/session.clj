@@ -44,8 +44,8 @@ The session is a map with well defined keys:
             Atom1 Map Nilable NilableNonEmptySeq NonEmptySeqable Seqable]]
    [pallet.core.types ;; before anything that uses the protocols this annotates
     :refer [assert-type-predicate
-            ActionOptions BaseSession Executor ExecuteStatusFn Keyword PlanState
-            Recorder ScopeMap Session User]]
+            ActionOptions BaseSession Executor ExecutionState Keyword PlanState
+            Recorder ScopeMap Session TargetMap User]]
    [pallet.core.executor :refer [executor?]]
    [pallet.core.plan-state
     :refer [get-settings get-scopes merge-scopes plan-state?]]
@@ -58,7 +58,7 @@ The session is a map with well defined keys:
    [pallet.utils :as utils]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-(ann execution-state (HMap))
+
 (def execution-state
   {:executor pallet.core.executor.protocols.ActionExecutor
    (optional-key :recorder) pallet.core.recorder.protocols.Record
@@ -67,7 +67,6 @@ The session is a map with well defined keys:
    (optional-key :environment) schema/Any
    (optional-key :extension) {schema/Keyword schema/Any}})
 
-(ann ^:no-check base-session (HMap))
 (def base-session
   {:execution-state execution-state
    (optional-key :plan-state) pallet.core.plan_state.protocols.StateGet
@@ -140,19 +139,25 @@ The session is a map with well defined keys:
   {:pre [(executor? executor)]}
   (assoc-in session [:execution-state :executor] executor))
 
-(ann action-options [BaseSession -> HMap])
+(ann action-options [BaseSession -> ActionOptions])
 (defn action-options
   "Get the action options."
   [session]
   (-> session :execution-state :action-options))
 
-(ann environment [BaseSession -> HMap])
+(ann merge-action-options [BaseSession (HMap) -> ActionOptions])
+(defn merge-action-options
+  "Update the default action options modifiers defined on the session"
+  [session m]
+  (update-in session [:execution-state :action-options] merge m))
+
+(ann environment [BaseSession -> (HMap)])
 (defn ^:internal environment
   "Get the environment map."
   [session]
   (-> session :execution-state :environment))
 
-(ann set-environment [HMap -> BaseSession])
+(ann set-environment [(HMap) -> BaseSession])
 (defn ^:internal set-environment
   "Set the environment map."
   [session environment]

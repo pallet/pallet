@@ -3,7 +3,7 @@
   (:require
    [clojure.core.async.impl.protocols :refer [Channel]]
    [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
-   [clojure.core.typed.async :refer [go> ReadOnlyPort]]
+   [clojure.core.typed.async :refer [go> ReadOnlyPort WriteOnlyPort]]
    [clojure.core.async
     :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [debugf errorf]]
@@ -180,9 +180,3 @@
          (>! to (f x))
          (recur)))
      (close! to))))
-
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (go-loop 1)(go-try 1)(go-tuple 1))
-;; End:

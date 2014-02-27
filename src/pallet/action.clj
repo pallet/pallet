@@ -179,8 +179,3 @@
         dispatch-val (action-symbol action))
        {:dispatch-val dispatch-val
         :action action}))))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (defaction 'defun)(implement-action 3))
-;; End:

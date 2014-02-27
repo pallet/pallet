@@ -10,7 +10,7 @@ target :flags key."
     :refer [ann doseq> fn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq NonEmptySeqable Set]]
    [clojure.tools.logging :as logging]
-   [pallet.core.types :refer []]))
+   [pallet.core.types :refer [FlagValues Keyword Session]]))
 
 
 (ann setflag-regex java.util.regex.Pattern)
@@ -24,7 +24,7 @@ target :flags key."
   setvalue-regex #"(?:SETVALUE: )([^ ]+) ([^:]+)(?: :SETVALUE)")
 
 (ann merge-node-state
-  [FlagValues Node (Map Keyword String) -> FlagValues])
+  [FlagValues String (Map Keyword String) -> FlagValues])
 (defn ^:internal merge-node-state
   "Set flag values for target."
   [state node-id new-flag-values]

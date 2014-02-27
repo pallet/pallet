@@ -271,8 +271,3 @@
      (transport/with-ssh-tunnel
        connection# ~tunnels
        ~@body)))
-
-;; Local Variables:
-;; mode: clojure
-;; eval: (define-clojure-indent (with-connection 4))
-;; End:

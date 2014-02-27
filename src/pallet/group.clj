@@ -16,6 +16,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
             NonEmptySeqable Seq Seqable]]
+   [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
    [clojure.set :refer [union]]
    [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
@@ -27,6 +28,11 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
+   [pallet.core.types
+    :refer [BaseSession ComputeService ErrorMap GroupName GroupSpec
+            IncompleteGroupTargetMap IncompleteGroupTargetMapSeq
+            Node ScopeMap Session TargetMap
+            TargetMapSeq User]]
    [pallet.environment :refer [merge-environments]]
    [pallet.node :as node :refer [node?]]
    [pallet.phase :as phase :refer [phases-with-meta process-phases]]
@@ -490,9 +496,9 @@ Uses a TargetMap to describe a node with its group-spec info."
          :remove-group boolean}))
 
 (ann group-removal-spec
-  [GroupDelta -> '[GroupSpec (HMap :mandatory
-                                   {:targets (NonEmptySeqable TargetMap)
-                                    :all boolean})]])
+  [GroupDeltaMap -> '[GroupSpec (HMap :mandatory
+                                      {:targets (NonEmptySeqable TargetMap)
+                                       :all boolean})]])
 (defn group-removal-spec
   "Return a map describing the group and targets to be removed."
   [{:keys [group target targets delta]}]
