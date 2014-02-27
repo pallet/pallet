@@ -202,16 +202,19 @@ The result is also written to the recorder in the session."
   {:indent 2}
   [context-name event & args]
   (let [line (-> &form meta :line)]
-    `(with-phase-context
-       (merge {:kw ~(list 'quote context-name)
-               :msg ~(if (symbol? context-name)
-                       (name context-name)
-                       context-name)
-               :ns ~(list 'quote (ns-name *ns*))
-               :line ~line
-               :log-level :trace}
-              ~event)
-       ~@args)))
+    `(let [event# ~event]
+       (assert (or (nil? event#) (map? event#))
+               "plan-context second arg must be a map")
+       (with-phase-context
+           (merge {:kw ~(list 'quote context-name)
+                   :msg ~(if (symbol? context-name)
+                           (name context-name)
+                           context-name)
+                   :ns ~(list 'quote (ns-name *ns*))
+                   :line ~line
+                   :log-level :trace}
+                  event#)
+           ~@args))))
 
 
 (defmacro plan-fn
@@ -324,11 +327,12 @@ The result is also written to the recorder in the session."
                               (fn [[k# f#]]
                                 (when (isa? @~hierarchy dispatch-val# k#)
                                   f#))
-                              @a#))]
+                              @a#)
+                             (get @a# :default))]
                (f# ~@args)
                (throw
                 (ex-info
-                 (format "Missing plan-multi %s dispatch for %s"
+                 (format "Missing defmulti-plan %s method for dispatch value %s"
                          ~(clojure.core/name name) (pr-str dispatch-val#))
                  {:reason :missing-method
                   :plan-multi ~(clojure.core/name name)})))))))))

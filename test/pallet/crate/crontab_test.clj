@@ -14,39 +14,44 @@
    [pallet.environment :refer [get-environment]]
    [pallet.group :refer [lift phase-errors]]
    [pallet.live-test :refer [images test-for test-nodes]]
-   [pallet.plan :refer [plan-fn]]
+   [pallet.plan :refer [plan-context plan-fn]]
    [pallet.script.lib :refer [user-home]]
    [pallet.session :refer []]
    [pallet.spec :refer [extend-specs]]
    [pallet.stevedore :refer [script]]
    [pallet.target :refer [admin-user]]
-   [pallet.test-utils :refer [no-location-info]]))
+   [pallet.test-utils :refer [no-location-info no-source-line-comments]]))
 
-(use-fixtures :once (logging-threshold-fixture) no-location-info)
+(use-fixtures :once
+  (logging-threshold-fixture)
+  no-location-info
+  no-source-line-comments)
 
 (deftest user-crontab-test
   (is (=
-       (build-plan [session {:phase-context "user-crontabs: create-user-crontab"}]
+       (build-plan [session {}]
          (remote-file
           session
           "$(getent passwd fred | cut -d: -f6)/crontab.in"
-          :content "contents" :owner "fred" :mode "0600")
-         (exec-checked-script
-          session
-          "Load crontab"
-          ("crontab -u fred"
-           "$(getent passwd fred | cut -d: -f6)/crontab.in")))
+          {:content "contents" :owner "fred" :mode "0600"})
+         (plan-context "user-crontabs" {}
+           (plan-context "create-user-crontab" {}
+             (exec-checked-script
+              session
+              "Load crontab"
+              ("crontab -u fred"
+               "$(getent passwd fred | cut -d: -f6)/crontab.in")))))
        (build-plan [session {}]
          (user-settings session "fred" {:content "contents"})
          (user-crontabs session)))))
 
 (deftest system-crontab-test
   (is (=
-       (build-plan [session {:phase-context "system-crontabs: create-system-crontab"}]
+       (build-plan [session {}]
          (remote-file
           session
           "/etc/cron.d/fred"
-          :content "contents" :owner "root" :group "root" :mode "0644"))
+          {:content "contents" :owner "root" :group "root" :mode "0644"}))
        (build-plan [session {}]
          (system-settings session "fred" {:content "contents"})
          (system-crontabs session)))))

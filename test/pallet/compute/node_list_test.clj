@@ -19,9 +19,10 @@
             "n" :t "1.2.3.4" :ubuntu "10.2" "n-1-2-3-4" 22 "4.3.2.1" false true
             nl {:ram 512} {:host "h"} {:username "u"})
            (node-list/make-node
-            "n" :t "1.2.3.4" :ubuntu :private-ip "4.3.2.1" :is-64bit false
-            :os-version "10.2" :service nl :hardware {:ram 512}
-            :proxy {:host "h"} :image-user {:username "u"})))))
+            "n" :t "1.2.3.4" :ubuntu
+            {:private-ip "4.3.2.1" :is-64bit false
+             :os-version "10.2" :service nl :hardware {:ram 512}
+             :proxy {:host "h"} :image-user {:username "u"}})))))
 
 (deftest service-test
   (is (instance?
@@ -48,20 +49,20 @@
     (is (= {"pallet/state" "{:bootstrapped true}"} (node/tags node)))
     (is (thrown? Exception (node/tag! node "tag" "value")))
     (is (not (node/taggable? node)))
-    (is ((has-state-flag? :bootstrapped) {:node node}))))
+    (is (has-state-flag? node :bootstrapped))))
 
 (deftest close-test
   (is (nil? (compute/close
              (compute/instantiate-provider :node-list :node-list [])))))
 
 (deftest make-localhost-node-test
-  (let [node (node-list/make-localhost-node)]
+  (let [node (node-list/make-localhost-node {})]
     (is (= "127.0.0.1" (node/primary-ip node)))))
 
 (deftest node-test
   (is (thrown? Exception (node-list/node "unresolvable")))
-  (is (node-list/node "localhost"))
-  (is (node/has-base-name? (node-list/node "localhost") "localhost")))
+  (is (node-list/node "localhost" {}))
+  (is (node/has-base-name? (node-list/node "localhost" {}) "localhost")))
 
 (deftest read-node-file-test
   (testing "valid node-file"

@@ -41,7 +41,7 @@
          "jpackage-utils-compat-el5-0.0.1-1"
          :url jpackage-utils-compat-rpm
          :insecure true)))) ;; github's ssl doesn't validate
-  (package "jpackage-utils"))
+  (package session "jpackage-utils"))
 
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=%s&release=%s")
@@ -58,10 +58,10 @@
    Installs the jpackage-utils package from the base repos at a
    priority of 25."
   [session & {:keys [version component releasever enabled]
-      :or {component "redhat-el"
-           releasever "$releasever"
-           version "5.0"
-           enabled 0}}]
+              :or {component "redhat-el"
+                   releasever "$releasever"
+                   version "5.0"
+                   enabled 0}}]
   (let [os-family (os-family session)
         os-version (os-version session)
         no-updates (and            ; missing updates for fedora 13, 14
@@ -83,51 +83,51 @@
     (package-source
      session
      "jpackage-generic"
-     :yum {:mirrorlist (mirrorlist "generic" "free" version)
-           :failovermethod "priority"
-           ;;gpgkey "http://www.jpackage.org/jpackage.asc"
-           :enabled enabled})
+     {:mirrorlist (mirrorlist "generic" "free" version)
+      :failovermethod "priority"
+      ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+      :enabled enabled})
     (package-source
      session
      "jpackage-generic-non-free"
-     :yum {:mirrorlist (mirrorlist "generic" "non-free" version)
-           :failovermethod "priority"
-           ;;gpgkey "http://www.jpackage.org/jpackage.asc"
-           :enabled enabled})
+     {:mirrorlist (mirrorlist "generic" "non-free" version)
+      :failovermethod "priority"
+      ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+      :enabled enabled})
     (package-source
      session
      (format "jpackage-%s" component)
-     :yum {:mirrorlist (mirrorlist
-                        (str component "-" releasever) "free" version)
-           :failovermethod "priority"
-           ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-           :enabled enabled})
+     {:mirrorlist (mirrorlist
+                   (str component "-" releasever) "free" version)
+      :failovermethod "priority"
+      ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+      :enabled enabled})
     (package-source
      session
      "jpackage-generic-updates"
-     :yum {:mirrorlist (mirrorlist "generic" "free" (str version "-updates"))
-           :failovermethod "priority"
-           ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-           :enabled enabled})
+     {:mirrorlist (mirrorlist "generic" "free" (str version "-updates"))
+      :failovermethod "priority"
+      ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+      :enabled enabled})
     (package-source
      session
      "jpackage-generic-updates-non-free"
-     :yum {:mirrorlist (mirrorlist
-                        "generic" "non-free" (str version "-updates"))
-           :failovermethod "priority"
-           ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-           :enabled enabled})
+     {:mirrorlist (mirrorlist
+                   "generic" "non-free" (str version "-updates"))
+      :failovermethod "priority"
+      ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+      :enabled enabled})
     (when-not no-updates
       (package-source
        session
        (format "jpackage-%s-updates" component)
-       :yum {:mirrorlist (mirrorlist
-                          (str component "-" releasever)
-                          "free"
-                          (str version "-updates"))
-             :failovermethod "priority"
-             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-             :enabled enabled}))
+       {:mirrorlist (mirrorlist
+                     (str component "-" releasever)
+                     "free"
+                     (str version "-updates"))
+        :failovermethod "priority"
+        ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+        :enabled enabled}))
     (assoc-settings session :jpackage-repos {:repos jpackage-repos})))
 
 (defplan package-manager-update-jpackage
@@ -137,8 +137,8 @@
     (package-manager
      session
      :update
-     :disable ["*"]
-     :enable repos)))
+     {:disable ["*"]
+      :enable repos})))
 
 (defmethod repository :jpackage
   [args]

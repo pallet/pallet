@@ -216,7 +216,7 @@
   bootstrap phase on new targets.  A rex-tuple is written to ch with a
   map, with :targets and :results keys."
   [session compute-service spec user count base-name ch]
-  (debugf "create-targets %s" count)
+  (debugf "create-targets %s %s" count (:group-name spec))
   (debugf "create-targets node-spec %s" (:node-spec spec))
   (go-try ch
     (let [c (chan)]

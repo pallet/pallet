@@ -261,12 +261,14 @@ Uses a TargetMap to describe a node with its group-spec info."
   ;; set to the actual user used for authentication when executing
   ;; scripts, and may be different, e.g. when bootstrapping.
   (or (if (:target session)
-        (let [m (plan-state/merge-scopes
-                 (plan-state/get-scopes
-                  (:plan-state session)
-                  (target-scopes (target session))
-                  [:user]))]
-          (and (not (empty? m)) m)))
+        ;; (let [m (plan-state/merge-scopes
+        ;;          (plan-state/get-scopes
+        ;;           (:plan-state session)
+        ;;           (target-scopes (target session))
+        ;;           [:user]))]
+        ;;   (and (not (empty? m)) m))
+        (-> session :target :override :user)
+        )
       (-> session :execution-state :user)))
 
 
@@ -789,14 +791,15 @@ the :destroy-server, :destroy-group, and :create-group phases."
 (defn all-group-nodes
   "Returns the service state for the specified groups"
   [compute groups all-node-set]
-  {:pre [(compute-service? compute)
+  {:pre [(or (empty? groups) (compute-service? compute))
          (every? #(check-group-spec %) groups)
          (every? #(check-group-spec %) all-node-set)]}
-  (service-state
-   (nodes compute)
-   (concat groups (map
-                   (fn [g] (update-in g [:phases] select-keys [:settings]))
-                   all-node-set))))
+  (let [consider (map
+                  (fn [g] (update-in g [:phases] select-keys [:settings]))
+                  all-node-set)]
+    (if (seq groups)
+      (service-state (nodes compute) (concat groups consider))
+      consider)))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
   environment-args [:compute :blobstore :provider-options])

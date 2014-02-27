@@ -29,4 +29,6 @@
   "Install packages required for building repositories"
   [session]
   (case (packager session)
-    :aptitude (package session "dpkg-dev")))
+    :aptitude (package session "dpkg-dev")
+    :apt (package session "dpkg-dev")
+    nil))

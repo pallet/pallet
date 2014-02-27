@@ -16,10 +16,10 @@
 (deftest directory*-test
   (is (script-no-comment=
        (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-       (directory* nil "file1")))
+       (directory* nil "file1" {})))
   (is (script-no-comment=
        (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-       (directory* nil "file1")))
+       (directory* nil "file1" {})))
   (is (script-no-comment=
        (stevedore/checked-commands
         "Directory file1"
@@ -27,7 +27,7 @@
         "chown --recursive u file1"
         "chgrp --recursive g file1"
         "chmod 0755 file1")
-       (directory* nil  "file1" :owner "u" :group "g" :mode "0755")))
+       (directory* nil "file1" {:owner "u" :group "g" :mode "0755"})))
   (testing "non-recursive"
     (is (script-no-comment=
          (stevedore/checked-commands
@@ -37,10 +37,10 @@
           "chgrp g file1"
           "chmod 0755 file1")
          (directory*
-          nil "file1" :owner "u" :group "g" :mode "0755" :recursive false))))
+          nil "file1" {:owner "u" :group "g" :mode "0755" :recursive false}))))
   (testing "delete"
     (is (script-no-comment=
          (stevedore/checked-script
           "Delete directory file1"
           "rm --recursive --force file1")
-         (directory* nil "file1" :action :delete :recursive true)))))
+         (directory* nil "file1" {:action :delete :recursive true})))))

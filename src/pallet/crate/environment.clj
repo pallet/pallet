@@ -36,14 +36,14 @@
           (format "Add %s environment to %s" env-name path)
           (conj
            (for [[k v] key-value-pairs]
-             (stevedore/script
+             (stevedore/chained-script
               (var vv (str ~quote ~v ~quote)) ; v can contain multi-line
                                         ; expressions
               ("pallet_set_env"
                (quoted ~k)
                (quoted @vv)
                (quoted (str ~(name k) "=\\\"" @vv "\\\"")))))
-           (stevedore/script
+           (stevedore/chained-script
             (if-not (file-exists? ~path)
               (lib/heredoc ~path "# environment file created by pallet\n" {}))
             (defn pallet_set_env [k v s]

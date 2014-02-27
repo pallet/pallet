@@ -48,11 +48,13 @@
   "Create user crontab for the given user."
   [session user]
   (let [in-file (in-file user)
-        settings (get-settings :crontab)
+        settings (get-settings session :crontab)
         content-spec (get (:user settings) user)]
     (remote-file
-     session in-file :owner user :mode "0600"
-     (select-keys content-spec content-options))
+     session in-file
+     (merge
+      {:owner user :mode "0600"}
+      (select-keys content-spec content-options)))
     (exec-checked-script
      session
      "Load crontab"
@@ -62,7 +64,7 @@
   "Remove user crontab for the specified user"
   [session user]
   (let [in-file (in-file user)]
-    (file session in-file :action :delete)
+    (file session in-file {:action :delete})
     (exec-checked-script
      session
      "Remove crontab"
@@ -89,9 +91,11 @@
         settings (get-settings session :crontab)]
     (remote-file
      session
-     path :owner "root" :group "root" :mode "0644"
-     (select-keys
-      (get (:system settings) system) content-options))))
+     path
+     (merge
+      {:owner "root" :group "root" :mode "0644"}
+      (select-keys
+       (get (:system settings) system) content-options)))))
 
 (defplan remove-system-crontab
   "Remove system crontab for the given name"

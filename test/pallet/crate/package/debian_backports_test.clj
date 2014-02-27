@@ -2,29 +2,29 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [package-source]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.package.debian-backports :refer [add-debian-backports]]
+   [pallet.plan :refer [plan-context]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
+(def session {:target {:override {:os-family :debian}}})
+
 (deftest debian-backports-test
   (is
-   (script-no-comment=
-    (first
-     (build-actions
-         [session {:server {:image {:os-family :debian}}
-                   :phase-context "add-debian-backports"}]
-       (package-source
-        session
-        "debian-backports"
-        :aptitude {:url "http://backports.debian.org/debian-backports"
-                   :release (str
-                             (stevedore/script (~lib/os-version-name))
-                             "-backports")
-                   :scopes ["main"]})))
-    (first
-     (build-actions [session {:server {:image {:os-family :debian}}}]
-       (add-debian-backports session))))))
+   (=
+    (build-plan [session session]
+      (plan-context add-debian-backports {}
+        (package-source
+         session
+         "debian-backports"
+         {:url "http://backports.debian.org/debian-backports"
+          :release (str
+                    (stevedore/script (~lib/os-version-name))
+                    "-backports")
+          :scopes ["main"]})))
+    (build-plan [session session]
+      (add-debian-backports session)))))

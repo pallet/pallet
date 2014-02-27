@@ -169,7 +169,7 @@ Install based on an archive
 (defmethod-plan install :default
   [session facility instance-id]
   {:pre [(keyword? facility)]}
-  (let [settings (get-settings facility {:instance-id instance-id})]
+  (let [settings (get-settings session facility {:instance-id instance-id})]
     (when-not settings
       (throw (ex-info
               (str "No settings found for facility " facility)
@@ -265,8 +265,7 @@ Install based on an archive
       session
       {:action-id ::deb-install
        :always-before #{::update-package-source ::install-package-source}}
-      (apply-map
-       remote-directory session path
+      (remote-directory session path
        (merge
         {:mode "755"
          :strip-components 0}

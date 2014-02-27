@@ -51,17 +51,12 @@
     (let [env nil]
       (is (nil? (environment/eval-environment env)))))
   (testing "user"
-    (let [env {:user {:username "u"}}]
+    (let [env {:user {:username "u" :password "p"}}]
       (is (user? (:user (environment/eval-environment env))))
       (is (= "u"
              (-> (environment/eval-environment env) :user :username)))))
   (testing "user with shell expand"
-    (let [env {:user {:username "u" :public-key-path "~/a"}}]
+    (let [env {:user {:username "u" :private-key-path "~/a"}}]
       (is (user? (:user (environment/eval-environment env))))
       (is (= (.getAbsolutePath (io/file (System/getProperty "user.home") "a"))
-             (-> (environment/eval-environment env) :user :public-key-path)))))
-  (testing "arguments"
-    (let [env {:algorithms {:lift-fn 'pallet.core.operations/lift}}
-          f (-> (environment/eval-environment env) :algorithms :lift-fn)]
-      (is (find-var 'pallet.core.operations/lift))
-      (is (= (var-get (find-var 'pallet.core.operations/lift)) f)))))
+             (-> (environment/eval-environment env) :user :private-key-path))))))

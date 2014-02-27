@@ -15,7 +15,8 @@
    [pallet.live-test :as live-test]
    [pallet.plan :refer [plan-fn]]
    [pallet.spec :refer [server-spec]]
-   [pallet.user :refer [default-public-key-path make-user]]))
+   [pallet.user
+    :refer [default-private-key-path default-public-key-path make-user]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -44,94 +45,107 @@
            (automated-admin-user/configure session {})))))
 
   (testing "with path"
-    (is (= (first
-            (build-plan [session {}]
-              (sudoers/settings {})
-              (sudoers/install {})
-              (user "fred" :create-home true :shell :bash)
-              (sudoers/sudoers
-               {}
-               {:default {:env_keep "SSH_AUTH_SOCK"}}
-               {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-              (context/with-phase-context
-                {:kw :authorize-user-key :msg "authorize-user-key"}
-                (ssh-key/authorize-key
-                 "fred" (slurp (default-public-key-path))))
-              (sudoers/configure {})))
-           (first
-            (build-plan [session {}]
-              (sudoers/settings {})
-              (automated-admin-user/settings {})
-              (create-admin-user "fred" (default-public-key-path))
-              (automated-admin-user/configure {}))))))
+    (is (=
+         (build-plan [session {}]
+           (sudoers/settings session {})
+           (sudoers/install session {})
+           (user session  "fred" :create-home true :shell :bash)
+           (sudoers/sudoers
+            session
+            {}
+            {:default {:env_keep "SSH_AUTH_SOCK"}}
+            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+           (context/with-phase-context
+             {:kw :authorize-user-key :msg "authorize-user-key"}
+             (ssh-key/authorize-key
+              session
+              "fred" (slurp (default-public-key-path))))
+           (sudoers/configure session {}))
+         (build-plan [session {}]
+           (sudoers/settings session {})
+           (automated-admin-user/settings session {})
+           (create-admin-user session "fred" (default-public-key-path))
+           (automated-admin-user/configure session {})))))
 
   (testing "with byte array"
-    (is (= (first
-            (build-plan [session {}]
-              (sudoers/settings {})
-              (sudoers/install {})
-              (user "fred" :create-home true :shell :bash)
-              (sudoers/sudoers
-               {}
-               {:default {:env_keep "SSH_AUTH_SOCK"}}
-               {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-              (context/with-phase-context
-                {:kw :authorize-user-key :msg "authorize-user-key"}
-                (ssh-key/authorize-key "fred" "abc"))
-              (sudoers/configure {})))
-           (first
-            (build-plan [session {}]
-              (sudoers/settings {})
-              (automated-admin-user/settings {})
-              (create-admin-user "fred" (.getBytes "abc"))
-              (automated-admin-user/configure {}))))))
+    (is (=
+         (build-plan [session {}]
+           (sudoers/settings session {})
+           (sudoers/install session {})
+           (user session "fred" :create-home true :shell :bash)
+           (sudoers/sudoers
+            session
+            {}
+            {:default {:env_keep "SSH_AUTH_SOCK"}}
+            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+           (context/with-phase-context
+             {:kw :authorize-user-key :msg "authorize-user-key"}
+             (ssh-key/authorize-key session "fred" "abc"))
+           (sudoers/configure session {}))
+         (build-plan [session {}]
+           (sudoers/settings session {})
+           (automated-admin-user/settings session {})
+           (create-admin-user session "fred" (.getBytes "abc"))
+           (automated-admin-user/configure session {})))))
 
   (testing "with default username"
     (let [user-name (. System getProperty "user.name")]
-      (is (= (first
-              (build-plan [session {}]
-                (sudoers/settings {})
-                (sudoers/install {})
-                (user user-name :create-home true :shell :bash)
-                (sudoers/sudoers
-                 {}
-                 {:default {:env_keep "SSH_AUTH_SOCK"}}
-                 {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-                (context/with-phase-context
-                  {:kw :authorize-user-key :msg "authorize-user-key"}
-                  (ssh-key/authorize-key
-                   user-name
-                   (slurp (default-public-key-path))))
-                (sudoers/configure {})))
-             (first
-              (build-plan [session {:user (make-user user-name)}]
-                (sudoers/settings session {})
-                (automated-admin-user/settings session {})
-                (create-admin-user session)
-                (automated-admin-user/configure session {})))))))
+      (is (=
+           (build-plan [session {}]
+             (sudoers/settings session {})
+             (sudoers/install session {})
+             (user session user-name :create-home true :shell :bash)
+             (sudoers/sudoers
+              session
+              {}
+              {:default {:env_keep "SSH_AUTH_SOCK"}}
+              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+             (context/with-phase-context
+               {:kw :authorize-user-key :msg "authorize-user-key"}
+               (ssh-key/authorize-key
+                session
+                user-name
+                (slurp (default-public-key-path))))
+             (sudoers/configure session {}))
+           (build-plan [session
+                        {:execution-state
+                         {:user (make-user
+                                 user-name
+                                 {:private-key-path (default-private-key-path)
+                                  :public-key-path (default-public-key-path)})}}]
+             (sudoers/settings session {})
+             (automated-admin-user/settings session {})
+             (create-admin-user session)
+             (automated-admin-user/configure session {}))))))
   (testing "with session username"
-    (let [user-name "fredxxx"]
-      (is (= (first
-              (build-plan [session {}]
-                (sudoers/settings {})
-                (sudoers/install {})
-                (user user-name :create-home true :shell :bash)
-                (sudoers/sudoers
-                 {}
-                 {:default {:env_keep "SSH_AUTH_SOCK"}}
-                 {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-                (context/with-phase-context
-                  {:kw :authorize-user-key :msg "authorize-user-key"}
-                  (ssh-key/authorize-key
-                   user-name
-                   (slurp (default-public-key-path))))
-                (sudoers/configure {})))
-             (first
-              (build-plan [session {:environment {:user (make-user user-name)}}]
-                (sudoers/settings session {})
-                (automated-admin-user/settings session {})
-                (create-admin-user session)
-                (automated-admin-user/configure session {}))))))))
+    (let [user-name "fredxxx"
+          session {:execution-state
+                   {:user (make-user
+                           user-name
+                           {:private-key-path (default-private-key-path)
+                            :public-key-path (default-public-key-path)})}}]
+      (is (=
+           (build-plan [session session]
+             (sudoers/settings session {})
+             (sudoers/install session {})
+             (user session user-name :create-home true :shell :bash)
+             (sudoers/sudoers
+              session
+              {}
+              {:default {:env_keep "SSH_AUTH_SOCK"}}
+              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+             (context/with-phase-context
+               {:kw :authorize-user-key :msg "authorize-user-key"}
+               (ssh-key/authorize-key
+                session
+                user-name
+                (slurp (default-public-key-path))))
+             (sudoers/configure session {}))
+           (build-plan [session session]
+             (sudoers/settings session {})
+             (automated-admin-user/settings session {})
+             (create-admin-user session)
+             (automated-admin-user/configure session {})))))))
 
 (deftest live-test
   ;; tests a node specific admin user

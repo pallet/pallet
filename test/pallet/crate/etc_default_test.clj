@@ -20,33 +20,33 @@
 
 (deftest default-test
   (is (=
-       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+       (build-plan [session {}]
          (plan-context write {}
            (remote-file
             session
             "/etc/default/tomcat6"
-            :owner "root"
-            :group "root"
-            :mode 644
-            :content
-            "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\"")))
-       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+            {:owner "root"
+             :group "root"
+             :mode 644
+             :content
+             "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""})))
+       (build-plan [session {}]
          (default/write
            session
            "tomcat6"
            :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
            "JSP_COMPILER" "javac"))))
   (is (=
-       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+       (build-plan [session {}]
          (plan-context write {}
            (remote-file
             session
             "/etc/tomcat/tomcat6"
-            :owner "root"
-            :group "root"
-            :mode 644
-            :content "JAVA_OPTS=\"-Djava.awt.headless=true\"")))
-       (build-plan [session {:server {:image {:os-family :ubuntu}}}]
+            {:owner "root"
+             :group "root"
+             :mode 644
+             :content "JAVA_OPTS=\"-Djava.awt.headless=true\""})))
+       (build-plan [session {}]
          (default/write
            session
            "/etc/tomcat/tomcat6"

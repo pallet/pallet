@@ -11,16 +11,18 @@
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.crate.os :refer [os]]
-   [pallet.session :as session :refer [executor plan-state recorder]]))
+   [pallet.session :as session :refer [executor plan-state recorder]]
+   [pallet.user :as user]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest localhost-os-test
   (let [session (session/create {:executor (ssh/ssh-executor)
-                                 :plan-state (in-memory-plan-state)})
-        result (execute session (localhost) os)]
+                                 :plan-state (in-memory-plan-state)
+                                 :user user/*admin-user*})
+        result (execute session {:node (localhost)} os)]
     (is (map? result))
     (is (= 2 (count (:action-results result))))
-    (is (= (localhost) (:node result)))
+    (is (= (localhost) (-> result :target :node)))
     (is (map? (node-os (localhost) (plan-state session)))
         "The os phase updates the plan-state with the discovered os details")))

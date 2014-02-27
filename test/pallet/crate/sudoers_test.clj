@@ -2,7 +2,7 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
-   [pallet.build-actions :refer [build-plan]]
+   [pallet.build-actions :refer [build-plan target-session]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.sudoers :as sudoers]
    [pallet.session :refer []]
@@ -12,7 +12,7 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest default-specs-test
-  (let [r (sudoers/default-specs {})]
+  (let [r (sudoers/default-specs (target-session {}))]
     (is (instance? clojure.lang.PersistentArrayMap r))))
 
 (with-private-vars [pallet.crate.sudoers
@@ -24,19 +24,17 @@
                      write-cmd-spec write-spec specs
                      sudoer-merge merge-user-spec]]
 
-
   (deftest merge-user-spec-test
     (is (= {:a 1 :b 2} (merge-user-spec {:a 1} {:b 2})))
     (is (= [{:a 1} {:b 2}] (merge-user-spec [{:a 1}] [{:b 2}]))))
 
-
-
-  (deftest sudoer-merge
-    (let [default-specs (sudoers/default-specs {})]
+  (deftest sudoer-merge-test
+    (let [default-specs (sudoers/default-specs (target-session {}))]
+      (is default-specs)
       (is (= [{} {} default-specs]
-             (sudoer-merge [[{} {} default-specs]]))))
+             (#'sudoers/sudoer-merge [[{} {} default-specs]]))))
     (is (= [{} {} {"user" {:ALL {}}}]
-           (sudoer-merge [[{} {} {}] [{} {} {"user" {:ALL {}}}]])))
+           (#'sudoers/sudoer-merge [[{} {} {}] [{} {} {"user" {:ALL {}}}]])))
     (is (= [{} {} {"user" {["/bin/ls"] {} :ALL {:run-as :ALL}}}]
            (sudoer-merge [[{} {} {"user" {["/bin/ls"] {}}}]
                           [{} {} {"user" {:ALL {:run-as :ALL}}}]])))
@@ -61,7 +59,7 @@
                              "%adm" {:ALL {:run-as-user :ALL}}
                              "user1" [{:host "h1" :ALL {}}]
                              "user2" {:host "h2" :ALL {}})]
-           (let [default-specs (sudoers/default-specs {})]
+           (let [default-specs (sudoers/default-specs (target-session {}))]
              (sudoer-merge
               [[{} {} default-specs]
                [{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
@@ -249,9 +247,9 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
          (remote-file
           session
           "/etc/sudoers"
-          :mode "0440" :owner "root" :group (admin-group session)
-          :content
-          "User_Alias FULLTIMERS = millert,mikef,dowdy
+          {:mode "0440" :owner "root" :group (admin-group session)
+           :content
+           "User_Alias FULLTIMERS = millert,mikef,dowdy
 User_Alias PARTTIMERS = bostley,jwfox,crawl
 User_Alias WEBMASTERS = will,wendy,wim
 Runas_Alias OP = root,operator
@@ -296,7 +294,7 @@ jill SERVERS = /usr/bin/,!SU,!SHELLS
 steve CSNETS = (operator) /usr/local/op_commands/
 matt valkyrie = KILL
 WEBMASTERS www = (www) ALL,(root) /usr/bin/su www
-ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"))
+ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"}))
        (build-plan [session {}]
          (sudoers/settings session {})
          (sudoers/sudoers

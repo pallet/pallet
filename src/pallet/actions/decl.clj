@@ -69,9 +69,9 @@
     `(exec-script*
       ~session
       (checked-script
-       ~(if *script-location-info*
-          `(str ~script-name " (" ~file ":" ~line ")")
-          script-name)
+       (if *script-location-info*
+         ~(str script-name " (" file ":" line ")")
+         ~script-name)
        ~@script))))
 
 

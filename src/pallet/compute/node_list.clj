@@ -176,8 +176,7 @@ support."
     [node-list environment tag-provider]
   pallet.core.protocols.Closeable
   (close
-    [compute]
-    "Closes the compute service, releasing any acquired resources.")
+    [compute])
 
   pallet.compute.protocols.ComputeService
   (nodes

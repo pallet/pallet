@@ -6,6 +6,7 @@
    [pallet.actions :refer [exec-script*]]
    [pallet.actions.test-actions :refer [fail]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.executor.ssh :as ssh]
@@ -240,7 +241,8 @@
 (deftest service-state-test
   (testing "service state"
     (let [service (make-localhost-compute :group-name :local)
-          ss (group/service-state service [(group/group-spec :local)])]
+          ss (group/service-state
+              (compute/nodes service) [(group/group-spec :local)])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
       (is (= (dissoc (localhost) :service)
@@ -268,7 +270,8 @@
               :count 1
               :phases {:x (plan-fn [session] (exec-script* session "ls"))})
           c (chan)
-          targets (group/service-state service [(group/group-spec :local)])
+          targets (group/service-state
+                   (compute/nodes service) [(group/group-spec :local)])
           _ (is (every? :node targets))
           r (group/node-count-adjuster
              session
@@ -279,8 +282,8 @@
       (is (map? res) "Result is a map")
       (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
           "Result has the correct keys")
-      (is (empty (:new-nodes res)) "Result has no new nodes")
-      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (empty? (:new-nodes res)) "Result has no new nodes")
+      (is (empty? (:old-nodes res)) "Result has no new nodes")
       (is (seq (:results res)) "Has phase results")
       (is (nil? e) "No exception thrown")
       (when e
@@ -291,19 +294,20 @@
     (let [session (session/create {:executor (ssh/ssh-executor)
                                    :plan-state (in-memory-plan-state)})
           service (make-localhost-compute :group-name :local)
-          g (group/group-spec :g
+          g (group/group-spec :local
               :count 1
               :phases {:x (plan-fn [session] (exec-script* session "ls"))})
           c (chan)
-          targets (group/service-state service [(group/group-spec :local)])
+          targets (group/service-state
+                   (compute/nodes service) [(group/group-spec :local)])
           _ (is (every? :node targets))
           r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]
       (is (map? res) "Result is a map")
-      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+      (is (= #{:targets :old-node-ids :results} (set (keys res)))
           "Result has the correct keys")
-      (is (empty (:new-nodes res)) "Result has no new nodes")
-      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (empty? (:new-nodes res)) "Result has no new nodes")
+      (is (empty? (:old-node-ids res)) "Result has no new nodes")
       (is (seq (:results res)) "Has phase results")
       (is (nil? e) "No exception thrown")
       (when e
@@ -312,15 +316,15 @@
 (deftest converge-test
   (testing "converge"
     (let [service (make-localhost-compute :group-name :local)
-          g (group/group-spec :g
+          g (group/group-spec :local
               :count 1
               :phases {:x (plan-fn [session] (exec-script* session "ls"))})
           res (group/converge [g] :compute service)]
       (is (map? res) "Result is a map")
-      (is (= #{:new-nodes :old-nodes :results} (set (keys res)))
+      (is (= #{:targets :old-node-ids :results} (set (keys res)))
           "Result has the correct keys")
-      (is (empty (:new-nodes res)) "Result has no new nodes")
-      (is (empty (:old-nodes res)) "Result has no new nodes")
+      (is (empty? (:new-nodes res)) "Result has no new nodes")
+      (is (empty? (:old-nodes res)) "Result has no new nodes")
       (is (seq (:results res)) "Has phase results"))))
 
 

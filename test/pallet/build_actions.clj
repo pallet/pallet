@@ -13,7 +13,8 @@
    [pallet.group :refer [group-spec]]
    [pallet.plan :refer [plan-fn]]
    [pallet.script :as script]
-   [pallet.session :refer [plan-state target validate-target-session]]
+   [pallet.session
+    :refer [plan-state target target-session? validate-target-session]]
    [pallet.session.action-plan :refer [target-path]]
    [pallet.target-ops :refer [execute-target-phase]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
@@ -58,6 +59,7 @@
        {:target {:override {:packager :aptitude :os-family :ubuntu}}
         :phase :configure}"
   [session]
+  {:post [(validate-target-session (dissoc % :phase))]}
   (let [session (or session {})
         session (update-in session [:target]
                            #(or
@@ -99,6 +101,13 @@
                            #(or % *admin-user*))]
     (logging/tracef "session %s" session)
     (assoc session :type :pallet.session/session)))
+
+(defn target-session
+  "Return a target-session for the map m"
+  [m]
+  {:post [(validate-target-session %)
+          (target-session? %)]}
+  (dissoc (build-session m) :phase))
 
 (defn build-actions*
   "Implementation for build-actions."

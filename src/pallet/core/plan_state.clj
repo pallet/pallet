@@ -54,9 +54,9 @@ and does not need to consider a host, group tuple.
       [impl/StateGet ScopeMap (NonEmptyVec Keyword) -> Any]
       [impl/StateGet ScopeMap (NonEmptyVec Keyword) Any -> Any]))
 (defn get-scopes
-  "Given a map of scopes, return a map of scope, value tuples for path.
-  Scopes which do not provide a value of path will not present in the
-  result map."
+  "Given a sequence of scopes, return a sequence of scope, value
+  tuples for path.  Scopes which do not provide a value of path will
+  not present in the result map."
   ([plan-state scopes path]
      {:pre [(satisfies? impl/StateGet plan-state)]}
      (->> (impl/get-state plan-state scopes path ::not-found)
@@ -65,9 +65,7 @@ and does not need to consider a host, group tuple.
           (into {})))
   ([plan-state scopes path default]
      {:pre [(satisfies? impl/StateGet plan-state)]}
-     (->> (impl/get-state plan-state scopes path default)
-          ((fn [x] (assert-type-predicate x map?)))
-          (into {}))))
+     (impl/get-state plan-state scopes path default)))
 
 (ann get-scope
      (Fn

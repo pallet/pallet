@@ -31,6 +31,7 @@
         (do
           ~(first
             (remote-file*
+             session
              "rpmforge.rpm"
              {:url (format rpmforge-url-pattern version distro arch)}))
           ("rpm" -U --quiet "rpmforge.rpm")))))))

@@ -21,16 +21,16 @@
   "Add a centos repository. By default, ensure that it has a lower than default
   priority."
   [session & {:keys [version repository enabled priority]
-      :or {version "5.5" repository "os" enabled 0 priority 50}}]
-  (let [arch-str (arch)]
+              :or {version "5.5" repository "os" enabled 0 priority 50}}]
+  (let [arch-str (arch session)]
     (package session "yum-priorities")
     (package-source
      session
      (format "Centos %s %s %s" version repository arch-str)
-     :yum {:url (format centos-repo version repository arch-str)
-           :gpgkey (format centos-repo-key (str (first version)))
-           :priority priority
-           :enabled enabled})))
+     {:url (format centos-repo version repository arch-str)
+      :gpgkey (format centos-repo-key (str (first version)))
+      :priority priority
+      :enabled enabled})))
 
 (defmethod repository :centos
   [session args]

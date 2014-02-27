@@ -39,7 +39,7 @@ target :flags key."
     (let [flags (->>
                  (re-seq setflag-regex output)
                  (map (comp keyword second)))]
-      (logging/tracef "flags %s" flags)
+      (logging/tracef "flags %s" (pr-str flags))
       (zipmap flags (repeat true)))))
 
 (ann parse-flag-values [String -> (Map Keyword String)])
@@ -52,7 +52,7 @@ target :flags key."
                                 (fn> [s :- (NonEmptySeqable String)]
                                   (vector (keyword (second s)) (nth s 2)))
                                 (re-seq setvalue-regex output)))]
-      (logging/tracef "flag-values %s" flag-values)
+      (logging/tracef "flag-values %s" (pr-str flag-values))
       flag-values)))
 
 (ann ^:no-check parse-node-state [String -> Session])

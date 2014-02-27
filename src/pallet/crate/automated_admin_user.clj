@@ -4,10 +4,10 @@
    [pallet.actions :refer [package-manager user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
-   [pallet.group :refer [admin-user]]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.spec :refer [server-spec]]
+   [pallet.target :refer [admin-user]]
    [pallet.utils :refer [conj-distinct]]))
 
 (def facility ::automated-admin-user)

@@ -23,7 +23,7 @@
           "should lookup the nested path correctly")
       (is (= {} (get-scopes s {:group :g} [:p]))
           "should not contain scopes that do not provide a value for path")
-      (is (= {[:group :g] ::default}
+      (is (= [[[:group :g] ::default]]
              (get-scopes s {:group :g} [:p] ::default))
           "should return default for scopes that do not provide path")))
   (testing "a plan-state with a host and group path"

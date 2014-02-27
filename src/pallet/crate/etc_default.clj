@@ -16,18 +16,18 @@
    e.g. (write \"tomcat6\"
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
-  [filename & key-value-pairs]
+  [session filename & key-value-pairs]
   (let [file (if (= \/ (first filename))
                filename
-               (str (with-source-line-comments false
-                      (stevedore/script (~lib/etc-default)))
+               (str (stevedore/fragment (~lib/etc-default))
                     "/" filename))]
     (remote-file
+     session
      file
-     :owner "root"
-     :group "root"
-     :mode 644
-     :content (string/join
-               \newline
-               (for [[k v] (partition 2 key-value-pairs)]
-                 (str (name k) "=" (pr-str v)))))))
+     {:owner "root"
+      :group "root"
+      :mode 644
+      :content (string/join
+                \newline
+                (for [[k v] (partition 2 key-value-pairs)]
+                  (str (name k) "=" (pr-str v))))})))

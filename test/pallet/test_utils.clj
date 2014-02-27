@@ -120,13 +120,13 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn make-localhost-node
   "Simple localhost node for testing"
-  [& {:as options}]
+  [{:as options}]
   (node-list/make-localhost-node options))
 
 (defn make-localhost-compute
   [& {:as options}]
   (node-list/node-list-service
-   [(apply-map make-localhost-node options)]))
+   [(make-localhost-node options)]))
 
 (defmacro build-resources
   "Forwarding definition"

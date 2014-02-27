@@ -52,7 +52,7 @@
 
 (defn script-on-origin
   "Execute a script action on the origin"
-  [session action action-type [options value]]
+  [user action [options value]]
   (logging/trace "script-on-origin")
   (let [action (merge {:script-dir (local-script-dir action)} action)
         script (script-builder/build-script options value action)
@@ -72,7 +72,7 @@
            "script-on-origin: Could not chmod script file: %s"
            (:out result))))
       (logging/debugf "localhost <== ----------------------------------------")
-      (let [cmd (build-code session action tmpfile)
+      (let [cmd (build-code user action tmpfile)
             _ (logging/debugf "localhost %s" cmd)
             result (transport/exec
                     local-connection cmd
@@ -87,8 +87,7 @@
               (logging/warnf "localhost %s" l))))
         (logging/debugf
          "localhost <== ----------------------------------------")
-        [(result-with-error-map "localhost" "Error executing script" result)
-         session])
+        (result-with-error-map "localhost" "Error executing script" result))
       (finally (.delete tmpfile)))))
 
 (defn clojure-on-origin

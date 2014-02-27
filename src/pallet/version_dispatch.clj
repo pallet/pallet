@@ -127,15 +127,16 @@ refers to a software package version of some sort, on the specified `os` and
           h (var-get hierarchy)]
       (when-not ((hierarchy-vals h) os)
         (throw (Exception. (str os " is not part of the hierarchy"))))
-      `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-              (fn ~(symbol
-                    (str (name os) "-" os-version "-" (string/join "" version)))
-                [~@args]
-                (plan-context
-                    ~(symbol
-                      (str (name os) "-" os-version "-" (string/join "" version)))
-                    {}
-                  ~@body))))))
+      `(swap!
+        (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+        (fn ~(symbol
+              (str (name os) "-" os-version "-" (string/join "" version)))
+          [~@args]
+          (plan-context
+              ~(symbol
+                (str (name os) "-" os-version "-" (string/join "" version)))
+              {}
+            ~@body))))))
 
 (defn os-map
   "Construct an os version map. The keys should be maps with :os-family

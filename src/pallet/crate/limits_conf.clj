@@ -47,9 +47,9 @@
   A host entry can be either a map with :domain, :type, :item and :value keys,
   or a vector specifying strings for the fields (in domain, type, item, value
   order).  The type and item values may optionally be keywords."
-  [entry & {:keys [instance-id] :as options}]
+  [session entry & {:keys [instance-id] :as options}]
   {:pre [(or (vector? entry) (map? entry))]}
-  (update-settings :limits-conf options
+  (update-settings session :limits-conf options
                    update-in [:entries] conj (normalise-entry entry)))
 
 ;;; # Config file
@@ -69,10 +69,10 @@
     (remote-file
      session
      config-file
-     :owner owner
-     :group group
-     :mode 644
-     :content (format-host-limits entries))))
+     {:owner owner
+      :group group
+      :mode "644"
+      :content (format-host-limits entries)})))
 
 ;;; # Server spec
 (defn server-spec

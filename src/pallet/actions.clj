@@ -500,18 +500,18 @@ only specified files or directories, use the :extract-files option.
        :url \"http://a.com/path/file.jar\"
        :unpack :jar
        :extract-files [\"dir/file\" \"file2\"])"
-  [session path & {:keys [action url local-file remote-file
-                          unpack tar-options unzip-options jar-options
-                          strip-components md5 md5-url owner group recursive
-                          force-overwrite
-                          local-file-options]
-                   :or {action :create
-                        tar-options "xz"
-                        unzip-options "-o"
-                        jar-options "xf"
-                        strip-components 1
-                        recursive true}
-                   :as options}]
+  [session path {:keys [action url local-file remote-file
+                        unpack tar-options unzip-options jar-options
+                        strip-components md5 md5-url owner group recursive
+                        force-overwrite
+                        local-file-options]
+                 :or {action :create
+                      tar-options "xz"
+                      unzip-options "-o"
+                      jar-options "xf"
+                      strip-components 1
+                      recursive true}
+                 :as options}]
   {:pre [(target-session? session)]}
   (check-remote-directory-arguments options)
   (verify-local-file-exists local-file)
@@ -525,9 +525,9 @@ only specified files or directories, use the :extract-files option.
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
                                   {:script-prefix :sudo
-                                   :sudo-user (:sudo-user (admin-user))}
+                                   :sudo-user (:sudo-user (admin-user session))}
                                   local-file-options)
-      (directory path :owner owner :group group :recursive false)
+      (directory session path {:owner owner :group group :recursive false})
       (remote-directory-action
        session
        path
@@ -765,7 +765,7 @@ The :id key must contain a recognised repository."
     ;; root permissions, and doesn't work when this is run without
     ;; root permision
     ;; (package "rsync")
-    (directory session to :owner owner :group group :mode mode)
+    (directory session to {:owner owner :group group :mode mode})
     (rsync session from to options)))
 
 (defn rsync-to-local-directory

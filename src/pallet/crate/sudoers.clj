@@ -50,7 +50,6 @@
 
 (defplan default-specs
   [session]
-  {:pre [(target-session? session)]}
   (let [admin-group (admin-group session)]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
@@ -218,10 +217,10 @@ specs [ { [\"user1\" \"user2\"]
     (remote-file
      session
      sudoers-file
-     :mode "0440"
-     :owner "root"
-     :group "root"
-     :content (sudoers-config (sudoer-merge args)))))
+     {:mode "0440"
+      :owner "root"
+      :group "root"
+      :content (sudoers-config (sudoer-merge args))})))
 
 (defn server-spec
   "Returns a server-spec that installs sudoers in the configure phase."

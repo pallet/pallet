@@ -24,8 +24,10 @@
 
 (defn rsync-command
   [from to username address port options]
-  (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
-                 (if port (format "-p %s" port))) ]
+  (let [ssh (str "/usr/bin/ssh"
+                 " -o \"StrictHostKeyChecking no\""
+                 " -o \"NumberOfPasswordPrompts 0\""
+                 (if port (format " -p %s" port))) ]
     (format
      cmd ssh
      (stevedore/map-to-arg-string options)
@@ -36,8 +38,8 @@
 (defn rsync*
   [{:keys [action-options state]}
    from to {:keys [ip username port] :as options}]
-  (logging/debugf "rsync %s to %s" from to)
-  (let [extra-options (dissoc options :port :username)
+  (logging/debugf "rsync %s to %s:%s" from ip to)
+  (let [extra-options (dissoc options :port :username :ip)
         cmd (rsync-command
              from to
              username

@@ -2,41 +2,41 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [package package-source]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.crate.package.centos :refer [add-repository]]))
+   [pallet.crate.package.centos :refer [add-repository]]
+   [pallet.plan :refer [plan-context]]))
 
 (use-fixtures :once (logging-threshold-fixture))
+
+(def session {:target {:override {:os-family :centos}}})
 
 (deftest add-repository-test
   (is
    (=
-    (first
-     (build-actions [session {:phase-context "add-repository"}]
-       (package session "yum-priorities")
-       (package-source
-        session
-        "Centos 5.5 os x86_64"
-        :yum
-        {:url
-         "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml"
-         :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
-         :priority 50})))
-    (first
-     (build-actions [session {:is-64bit true}]
-      (add-repository session)))))
+    (build-plan [session session]
+      (plan-context add-repository {}
+        (package session "yum-priorities")
+        (package-source
+         session
+         "Centos 5.5 os x86_64"
+         {:url
+          "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml"
+          :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
+          :priority 50})))
+    (build-plan [session session] ;; :is-64bit true
+      (add-repository session))))
   (is
    (=
-    (first
-     (build-actions [session {:phase-context "add-repository"}]
-       (package session "yum-priorities")
-       (package-source
-        session
-        "Centos 5.4 updates i386"
-        :yum {:url
-              "http://mirror.centos.org/centos/5.4/os/i386/repodata/repomd.xml"
-              :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
-              :priority 50})))
-    (first
-     (build-actions [session {:is-64bit false}]
-      (add-repository session :version "5.4" :repository "updates"))))))
+    (build-plan [session session]
+      (plan-context add-repository {}
+        (package session "yum-priorities")
+        (package-source
+         session
+         "Centos 5.4 updates i386"
+         {:url
+          "http://mirror.centos.org/centos/5.4/os/i386/repodata/repomd.xml"
+          :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
+          :priority 50})))
+    (build-plan [session session]
+      (add-repository session :version "5.4" :repository "updates")))))
