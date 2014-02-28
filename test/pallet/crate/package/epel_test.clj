@@ -13,4 +13,4 @@
                                   {:packager :yum
                                    :os-family :centos
                                    :os-version "5.5"}}}]
-    (add-epel session))))
+    (add-epel session {}))))

@@ -18,5 +18,5 @@
                                   :os-version "5.5"
                                   :packager :yum})}}]
      (jpackage-utils session)
-     (add-jpackage session)
+     (add-jpackage session {})
      (package-manager-update-jpackage session))))

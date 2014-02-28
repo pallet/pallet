@@ -57,11 +57,11 @@
 
    Installs the jpackage-utils package from the base repos at a
    priority of 25."
-  [session & {:keys [version component releasever enabled]
-              :or {component "redhat-el"
-                   releasever "$releasever"
-                   version "5.0"
-                   enabled 0}}]
+  [session {:keys [version component releasever enabled]
+            :or {component "redhat-el"
+                 releasever "$releasever"
+                 version "5.0"
+                 enabled 0}}]
   (let [os-family (os-family session)
         os-version (os-version session)
         no-updates (and            ; missing updates for fedora 13, 14
@@ -141,5 +141,5 @@
       :enable repos})))
 
 (defmethod repository :jpackage
-  [args]
-  (apply-map add-jpackage args))
+  [session args]
+  (add-jpackage session args))

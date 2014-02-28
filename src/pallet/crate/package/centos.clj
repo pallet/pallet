@@ -20,8 +20,8 @@
 (defplan add-repository
   "Add a centos repository. By default, ensure that it has a lower than default
   priority."
-  [session & {:keys [version repository enabled priority]
-              :or {version "5.5" repository "os" enabled 0 priority 50}}]
+  [session {:keys [version repository enabled priority]
+            :or {version "5.5" repository "os" enabled 0 priority 50}}]
   (let [arch-str (arch session)]
     (package session "yum-priorities")
     (package-source
@@ -34,4 +34,4 @@
 
 (defmethod repository :centos
   [session args]
-  (apply-map session add-repository args))
+  (add-repository session args))

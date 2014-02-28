@@ -15,8 +15,8 @@
 ;; this is an aggregate so that it can come before the aggragate package-manager
 (defplan add-rpmforge
   "Add the rpmforge repository"
-  [session & {:keys [version distro arch]
-              :or {version "0.5.2-2" distro "el5" arch "i386"}}]
+  [session {:keys [version distro arch]
+            :or {version "0.5.2-2" distro "el5" arch "i386"}}]
   (with-action-options session {:always-before #{package-manager package}}
     (exec-checked-script
      session
@@ -32,5 +32,5 @@
           ("rpm" -U --quiet "rpmforge.rpm")))))))
 
 (defmethod repository :rpmforge
-  [args]
-  (apply-map add-rpmforge args))
+  [session args]
+  (add-rpmforge session args))

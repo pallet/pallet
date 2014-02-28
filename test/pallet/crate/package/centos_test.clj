@@ -25,7 +25,7 @@
           :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
           :priority 50})))
     (build-plan [session session] ;; :is-64bit true
-      (add-repository session))))
+      (add-repository session {}))))
   (is
    (=
     (build-plan [session session]
@@ -39,4 +39,4 @@
           :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
           :priority 50})))
     (build-plan [session (assoc-in session [:target :override :is-64bit] false)]
-      (add-repository session :version "5.4" :repository "updates")))))
+      (add-repository session {:version "5.4" :repository "updates"})))))

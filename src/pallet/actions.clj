@@ -696,7 +696,7 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
 (defmulti repository
   "Install the specified repository as a package source.
 The :id key must contain a recognised repository."
-  (fn [{:keys [id]}]
+  (fn [session {:keys [id]}]
     id))
 
 ;;; # Synch local file to remote

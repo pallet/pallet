@@ -10,7 +10,7 @@
 
 (defplan add-epel
   "Add the EPEL repository"
-  [session & {:keys [version] :or {version "5-4"}}]
+  [session {:keys [version] :or {version "5-4"}}]
   (with-action-options session {:always-before #{package-manager package}}
     (exec-checked-script
      session
@@ -24,5 +24,5 @@
         version)))))
 
 (defmethod repository :epel
-  [args]
-  (apply-map add-epel args))
+  [session options]
+  (add-epel session options))
