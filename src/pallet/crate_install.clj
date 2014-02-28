@@ -185,7 +185,7 @@ Install based on an archive
                    facility)
               {:facility facility
                :instance-id instance-id})))
-    (clojure.tools.logging/errorf "install %s" settings)
+    (clojure.tools.logging/tracef "install %s" settings)
     (install-from settings)))
 
 ;; install based on the setting's :packages key
