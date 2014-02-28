@@ -29,7 +29,7 @@
   (let [new-path (new-filename "/path")
         md5-path (str new-path ".md5")]
     (testing "url"
-      (is (script-no-comment=
+      (is (=
            (stevedore/chain-commands
             (stevedore/checked-script
              "remote-directory"
@@ -57,7 +57,7 @@
              :owner "fred"}))))
 
     (testing "url with recursive"
-      (is (script-no-comment=
+      (is (=
            (stevedore/chain-commands
             (stevedore/checked-script
              "remote-directory"
@@ -86,7 +86,7 @@
              :recursive false}))))
 
     (testing "extract-files and strip-components"
-      (is (script-no-comment=
+      (is (=
            (stevedore/chain-commands
             (stevedore/checked-script
              "remote-directory"
@@ -119,7 +119,7 @@
   (let [new-path (upload-file-path default-file-uploader "/path" action-options)
         md5-path (str new-path ".md5")]
     (testing "local-file"
-      (is (script-no-comment=
+      (is (=
            (stevedore/chain-commands
             (stevedore/checked-script
              "remote-directory"

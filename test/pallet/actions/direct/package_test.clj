@@ -27,8 +27,7 @@
  :each
  test-utils/with-ubuntu-script-template
  test-utils/with-bash-script-language
- test-utils/with-no-source-line-comments
- test-utils/no-location-info)
+ test-utils/with-no-source-line-comments)
 
 (use-fixtures
  :once
@@ -47,7 +46,7 @@
     (with-script-context [:ubuntu :apt]
       (testing "package"
         (testing "default action"
-          (is (script-no-comment=
+          (is (=
                (stevedore/checked-script
                 "Packages"
                 (lib/package-manager-non-interactive)
@@ -56,7 +55,7 @@
                  "apt-get -q -y install rubygems+"))
                (package "rubygems" {:packager :apt}))))
         (testing "explicit install"
-          (is (script-no-comment=
+          (is (=
                (stevedore/checked-script
                 "Packages"
                 (lib/package-manager-non-interactive)
@@ -65,7 +64,7 @@
                  "apt-get -q -y install java+"))
                (package "java" {:action :install :packager :apt}))))
         (testing "remove"
-          (is (script-no-comment=
+          (is (=
                (stevedore/checked-script
                 "Packages"
                 (lib/package-manager-non-interactive)
@@ -74,7 +73,7 @@
                  "apt-get -q -y install git-"))
                (package "git" {:action :remove :packager :apt}))))
         (testing "purge"
-          (is (script-no-comment=
+          (is (=
                (stevedore/checked-script
                 "Packages"
                 (lib/package-manager-non-interactive)
@@ -87,7 +86,7 @@
   (testing "aptitude"
     (with-script-context [:ubuntu :aptitude]
       (testing "package"
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
@@ -95,7 +94,7 @@
               "aptitude install -q -y java+"
               "aptitude search --disable-columns \"?and(?installed, ?name(^java$))\" | grep \"java\"")
              (package "java" {:action :install :packager :aptitude})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
@@ -103,7 +102,7 @@
               "aptitude install -q -y rubygems+"
               "aptitude search --disable-columns \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\"")
              (package "rubygems" {:packager :aptitude})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
@@ -111,7 +110,7 @@
               "aptitude install -q -y git-"
               "! { aptitude search --disable-columns \"?and(?installed, ?name(^git$))\" | grep \"git\"; }")
              (package "git" {:action :remove :packager :aptitude})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
@@ -124,31 +123,31 @@
   (testing "yum"
     (with-script-context [:centos :yum]
       (testing "package"
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               "yum install -q -y java"
               ("yum" list installed))
              (package "java" {:action :install :packager :yum})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               "yum install -q -y rubygems"
               ("yum" list installed))
              (package "rubygems" {:packager :yum})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               "yum upgrade -q -y maven2"
               ("yum" list installed))
              (package "maven2" {:action :upgrade :packager :yum})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               "yum remove -q -y git"
               ("yum" list installed))
              (package "git" {:action :remove :packager :yum})))
-        (is (script-no-comment=
+        (is (=
              (stevedore/checked-script
               "Packages"
               "yum remove -q -y ruby"
@@ -157,27 +156,27 @@
 
   (testing "pacman"
     (with-script-context [:arch :pacman]
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-script
             "Packages"
             "pacman -S --noconfirm --noprogressbar java")
            (package "java" {:action :install :packager :pacman})))
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-script
             "Packages"
             ("pacman -S --noconfirm --noprogressbar rubygems"))
            (package "rubygems" {:packager :pacman})))
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-script
             "Packages"
             "pacman -S --noconfirm --noprogressbar maven2")
            (package "maven2" {:action :upgrade :packager :pacman})))
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-script
             "Packages"
             ("pacman -R --noconfirm git"))
            (package "git" {:action :remove :packager :pacman})))
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-script
             "Packages"
             "pacman -R --noconfirm --nosave ruby")
@@ -185,7 +184,7 @@
                     {:action :remove :purge true :packager :pacman}))))))
 
 (deftest package-manager-non-interactive-test
-  (is (script-no-comment=
+  (is (=
        "{ debconf-set-selections <<EOF
 debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
@@ -195,7 +194,7 @@ EOF
          (stevedore/script (~lib/package-manager-non-interactive))))))
 
 (deftest add-scope-test
-  (is (script-no-comment=
+  (is (=
        (stevedore/chained-script
         (set! tmpfile @("mktemp" -t addscopeXXXX))
         ("cp" -p "/etc/apt/sources.list" @tmpfile)
@@ -223,7 +222,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (.delete tmp))))
 
 (deftest package-manager*-test
-  (is (script-no-comment=
+  (is (=
        (stevedore/checked-script
         "package-manager multiverse"
         (set! tmpfile @("mktemp" -t addscopeXXXX))
@@ -235,7 +234,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
        (second
         (package-manager* action-state :multiverse {:packager :apt}))))
   (with-script-context [:ubuntu :aptitude]
-    (is (script-no-comment=
+    (is (=
          (stevedore/checked-script
           "package-manager update"
           (chain-or
@@ -246,7 +245,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 ;; (deftest package-manager-update-test
 ;;   (testing "yum"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (first
 ;;           (build-actions
 ;;               [session {:target {:group-name :n
@@ -263,7 +262,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 ;; (deftest package-manager-configure-test
 ;;   (testing "aptitude"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (first
 ;;           (build-actions [session {}]
 ;;             (exec-checked-script
@@ -282,7 +281,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;              session
 ;;              :configure {:proxy "http://192.168.2.37:3182"}))))))
 ;;   (testing "yum"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (first
 ;;           (build-actions
 ;;               [session {:target {:group-name :n
@@ -309,7 +308,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             (package-manager
 ;;              session :configure {:proxy "http://192.168.2.37:3182"}))))))
 ;;   (testing "pacman"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (first
 ;;           (build-actions
 ;;               [session {:target {:group-name :n
@@ -345,7 +344,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 ;; (deftest add-multiverse-example-test
 ;;   (testing "apt"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (str
 ;;           (stevedore/checked-script
 ;;            "package-manager multiverse "
@@ -360,7 +359,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                   (package-manager session :multiverse)
 ;;                   (package-manager session :update))))))
 ;;   (testing "aptitude"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (str
 ;;           (stevedore/checked-script
 ;;            "package-manager multiverse "
@@ -382,7 +381,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;; (deftest package-source-test
 ;;   (let [a (group-spec "a" :packager :aptitude)
 ;;         b (group-spec "b" :packager :yum :image {:os-family :centos})]
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (build-script [session {}]
 ;;            (exec-script*
 ;;             session
@@ -402,7 +401,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
 ;;             :yum {:url "http://somewhere/yum"}))))
 ;;     (is
-;;      (script-no-comment=
+;;      (=
 
 ;;       (stevedore/checked-commands
 ;;        "Package source"
@@ -423,7 +422,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                   :scopes ["main"]}
 ;;        :yum {:url "http://somewhere/yum"})))
 ;;     (testing "ppa pre 12.10"
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (first
 ;;             (build-actions [session {}]
 ;;               (exec-checked-script
@@ -448,7 +447,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                :aptitude {:url "ppa:abc"}
 ;;                :yum {:url "http://somewhere/yum"}))))))
 ;;     (testing "ppa for 12.10"
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (first
 ;;             (build-actions
 ;;                 [session {}]
@@ -473,7 +472,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                "source1"
 ;;                :aptitude {:url "ppa:abc"}
 ;;                :yum {:url "http://somewhere/yum"}))))))
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (stevedore/checked-commands
 ;;           "Package source"
 ;;           (->
@@ -494,7 +493,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                      :key-id 1234}
 ;;           :yum {:url "http://somewhere/yum"})))
 ;;     (testing "key-server"
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (stevedore/checked-commands
 ;;             "Package source"
 ;;             (->
@@ -520,7 +519,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;   (let [a (group-spec "a" :override {:packager :aptitude})
 ;;         b (group-spec "b" :override {:packager :yum
 ;;                                      :os-family :centos})]
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (build-script [session {}]
 ;;            (exec-checked-script
 ;;             session
@@ -539,7 +538,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             "source1"
 ;;             {:url "http://somewhere/apt"
 ;;              :scopes ["main"]}))))
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (build-script [session centos-session]
 ;;            (exec-checked-script
 ;;             session
@@ -561,7 +560,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             {:url "http://somewhere/yum"}))))))
 
 (deftest packages-test
-  (is (script-no-comment=
+  (is (=
        (with-script-context [:ubuntu :apt]
          (stevedore/checked-script
           "Packages"
@@ -570,14 +569,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           ("apt-get" -q -y install git+ git2+)))
        (second (packages* {} ["git" "git2"] {:packager :apt}))))
   (with-script-context [:centos]
-    (is (script-no-comment=
+    (is (=
          (second (package* {} "git-yum" {:packager :yum}))
          (second (packages* {} ["git-yum"] {:packager :yum}))))))
 
 ;; (deftest adjust-packages-test
 ;;   (testing "apt"
 ;;     (script/with-script-context [:apt]
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (build-script [session {}]
 ;;              (exec-script*
 ;;               session
@@ -599,7 +598,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                 {:package "p4" :action :remove :purge true}])))))))
 ;;   (testing "apt with disabled package start"
 ;;     (script/with-script-context [:apt]
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (build-script [session {}]
 ;;              (exec-script*
 ;;               session
@@ -627,7 +626,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                  :disable-service-start true}])))))))
 ;;   (testing "aptitude"
 ;;     (script/with-script-context [:aptitude]
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (build-script [session {}]
 ;;              (exec-checked-script
 ;;               session
@@ -660,7 +659,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                 {:package "p4" :action :remove :purge true}])))))))
 ;;   (testing "aptitude with enable"
 ;;     (script/with-script-context [:aptitude]
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (build-script [session {}]
 ;;              (exec-checked-script
 ;;               session
@@ -686,7 +685,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                  :priority 2}])))))))
 ;;   (testing "aptitude with allow-unsigned"
 ;;     (script/with-script-context [:aptitude]
-;;       (is (script-no-comment=
+;;       (is (=
 ;;            (build-script [session {}]
 ;;              (exec-checked-script
 ;;               session
@@ -711,7 +710,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;                [{:package "p1" :action :install}
 ;;                 {:package "p2" :action :install :allow-unsigned true}])))))))
 ;;   (testing "yum"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (build-script [session {}]
 ;;            (exec-checked-script
 ;;             session
@@ -730,7 +729,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;               {:package "p3" :action :upgrade}
 ;;               {:package "p4" :action :remove :purge true}]))))))
 ;;   (testing "yum with disable and priority"
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (build-script [session {}]
 ;;            (stevedore/checked-script
 ;;             session
@@ -744,7 +743,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             [{:package "p1" :action :install :priority 50}
 ;;              {:package "p2" :action :install :disable ["r1"]
 ;;               :priority 25}]))))
-;;     (is (script-no-comment=
+;;     (is (=
 ;;          (first
 ;;           (build-actions [session centos-session]
 ;;             (exec-checked-script
@@ -763,7 +762,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             (package "p2" {:disable ["r1"] :priority 25})))))))
 
 ;; (deftest add-rpm-test
-;;   (is (script-no-comment=
+;;   (is (=
 ;;        (build-script [session centos-session]
 ;;          (remote-file session "jpackage-utils-compat" :url "http:url")
 ;;          (exec-checked-script
@@ -776,7 +775,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;          (add-rpm session "jpackage-utils-compat" :url "http:url")))))
 
 ;; (deftest debconf-set-selections-test
-;;   (is (script-no-comment=
+;;   (is (=
 ;;        (first
 ;;         (build-actions [session {}]
 ;;           (exec-checked-script
@@ -787,7 +786,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;        (first
 ;;         (build-actions [session {}]
 ;;           (debconf-set-selections session {:line "a b c d"})))))
-;;   (is (script-no-comment=
+;;   (is (=
 ;;        (first
 ;;         (build-actions [session {}]
 ;;           (exec-checked-script

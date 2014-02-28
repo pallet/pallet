@@ -13,7 +13,7 @@
    with-no-source-line-comments)
 
 (deftest rsync*-test
-  (is (script-no-comment=
+  (is (=
        (stevedore/checked-script
         "rsync file1 to /dest/file1"
         ("/usr/bin/rsync"

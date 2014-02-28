@@ -19,7 +19,8 @@
 (use-fixtures
  :once
  test-utils/with-ubuntu-script-template
- test-utils/with-bash-script-language)
+ test-utils/with-bash-script-language
+ test-utils/with-no-source-line-comments)
 
 (def action-state {:options {:user {:username "fred" :password "x"}}})
 (def action-options (:options action-state))
@@ -27,7 +28,7 @@
 (deftest remote-file*-test
   (let [new-path (user-file-path default-file-uploader "path" action-options)]
     (testing "url"
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-commands
             "remote-file path"
             (verify-checksum default-checksum action-options "path")
@@ -51,7 +52,7 @@
              "path" {:url "http://a.com/b" :install-new-files true})))))
 
     (testing "url with proxy"
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-commands
             "remote-file path"
             (verify-checksum default-checksum action-options "path")
@@ -75,7 +76,7 @@
                                                :proxy "http://proxy/"})))))
 
     (testing "content with no-versioning"
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-commands
             "remote-file path"
             (verify-checksum default-checksum action-options "path")
@@ -100,7 +101,7 @@
                                                :install-new-files true})))))
 
     (testing "content with owner, group and mode"
-      (is (script-no-comment=
+      (is (=
            (stevedore/checked-commands
             "remote-file path"
             (verify-checksum default-checksum action-options "path")
@@ -125,7 +126,7 @@
                                   :owner "o" :group "g" :mode "m"}))))))
 
   (testing "local-file"
-    (is (script-no-comment=
+    (is (=
          (let [new-path (upload-file-path
                          default-file-uploader "path" action-options)]
            (stevedore/checked-commands
