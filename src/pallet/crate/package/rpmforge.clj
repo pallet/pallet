@@ -1,17 +1,12 @@
 (ns pallet.crate.package.rpmforge
   "Actions for working with the rpmforge repository"
   (:require
-   [pallet.action :refer [action-fn]]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions
     :refer [exec-checked-script package package-manager repository]]
-   [pallet.actions.decl :refer [remote-file-action]]
+   [pallet.actions.direct.remote-file :refer [remote-file*]]
    [pallet.plan :refer [defplan]]
    [pallet.utils :refer [apply-map]]))
-
-;;; TODO remove this and use plan-when
-(def ^{:private true}
-  remote-file* (action-fn remote-file-action :direct))
 
 (def ^{:private true}
   rpmforge-url-pattern

@@ -3,8 +3,8 @@
    [clojure.java.io :as io]
    [clojure.test :refer :all]
    [pallet.action :refer [action-fn]]
-
-   [pallet.actions.decl :refer [checked-commands remote-file-action]]
+   [pallet.actions.decl :refer [remote-file]]
+   [pallet.actions.impl :refer [checked-commands]]
    [pallet.actions.direct.package
     :refer [add-scope* adjust-packages package*
             package-manager* package-source*]]

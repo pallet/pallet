@@ -9,8 +9,8 @@
             transfer-file
             transfer-file-to-local
             wait-for-file]]
-   [pallet.actions.decl
-    :refer [checked-commands checked-script remote-file-action]]
+   [pallet.actions.decl :refer [remote-file]]
+   [pallet.actions.impl :refer [checked-commands checked-script]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.core.file-upload
@@ -238,7 +238,7 @@
                 (str "delete remote-file " path)
                 (lib/rm ~path :force ~force))))])
 
-(implement-action remote-file-action :direct {} remote-file*)
+(implement-action remote-file :direct {} remote-file*)
 
 (defn wait-for-file*
   [action-state

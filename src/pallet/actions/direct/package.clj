@@ -7,21 +7,19 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [action-fn implement-action]]
-   [pallet.actions
-    :refer [add-rpm
-            debconf-set-selections
-            install-deb
-            minimal-packages
-            package-source-changed-flag
-            sed]]
-   [pallet.actions.decl :refer [checked-commands
-                                package-action
-                                package-manager-action
-                                package-repository-action
-                                package-source-action
-                                remote-file-action]]
+   [pallet.action :refer [implement-action]]
+   [pallet.actions :refer [add-rpm
+                           debconf-set-selections
+                           install-deb
+                           minimal-packages
+                           package-source-changed-flag]]
+   [pallet.actions.decl :refer [package
+                                package-manager
+                                package-repository
+                                package-source]]
+   [pallet.actions.impl :refer [checked-commands]]
    [pallet.actions.direct.file :refer [sed*]]
+   [pallet.actions.direct.remote-file :refer [remote-file*]]
    [pallet.script.lib :as lib]
    [pallet.target :refer [os-family]]
    [pallet.script :refer [with-script-context *script-context*]]
@@ -29,11 +27,6 @@
     :refer [checked-script fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map]]
    [pallet.version-dispatch :refer [os-map os-map-lookup]]))
-
-(require 'pallet.actions.direct.remote-file)  ; stop slamhound from removing it
-
-(def ^{:private true}
-  remote-file* (action-fn remote-file-action :direct))
 
 (defmulti adjust-packages
   (fn [packager & _]
@@ -249,7 +242,7 @@
       (:packager options)
       [(package-map package-name (dissoc options :packager))]))])
 
-(implement-action package-action :direct {} package*)
+(implement-action package :direct {} package*)
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -385,17 +378,15 @@
       :flag-on-changed package-source-changed-flag})
     first second)))
 
-(implement-action
-    package-source-action :direct {} {:language :bash} package-source*)
+(implement-action package-source :direct {} {:language :bash} package-source*)
 
-(defn package-repository-action*
+(defn package-repository*
   [action-options options]
   [{:language :bash
     :summary (str "package-repository " (:repository-name options))}
    (package-source* (:repository-name options) options)])
 
-(implement-action
-    package-repository-action :direct {} package-repository-action*)
+(implement-action package-repository :direct {} package-repository*)
 
 (defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
@@ -544,7 +535,7 @@
               (str action
                    " is not a valid action for package-manager action")))))])
 
-(implement-action package-manager-action :direct {} package-manager*)
+(implement-action package-manager :direct {} package-manager*)
 
 (defn add-rpm*
   [action-options rpm-name & {:as options}]

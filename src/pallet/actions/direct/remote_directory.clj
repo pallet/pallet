@@ -4,17 +4,13 @@
   (:require
    [clojure.string :as string]
    [pallet.action :refer [implement-action]]
-   [pallet.actions.decl
-    :refer [checked-commands remote-directory-action remote-file-action]]
+   [pallet.actions.decl :refer [remote-directory remote-file]]
+   [pallet.actions.impl :refer [checked-commands]]
    [pallet.actions.direct.remote-file :refer [file-uploader remote-file*]]
    [pallet.core.file-upload :refer [upload-file-path user-file-path]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore
     :refer [fragment with-source-line-comments]]))
-
-(require 'pallet.actions.direct.directory)
-(require 'pallet.actions.direct.remote-file)
-
 
 (defn- source-to-cmd-and-path
   [action-state uploader path url local-file remote-file md5 md5-url
@@ -103,5 +99,5 @@
                       (when (file-exists? ~tar-md5)
                         ("cp" ~tar-md5 ~path-md5))))))))))
 
-(implement-action remote-directory-action :direct {} {:language :bash}
-                  remote-directory*)
+(implement-action remote-directory
+  :direct {} {:language :bash} remote-directory*)

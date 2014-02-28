@@ -3,7 +3,8 @@
    with given ownership and mode."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions.decl :refer [checked-script checked-commands directory]]
+   [pallet.actions.decl :refer [directory]]
+   [pallet.actions.impl :refer [checked-script checked-commands]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 

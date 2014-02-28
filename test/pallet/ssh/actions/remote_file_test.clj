@@ -15,7 +15,6 @@
             remote-file-content
             transfer-file-to-local
             with-remote-file]]
-   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file
     :refer [default-checksum default-backup default-file-uploader]]
    [pallet.build-actions :as build-actions :refer [build-script]]

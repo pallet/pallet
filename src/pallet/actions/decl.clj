@@ -1,14 +1,15 @@
 (ns pallet.actions.decl
   "Action declarations"
   (:require
-   [clojure.java.io :as io]
-   [clojure.string :as string]
-   [pallet.action :refer [defaction]]
-   [pallet.actions.impl :refer :all]
-   [pallet.context :as context]
-   [pallet.stevedore :as stevedore]))
+   [pallet.action :refer [defaction]]))
 
-;;; # Direct Script Execution
+;;; # Action Declarations
+
+;;; We have these here, as we want wrappers in pallet.actions that
+;;; extract information from the session, and enforce defaults for
+;;; optional arguments.
+
+;;; ## Direct Script Execution
 
 ;;; Sometimes pallet's other actions will not suffice for what you would like to
 ;;; achieve, so the exec-script actions allow you to execute arbitrary script.
@@ -22,66 +23,23 @@
   "Execute script on the target node. The script is a plain string."
   [session script])
 
-(defmacro exec-script
-  "Execute a bash script remotely. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
-  [session & script]
-  `(exec-script* ~session (stevedore/script ~@script)))
+;;; ## Packages
+(def package-source-changed-flag "packagesourcechanged")
+(defaction package [session package-name options])
+(defaction package-manager [session action options])
+(defaction package-repository [packager options])
+(defaction package-source [session name options])
 
-(defn context-string
-  "The string that is used to represent the phase context for :in-sequence
-  actions."
-  {:no-doc true}
-  []
-  (when-let [ctxt (seq (context/phase-contexts))]
-    (str (string/join ": " ctxt) ": ")))
+;;; ## Files and Directories
+(defaction file [session path options])
+(defaction symbolic-link [session from name options])
+(defaction fifo [session path options])
+(defaction sed [session path exprs-map options])
 
-(defmacro checked-script
-  "Return a stevedore script that uses the current context to label the
-   action"
-  [name & script]
-  `(stevedore/checked-script
-    (str (context-string) ~name)
-    ~@script))
+(defaction directory [session dir-path options])
 
-(defmacro checked-commands*
-  "Return a stevedore script that uses the current context to label the
-   action"
-  [name scripts]
-  `(stevedore/checked-commands*
-    (str (context-string) ~name)
-    ~scripts))
-
-(defn checked-commands
-  "Return a stevedore script that uses the current context to label the
-   action"
-  [name & script]
-  (checked-commands* name script))
-
-(defmacro ^{:requires [#'checked-script]}
-  exec-checked-script
-  "Execute a bash script remotely, throwing if any element of the
-   script fails. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
-  [session script-name & script]
-  (let [file (.getName (io/file *file*))
-        line (:line (meta &form))]
-    `(exec-script*
-      ~session
-      (checked-script
-       (if *script-location-info*
-         ~(str script-name " (" file ":" line ")")
-         ~script-name)
-       ~@script))))
-
-
-(defaction if-action
-  "An 'if' flow control action, that claims the next (up to two) nested scopes."
-  [condition])
-
-(defaction remote-file-action
-  "An action that implements most of remote-file, but requires a helper in order
-to deal with local file transfer."
+;;; ## Remote File Contents
+(defaction remote-file
   [session path
    {:keys [action url local-file
            remote-file link content literal template values md5 md5-url
@@ -91,8 +49,7 @@ to deal with local file transfer."
     :or {action :create max-versions 5}
     :as options}])
 
-
-(defaction remote-directory-action
+(defaction remote-directory
   [session path
    {:keys [action url local-file remote-file
            unpack tar-options unzip-options jar-options
@@ -105,143 +62,6 @@ to deal with local file transfer."
          recursive true}
     :as options}])
 
-(def package-source-changed-flag "packagesourcechanged")
-
-(defaction package-action
-  "Install or remove a package.
-
-   Options
-    - :action [:install | :remove | :upgrade]
-    - :purge [true|false]         when removing, whether to remove all config
-    - :enable [repo|(seq repo)]   enable specific repository
-    - :disable [repo|(seq repo)]  disable specific repository
-    - :priority n                 priority (0-100, default 50)
-    - :disable-service-start      disable service startup (default false)
-
-   Package management occurs in one shot, so that the package manager can
-   maintain a consistent view."
-  [session package-name
-   {:keys [action y force purge enable disable priority packager]
-    :or {action :install
-         y true
-         priority 50}}])
-
-(defaction package-manager-action
-  "Package manager controls.
-
-   `action` is one of the following:
-   - :update          - update the list of available packages
-   - :list-installed  - output a list of the installed packages
-   - :add-scope       - enable a scope (eg. multiverse, non-free)
-
-   To refresh the list of packages known to the package manager:
-       (package-manager session :update)
-
-   To enable multiverse on ubuntu:
-       (package-manager session :add-scope :scope :multiverse)
-
-   To enable non-free on debian:
-       (package-manager session :add-scope :scope :non-free)"
-  [session action options])
-
-(defaction package-repository-action
-  "Control package repository.
-   Options are a map of packager specific options.
-
-## aptitude and apt-get
-
-`:source-type source-string`
-: the source type (default \"deb\")
-
-`:url url-string`
-: the repository url
-
-`:scopes seq`
-: scopes to enable for repository
-
-`:release release-name`
-: override the release name
-
-`:key-url url-string`
-: url for key
-
-`:key-server hostname`
-: hostname to use as a keyserver
-
-`:key-id id`
-: id for key to look it up from keyserver
-
-## yum
-
-`:name name`
-: repository name
-
-`:url url-string`
-: repository base url
-
-`:gpgkey url-string`
-: gpg key url for repository
-
-## Example
-
-    (package-repository
-       {:repository-name \"Partner\"
-        :url \"http://archive.canonical.com/\"
-        :scopes [\"partner\"]})"
-  [packager {:as options}])
-
-(defaction package-source-action
-  "Control package sources.
-   Options are the package manager specific keywords.
-
-## `:aptitude`
-
-`:source-type source-string`
-: the source type (default \"deb\")
-
-`:url url-string`
-: the repository url
-
-`:scopes seq`
-: scopes to enable for repository
-
-`:release release-name`
-: override the release name
-
-`:key-url url-string`
-: url for key
-
-`:key-server hostname`
-: hostname to use as a keyserver
-
-`:key-id id`
-: id for key to look it up from keyserver
-
-## `:yum`
-
-`:name name`
-: repository name
-
-`:url url-string`
-: repository base url
-
-`:gpgkey url-string`
-: gpg key url for repository
-
-## Example
-
-    (package-source \"Partner\"
-      :aptitude {:url \"http://archive.canonical.com/\"
-                 :scopes [\"partner\"]})"
-  [session name {:keys [packager]}])
-
-
-(defaction file [session path options])
-(defaction symbolic-link [session from name options])
-(defaction fifo [session path options])
-(defaction sed [session path exprs-map options])
-
-(defaction directory [session dir-path options])
-
+;;; ## Rsync
 (defaction rsync [session local-path remote-path {:keys [port]}])
 (defaction rsync-to-local [session remote-path local-path {:keys [port]}])

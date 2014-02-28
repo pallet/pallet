@@ -8,7 +8,7 @@
    [pallet.session :refer [user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
-   [pallet.stevedore :refer [fragment script]]))
+   [pallet.stevedore :as stevedore :refer [fragment script]]))
 
 (def ^:dynamic *script-location-info* true)
 
@@ -50,42 +50,33 @@
   [_ service-name]
   (str (fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
 
-;;; # File names for transfers
+;;; # Script Combinators
+(defn context-string
+  "The string that is used to represent the phase context for :in-sequence
+  actions."
+  {:no-doc true}
+  []
+  (when-let [ctxt (seq (context/phase-contexts))]
+    (str (string/join ": " ctxt) ": ")))
 
-;;; These paths create a parallel directory tree under "/var/lib/pallet" which
-;;; contains the up/downloaded files, the md5s and the installed file history.
+(defmacro checked-script
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  `(stevedore/checked-script
+    (str (context-string) ~name)
+    ~@script))
 
-;;; To facilitate md5 checks the basename of the generated copy-filename should
-;;; match the original basename, and the md5 file should be in the same
-;;; directory.
+(defmacro checked-commands*
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name scripts]
+  `(stevedore/checked-commands*
+    (str (context-string) ~name)
+    ~scripts))
 
-;;; Note that we can not use remote evaluated expressions in these paths, as
-;;; they are used locally.
-
-;; (defn- adjust-root
-;;   [^String script-dir ^String path]
-;;   (if (.startsWith path "/")
-;;     path
-;;     (fragment
-;;      (file ~(or script-dir
-;;                 ;; use /home so we have a path tha doesn't
-;;                 ;; involve shell vars
-;;                 (str "/home/" (:username (user {})))) ;; TODO FIXME
-;;            ~path))))
-
-;; (defn new-filename
-;;   "Generate a temporary file name for a given path."
-;;   [script-dir path]
-;;   (fragment
-;;    (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
-
-;; (defn md5-filename
-;;   "Generate a md5 file name for a given path."
-;;   [script-dir path]
-;;   (fragment
-;;    (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
-
-;; (defn copy-filename
-;;   "Generate a file name for a copy of the given path."
-;;   [script-dir path]
-;;   (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))
+(defn checked-commands
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  (checked-commands* name script))

@@ -5,10 +5,10 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.compute.jvm :as jvm]
+   [pallet.core.script-builder :as script-builder]
    [pallet.execute :as execute
     :refer [log-script-output result-with-error-map status-lines]]
    [pallet.script :as script]
-   [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore]
    [pallet.transport :as transport]
    [pallet.transport.local]

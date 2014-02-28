@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-script* file]]
-   [pallet.actions.decl :refer [checked-commands*]]
+   [pallet.actions.impl :refer [checked-commands*]]
    [pallet.build-actions
     :refer [build-actions build-plan build-script target-session]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]

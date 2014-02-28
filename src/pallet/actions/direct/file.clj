@@ -2,8 +2,8 @@
   "File manipulation."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions.decl :refer [file fifo sed symbolic-link
-                                checked-script checked-commands]]
+   [pallet.actions.decl :refer [file fifo sed symbolic-link]]
+   [pallet.actions.impl :refer [checked-script checked-commands]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 

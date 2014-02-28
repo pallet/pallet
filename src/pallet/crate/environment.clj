@@ -4,7 +4,7 @@
    [clojure.string :as string]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-script* remote-file]]
-   [pallet.actions.decl :refer [checked-commands*]]
+   [pallet.actions.impl :refer [checked-commands*]]
    [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]

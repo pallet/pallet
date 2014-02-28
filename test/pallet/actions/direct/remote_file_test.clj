@@ -1,10 +1,10 @@
 (ns pallet.actions.direct.remote-file-test
   (:require
    [clojure.test :refer :all]
-   [pallet.actions.decl :refer [checked-commands]]
    [pallet.actions.direct.file :refer [adjust-file]]
    [pallet.actions.direct.remote-file
     :refer [default-backup default-checksum default-file-uploader remote-file*]]
+   [pallet.actions.impl :refer [checked-commands]]
    [pallet.core.file-upload
     :refer [upload-file upload-file-path user-file-path]]
    [pallet.script :as script]

@@ -1,4 +1,4 @@
-(ns pallet.script-builder
+(ns pallet.core.script-builder
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
@@ -89,7 +89,7 @@ future)."
      (if (= language :bash)
        script
        (let [interpreter (or interpreter
-                             (pallet.script-builder/interpreter options))]
+                             (pallet.core.script-builder/interpreter options))]
          (stevedore/script
           (var t (str (~make-temp-file "pallet") "." ~language))
           (var t (~make-temp-file "pallet"))

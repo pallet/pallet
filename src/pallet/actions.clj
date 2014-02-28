@@ -6,16 +6,14 @@
             wild]]
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
-   [clojure.string :refer [trim]]
+   [clojure.string :as string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [defaction]]
    [pallet.action-options
     :refer [action-options with-action-options]]
-   [pallet.actions.crate.package :as cp]
-   [pallet.actions.decl :as decl
-    :refer [if-action package-action package-manager-action
-            package-source-action remote-file-action remote-directory-action]]
+   [pallet.actions.decl :as decl]
    [pallet.actions.impl :refer :all]
+   [pallet.context :as context]
    [pallet.contracts :refer [check-spec]]
    [pallet.core.file-upload :refer :all]
    [pallet.environment :refer [get-environment]]
@@ -30,11 +28,28 @@
 
 (defalias exec decl/exec)
 (defalias exec-script* decl/exec-script*)
-(defalias exec-script decl/exec-script)
-(defalias exec-checked-script decl/exec-checked-script)
 
-(defalias all-packages cp/packages)
-(defalias package-repository cp/package-repository)
+(defmacro exec-script
+  "Execute a bash script remotely. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
+  [session & script]
+  `(exec-script* ~session (stevedore/script ~@script)))
+
+(defmacro ^{:requires [#'checked-script]}
+  exec-checked-script
+  "Execute a bash script remotely, throwing if any element of the
+   script fails. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
+  [session script-name & script]
+  (let [file (.getName (io/file *file*))
+        line (:line (meta &form))]
+    `(exec-script*
+      ~session
+      (checked-script
+       (if *script-location-info*
+         ~(str script-name " (" file ":" line ")")
+         ~script-name)
+       ~@script))))
 
 ;;; # Flow Control
 (defn ^:internal plan-flag-kw
@@ -391,7 +406,7 @@ Content can also be copied from a blobstore.
     (when local-file
       (transfer-file session local-file path))
     (let [{:keys [exit] :as result}
-          (remote-file-action
+          (decl/remote-file
            session
            path
            (merge
@@ -528,7 +543,7 @@ only specified files or directories, use the :extract-files option.
                                    :sudo-user (:sudo-user (admin-user session))}
                                   local-file-options)
       (directory session path {:owner owner :group group :recursive false})
-      (remote-directory-action
+      (decl/remote-directory
        session
        path
        (merge
@@ -567,10 +582,9 @@ only specified files or directories, use the :extract-files option.
                                y true
                                priority 50}
                           :as options}]
-     (package-action session package-name
-                     (merge {:packager (packager session)} options)))
+     (decl/package session package-name
+                   (merge {:packager (packager session)} options)))
   ([session package-name] (package session package-name {})))
-
 
 ;; (defn packages
 ;;   "Install a list of packages keyed on packager.
@@ -585,7 +599,6 @@ only specified files or directories, use the :extract-files option.
 ;;                     (when (#{:apt :aptitude} packager)
 ;;                       (options (first (disj #{:apt :aptitude} packager)))))]
 ;;         (apply-map package session p (dissoc options :aptitude :brew :pacman :yum))))))
-
 
 ;; (defn all-packages
 ;;   "Install a list of packages."
@@ -609,7 +622,7 @@ only specified files or directories, use the :extract-files option.
    To enable non-free on debian:
        (package-manager session :add-scope :scope :non-free)"
   ([session action {:keys [packages scope] :as options}]
-     (package-manager-action
+     (decl/package-manager
       session action (merge {:packager (packager session)} options)))
   ([session action]
      (package-manager session action {})))
@@ -661,54 +674,7 @@ only specified files or directories, use the :extract-files option.
   {:always-before #{package-manager package}
    :execution :aggregated}
   [session name {:keys [] :as options}]
-  (package-source-action session name (merge {:packager (packager session)})))
-
-(defn package-repository
-  "Control package repository.
-   Options are a map of packager specific options.
-
-## aptitude and apt-get
-
-`:source-type source-string`
-: the source type (default \"deb\")
-
-`:url url-string`
-: the repository url
-
-`:scopes seq`
-: scopes to enable for repository
-
-`:release release-name`
-: override the release name
-
-`:key-url url-string`
-: url for key
-
-`:key-server hostname`
-: hostname to use as a keyserver
-
-`:key-id id`
-: id for key to look it up from keyserver
-
-## yum
-
-`:name name`
-: repository name
-
-`:url url-string`
-: repository base url
-
-`:gpgkey url-string`
-: gpg key url for repository
-
-## Example
-
-    (package-repository
-       {:repository-name \"Partner\"
-        :url \"http://archive.canonical.com/\"
-        :scopes [\"partner\"]})"
-  [{:as options}]
-  (cp/package-repository options))
+  (decl/package-source session name (merge {:packager (packager session)})))
 
 (defaction add-rpm
   "Add an rpm.  Source options are as for remote file."

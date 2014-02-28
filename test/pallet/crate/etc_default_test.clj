@@ -1,9 +1,8 @@
 (ns pallet.crate.etc-default-test
   (:require
    [clojure.test :refer :all]
-   [pallet.action :refer [action-fn]]
    [pallet.actions :refer [remote-file]]
-   [pallet.actions.decl :refer [remote-file-action]]
+   [pallet.actions.direct.remote-file :refer [remote-file*]]
    [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.etc-default :as default]
@@ -15,8 +14,6 @@
 (use-fixtures :once
               with-ubuntu-script-template with-bash-script-language
               (logging-threshold-fixture))
-
-(def remote-file* (action-fn remote-file-action :direct))
 
 (deftest default-test
   (is (=

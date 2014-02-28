@@ -23,3 +23,6 @@
                    :public-key-path public-key-path
                    :passphrase passphrase
                    :sudo-password password}))))))
+
+(deftest admin-user-test
+  (is (user? *admin-user*)))
