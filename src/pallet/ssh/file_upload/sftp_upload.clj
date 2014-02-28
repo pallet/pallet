@@ -13,7 +13,6 @@
    [pallet.ssh.execute :refer [with-connection]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
-   [pallet.core.session :refer [admin-user]]
    [pallet.stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.utils :refer [base64-md5]])

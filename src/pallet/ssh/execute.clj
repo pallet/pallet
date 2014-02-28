@@ -31,7 +31,8 @@
   "Return the user to use for authentication.  This is not necessarily the
   admin user (e.g. when bootstrapping, it is the image user)."
   [session]
-  (logging/debugf "authentication %s" (obfuscated-passwords (:user session)))
+  (logging/debugf "authentication %s"
+                  (into {} (obfuscated-passwords (:user session))))
   {:user (:user session)})
 
 (defn endpoint
