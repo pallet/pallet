@@ -14,6 +14,7 @@
                            minimal-packages
                            package-source-changed-flag]]
    [pallet.actions.decl :refer [package
+                                packages
                                 package-manager
                                 package-repository
                                 package-source]]
@@ -162,8 +163,7 @@
              (chain-and
               ("enableStart")
               ("trap" - EXIT))))
-          ""))))
-   (stevedore/script (~lib/list-installed-packages))))
+          ""))))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -243,6 +243,18 @@
       [(package-map package-name (dissoc options :packager))]))])
 
 (implement-action package :direct {} package*)
+
+(defn packages*
+  [action-state package-names options]
+  (logging/tracef "packages %s" package-names)
+  [{:language :bash
+    :summary (str "packages " (string/join " " package-names))}
+   (with-script-context (conj *script-context* (:packager options))
+     (adjust-packages
+      (:packager options)
+      (map #(package-map % (dissoc options :packager)) package-names)))])
+
+(implement-action packages :direct {} packages*)
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"

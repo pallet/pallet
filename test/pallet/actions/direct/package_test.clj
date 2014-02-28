@@ -6,7 +6,7 @@
    [pallet.actions.decl :refer [remote-file]]
    [pallet.actions.impl :refer [checked-commands]]
    [pallet.actions.direct.package
-    :refer [add-scope* adjust-packages package*
+    :refer [add-scope* adjust-packages package* packages*
             package-manager* package-source*]]
    [pallet.actions.direct.file :refer [sed*]]
    [pallet.actions.direct.remote-file :refer [remote-file*]]
@@ -53,8 +53,7 @@
                 (lib/package-manager-non-interactive)
                 (chain-and
                  (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-                 "apt-get -q -y install rubygems+"
-                 ("dpkg" "--get-selections")))
+                 "apt-get -q -y install rubygems+"))
                (package "rubygems" {:packager :apt}))))
         (testing "explicit install"
           (is (script-no-comment=
@@ -63,8 +62,7 @@
                 (lib/package-manager-non-interactive)
                 (chain-and
                  (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-                 "apt-get -q -y install java+"
-                 ("dpkg" "--get-selections")))
+                 "apt-get -q -y install java+"))
                (package "java" {:action :install :packager :apt}))))
         (testing "remove"
           (is (script-no-comment=
@@ -73,8 +71,7 @@
                 (lib/package-manager-non-interactive)
                 (chain-and
                  (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-                 "apt-get -q -y install git-"
-                 ("dpkg" "--get-selections")))
+                 "apt-get -q -y install git-"))
                (package "git" {:action :remove :packager :apt}))))
         (testing "purge"
           (is (script-no-comment=
@@ -83,8 +80,7 @@
                 (lib/package-manager-non-interactive)
                 (chain-and
                  (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-                 "apt-get -q -y install ruby_"
-                 ("dpkg" "--get-selections")))
+                 "apt-get -q -y install ruby_"))
                (package "ruby"
                         {:action :remove :purge true :packager :apt})))))))
 
@@ -564,24 +560,19 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 ;;             "source1"
 ;;             {:url "http://somewhere/yum"}))))))
 
-;; (deftest packages-test
-;;   (let [a (group-spec "a" :packager :aptitude)
-;;         b (group-spec "b" :packager :yum)]
-;;     (is (script-no-comment=
-;;          (first
-;;           (build-actions [session {}]
-;;             (plan-context packages {}
-;;               (package "git-apt")
-;;               (package "git-apt2"))))
-;;          (first (build-actions [session {}]
-;;                   (packages session "git-apt" "git-apt2")))))
-;;     (is (script-no-comment=
-;;          (first
-;;           (build-actions [session centos-session]
-;;             (plan-context packages {}
-;;               (package "git-yum"))))
-;;          (first (build-actions [session centos-session]
-;;                   (packages session ["git-yum"])))))))
+(deftest packages-test
+  (is (script-no-comment=
+       (with-script-context [:ubuntu :apt]
+         (stevedore/checked-script
+          "Packages"
+          (lib/package-manager-non-interactive)
+          (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+          ("apt-get" -q -y install git+ git2+)))
+       (second (packages* {} ["git" "git2"] {:packager :apt}))))
+  (with-script-context [:centos]
+    (is (script-no-comment=
+         (second (package* {} "git-yum" {:packager :yum}))
+         (second (packages* {} ["git-yum"] {:packager :yum}))))))
 
 ;; (deftest adjust-packages-test
 ;;   (testing "apt"

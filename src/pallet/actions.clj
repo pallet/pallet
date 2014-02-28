@@ -31,7 +31,6 @@
 
 (defmacro exec-script
   "Execute a bash script remotely. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
   [session & script]
   `(exec-script* ~session (stevedore/script ~@script)))
 
@@ -39,7 +38,6 @@
   exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
   [session script-name & script]
   (let [file (.getName (io/file *file*))
         line (:line (meta &form))]
@@ -426,7 +424,6 @@ Content can also be copied from a blobstore.
    f should be a function taking [session local-path & _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
-  {:pallet/plan-fn true}
   [session f path & args]
   (let [local-path (tmpfile)]
     (plan-context with-remote-file-fn {:local-path local-path}
@@ -437,7 +434,6 @@ Content can also be copied from a blobstore.
 (defn remote-file-content
   "Return a function that returns the content of a file, when used inside
    another action."
-  {:pallet/plan-fn true}
   [session path]
   {:pre [(target-session? session)]}
   (let [nv (exec-script session (~lib/cat ~path))]
@@ -564,6 +560,26 @@ only specified files or directories, use the :extract-files option.
 ;;; # Packages
 (defalias package-source-changed-flag decl/package-source-changed-flag)
 
+(defplan packages
+  "Install packages with common options.
+
+   Options
+    - :action [:install | :remove | :upgrade]
+    - :purge [true|false]         when removing, whether to remove all config
+    - :enable [repo|(seq repo)]   enable specific repository
+    - :disable [repo|(seq repo)]  disable specific repository
+    - :priority n                 priority (0-100, default 50)
+    - :disable-service-start      disable service startup (default false)
+    - :allow-unsigned             install package even if unsigned
+
+       (packages session [\"git\" \"git-email\"])
+       (packages session [\"git-core\" \"git-email\"] {:action :remove})"
+  ([session package-names {:keys [yum aptitude pacman brew] :as options}]
+     (let [packager (packager session)]
+       (decl/packages session package-names options)))
+  ([session package-names]
+     (packages session package-names {})))
+
 (defn package
   "Install or remove a package.
 
@@ -585,25 +601,6 @@ only specified files or directories, use the :extract-files option.
      (decl/package session package-name
                    (merge {:packager (packager session)} options)))
   ([session package-name] (package session package-name {})))
-
-;; (defn packages
-;;   "Install a list of packages keyed on packager.
-;;        (packages session
-;;          :yum [\"git\" \"git-email\"]
-;;          :aptitude [\"git-core\" \"git-email\"])"
-;;   {:pallet/plan-fn true}
-;;   [session & {:keys [yum aptitude pacman brew] :as options}]
-;;   (plan-context packages {}
-;;     (let [packager (packager)]
-;;       (doseq [p (or (options packager)
-;;                     (when (#{:apt :aptitude} packager)
-;;                       (options (first (disj #{:apt :aptitude} packager)))))]
-;;         (apply-map package session p (dissoc options :aptitude :brew :pacman :yum))))))
-
-;; (defn all-packages
-;;   "Install a list of packages."
-;;   [packages]
-;;   (packages-action (packager) packages))
 
 (defplan package-manager
   "Package manager controls.
@@ -724,7 +721,6 @@ The :id key must contain a recognised repository."
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
-  {:pallet/plan-fn true}
   [session from to & {:keys [owner group mode port] :as options}]
   (plan-context rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
@@ -736,7 +732,6 @@ The :id key must contain a recognised repository."
 
 (defn rsync-to-local-directory
   "Rsync from a local directory to a remote directory."
-  {:pallet/plan-fn true}
   [session from to & {:keys [owner group mode port] :as options}]
   (plan-context rsync-directory-fn {:name :rsync-directory}
     (rsync-to-local session from to options)))
@@ -830,7 +825,6 @@ Deprecated in favour of pallet.crate.service/service."
 
 (defn service-script
   "Install a service script.  Sources as for remote-file."
-  {:pallet/plan-fn true}
   [session service-name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url
                           force service-impl]
@@ -845,10 +839,8 @@ Deprecated in favour of pallet.crate.service/service."
      (merge {:action action} options))))
 
 ;;; # Retry
-;;; TODO: convert to use a nested scope in the action-plan
 (defn loop-until
-  {:no-doc true
-   :pallet/plan-fn true}
+  {:no-doc true}
   [session service-name condition max-retries standoff]
   (exec-checked-script
    session
@@ -868,7 +860,6 @@ Deprecated in favour of pallet.crate.service/service."
 
 (defmacro retry-until
   "Repeat an action until it succeeds"
-  {:pallet/plan-fn true}
   [session {:keys [max-retries standoff service-name]
             :or {max-retries 5 standoff 2}}
    condition]
@@ -892,7 +883,6 @@ Deprecated in favour of pallet.crate.service/service."
   "Execute the body on just one node of the specified roles. If there is no
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
-  {:pallet/plan-fn true}
   [session roles & body]
   `(let [target# (target)
          role->nodes# (role->nodes-map)]

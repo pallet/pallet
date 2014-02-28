@@ -26,6 +26,7 @@
 ;;; ## Packages
 (def package-source-changed-flag "packagesourcechanged")
 (defaction package [session package-name options])
+(defaction packages [session package-names options])
 (defaction package-manager [session action options])
 (defaction package-repository [packager options])
 (defaction package-source [session name options])
