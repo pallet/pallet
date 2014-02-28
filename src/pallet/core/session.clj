@@ -227,8 +227,9 @@
                                 (:action session) (:user session))
   (or
    (-> session :action :sudo-user)
-   (or (-> session :user :sudo-user)
-       (if-not (-> session :user :no-sudo) "root"))
+   (and (not= :no-sudo (-> session :action :script-prefix))
+        (or (-> session :user :sudo-user)
+            (if-not (-> session :user :no-sudo) "root")))
    (-> session :user :username)))
 
 (defn is-64bit?
