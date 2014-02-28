@@ -106,18 +106,18 @@
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  (or (node/os-family (target-node session))
-      (-> session :server :image :os-family)
+  (or (-> session :server :image :os-family)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
-          :os-family)))
+          :os-family)
+      (node/os-family (target-node session))))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  (or (node/os-version (target-node session))
-      (-> session :server :image :os-version)
+  (or (-> session :server :image :os-version)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
-          :os-version)))
+          :os-version)
+      (node/os-version (target-node session))))
 
 (defn group-name
   "Group name of the target-node."
