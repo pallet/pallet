@@ -1,41 +1,26 @@
 (ns pallet.crate.package-test
-  ;; (:require
-  ;;  [clojure.test :refer :all]
-  ;;  [pallet.actions :refer [exec-checked-script]]
-  ;;  [pallet.crate.package :refer [install package package-repository]]
-  ;;  [pallet.actions.decl :refer [remote-file-action]]
-  ;;  [pallet.build-actions :refer [build-actions]]
-  ;;  [pallet.script.lib :refer [package-manager-non-interactive rm]])
-  )
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :as actions]
+   [pallet.build-actions :refer [build-plan]]
+   [pallet.crate.package :refer [install package package-repository]]
+   [pallet.script.lib :refer [package-manager-non-interactive rm]]))
 
-;; (deftest packages-test
-;;   (is (script-no-comment=
-;;        (first
-;;         (build-actions {}
-;;           (exec-checked-script
-;;            "Packages"
-;;            (package-manager-non-interactive)
-;;            (chain-and
-;;             (defn enableStart [] (rm "/usr/sbin/policy-rc.d"))
-;;             "apt-get -q -y install git+ ruby+"
-;;             ("dpkg" "--get-selections")))))
-;;        (first
-;;         (build-actions {:server {:tag :n :image {:os-family :ubuntu}}}
-;;           (package "git")
-;;           (package "ruby")
-;;           (install {}))))))
+(deftest packages-test
+  (is (=
+       (build-plan [session {}]
+         (actions/packages session ["git" "ruby"]))
+       (build-plan [session {}]
+         (package session "git")
+         (package session "ruby")
+         (install session {})))))
 
-;; (deftest package-repository-test
-;;   (is (script-no-comment=
-;;        (first
-;;         (build-actions {}
-;;           (remote-file-action
-;;            "/etc/apt/sources.list.d/source1.list"
-;;            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
-;;             :flag-on-changed "packagesourcechanged"})))
-;;        (first
-;;         (build-actions {:server {:tag :n :image {:os-family :ubuntu}}}
-;;           (package-repository
-;;            "source1"
-;;            {:url "http://somewhere/apt" :scopes ["main"]})
-;;           (install {}))))))
+(deftest package-repository-test
+  (is (=
+       (build-plan [session {}]
+         (actions/package-source
+          session "source1" {:url "http://somewhere/apt" :scopes ["main"]}))
+       (build-plan [session {}]
+         (package-repository
+          session "source1" {:url "http://somewhere/apt" :scopes ["main"]})
+         (install session {})))))
