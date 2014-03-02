@@ -3,9 +3,9 @@
    [clojure.test :refer :all]
    [pallet.core.plan-state :refer :all]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
-   [simple-check.core :as sc]
-   [simple-check.generators :as gen]
-   [simple-check.properties :as prop]))
+   [clojure.test.check :as sc]
+   [clojure.test.check.generators :as gen]
+   [clojure.test.check.properties :as prop]))
 
 (deftest sort-scopes-test
   (is (= [[[:host :h] :hv] [[:group :g] :gv] [[:service :s] :sv]]

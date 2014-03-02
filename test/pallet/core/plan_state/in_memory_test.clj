@@ -4,7 +4,7 @@
    [pallet.core.plan-state :refer :all]
    [pallet.core.plan-state.in-memory :as in-memory]
    [pallet.core.plan-state-test :refer [plan-state-read-write-test]]
-   [simple-check.core :as simple-check]))
+   [clojure.test.check :as clojure.test.check]))
 
 (deftest get-scope-test
   (testing "a plan-state with a host path"
