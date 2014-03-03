@@ -55,4 +55,15 @@
   (is (thrown? Exception (eval `(plan-fn nil)))
       "Plan-fn with no arg vector should fail to compile"))
 
+(defmulti-plan mp (fn [session] (:dispatch session)))
+(defmethod-plan mp :default [_] ::default)
+(defmethod-plan mp :x [_] ::x)
+
+(deftest multi-plan-test
+  (is (= '[[session]] (-> #'mp meta :arglists)))
+  (is (= ::default (mp {})))
+  (is (= ::x (mp {:dispatch :x})))
+  (is (thrown? clojure.lang.ArityException
+               (mp {:dispatch :x} :y))))
+
 ;; TODO add plan-context tests

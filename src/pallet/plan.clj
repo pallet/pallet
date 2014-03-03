@@ -34,7 +34,9 @@ functions with more defaults, etc."
    [pallet.target :refer [has-node? set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils
-    :refer [apply-map local-env map-arg-and-ref]])
+    :refer [apply-map local-env map-arg-and-ref]]
+   [pallet.utils.multi :as multi
+    :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
@@ -259,7 +261,7 @@ The result is also written to the recorder in the session."
           (recur (last form)))))))
 
 (defmacro defplan
-  "Define a plan function."
+  "Define a plan function. Assumes the first argument is a session map."
   {:arglists '[[name doc-string? attr-map? [params*] body]]
    :indent 'defun}
   [sym & body]
@@ -300,58 +302,77 @@ The result is also written to the recorder in the session."
 
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan
-  "Declare a multimethod for plan functions"
+  "Declare a multimethod for plan functions.  Does not have defonce semantics.
+  Methods will automatically be wrapped in a plan-context."
   {:arglists '([name docstring? attr-map? dispatch-fn
-                & {:keys [hierarchy] :as options}])}
+                {:keys [hierarchy] :as options}])}
   [name & args]
-  (let [[docstring args] (if (string? (first args))
-                           [(first args) (rest args)]
-                           [nil args])
-        [attr-map args] (if (map? (first args))
-                          [(first args) (rest args)]
-                          [nil args])
-        dispatch-fn (first args)
-        {:keys [hierarchy]
-         :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
-        args (first (filter vector? dispatch-fn))
-        name (vary-meta name assoc :pallet/plan-fn true)]
-    `(let [a# (atom {})]
-       (def
-         ~name
-         ^{:dispatch-fn (fn [~@args] ~@(rest dispatch-fn))
-           :methods a#}
-         (fn [~@args]
-           (let [dispatch-val# ((-> ~name meta :dispatch-fn) ~@args)]
-             (if-let [f# (or (get @a# dispatch-val#)
-                             (some
-                              (fn [[k# f#]]
-                                (when (isa? @~hierarchy dispatch-val# k#)
-                                  f#))
-                              @a#)
-                             (get @a# :default))]
-               (f# ~@args)
-               (throw
-                (ex-info
-                 (format "Missing defmulti-plan %s method for dispatch value %s"
-                         ~(clojure.core/name name) (pr-str dispatch-val#))
-                 {:reason :missing-method
-                  :plan-multi ~(clojure.core/name name)})))))))))
+  (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
+        {:keys [hierarchy]} options
+        args (first (filter vector? dispatch))
+        f (gensym "f")
+        m (gensym "m")]
+    `(let [~f (dispatch-key-fn
+               ~dispatch
+               {~@(if hierarchy `[:hierarchy ~hierarchy]) ~@[]
+                :name '~name})
+           ~m (dispatch-map ~f)]
+       ~(with-meta
+          `(defn ~name
+             {::dispatch (atom ~m)
+              :arglists '~[args]}
+             [& [~@args :as argv#]]
+             (multi/check-arity ~name ~(count args) (count argv#))
+             (~f (:methods @(-> #'~name meta ::dispatch)) argv#))
+          (meta &form)))))
 
-(defn
-  ^{:internal true :indent 2}
-  add-plan-method-to-multi
-  [multifn dispatch-val f]
-  (swap! (-> multifn meta :methods) assoc dispatch-val f))
+(defmacro defmulti-every
+  "Declare a multimethod where method dispatch values have to match
+  all of a sequence of predicates.  Each predicate will be called with the
+  dispatch value, and the argument vector.  When multiple dispatch methods
+  match, the :selector option will be called on the sequence of matching
+  dispatches, and should return the selected match.  :selector defaults
+  to `first`.
+
+  Use defmethod-plan to add methods to defmulti-every."
+
+  {:arglists '([name docstring? attr-map? dispatch-fns
+                {:keys [selector] :as options}])}
+  [name & args]
+  (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
+        {:keys [selector]} options
+        args (or (first (:arglists (meta name))) '[& args])
+        f (gensym "f")
+        m (gensym "m")]
+    `(let [~f (dispatch-every-fn
+               ~dispatch
+               {~@(if selector `[:selector ~selector]) ~@[]
+                :name '~name})
+           ~m (dispatch-map ~f)]
+       ~(with-meta
+          `(defn ~name
+             {::dispatch (atom ~m)
+              :arglists '~[args]}
+             [& [~@args :as argv#]]
+             (~f (:methods @(-> #'~name meta ::dispatch)) argv#))
+          (meta &form)))))
 
 (defmacro defmethod-plan
-  {:indent 2}
   [multifn dispatch-val args & body]
   (letfn [(sanitise [v]
             (string/replace (str v) #":" ""))]
-    `(add-plan-method-to-multi ~multifn ~dispatch-val
-       (fn [~@args]
-         (plan-context
-             ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
-             {:msg ~(name multifn) :kw ~(keyword (name multifn))
-              :dispatch-val ~dispatch-val}
-           ~@body)))))
+    (when-not (resolve multifn)
+      (throw (compiler-exception
+              &form (str "Could not find defmulti-plan " multifn))))
+    `(swap!
+      (-> #'~multifn meta ::dispatch)
+      add-method
+      ~dispatch-val
+      ~(with-meta
+         `(fn [~@args]
+            (plan-context
+                ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
+                {:msg ~(name multifn) :kw ~(keyword (name multifn))
+                 :dispatch-val ~dispatch-val}
+              ~@body))
+         (meta &form)))))

@@ -17,11 +17,12 @@ data may provide a version."
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
    [pallet.exception :refer [compiler-exception]]
-   [pallet.plan :refer [plan-context]]
+   [pallet.plan :refer [plan-context defmulti-every]]
    [pallet.target :refer [os-family os-version]]
+   [pallet.utils.multi :as multi]
    [pallet.versions :refer [as-version-vector version-matches? version-spec?]]))
 
-(defn ^{:internal true} hierarchy-vals
+(defn ^:internal hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
   [hierarchy]
   (set
@@ -54,21 +55,48 @@ data may provide a version."
            :os-version os-version
            :version version}))))))
 
+
+(defn ^:internal multi-version-selector
+  [methods hierarchy]
+  (->>
+   methods
+   (sort
+    (comparator
+     (fn [x y]
+       ((os-match-less hierarchy)
+        (key x) (key y)))))
+   first))
+
+(defn os-matches? [k os]
+  (and (map? k) (isa? os-hierarchy os (:os k))))
+
+(defn os-version-matches [k os-version]
+  (and (map? k) (version-matches? os-version (:os-version k))))
+
+(defn component-version-matches [k version]
+  (and (map? k) (version-matches? version (:version k))))
+
 (defmacro defmulti-version
   "Defines a multi-version function used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."
-  {:indent 2}
-  [name [os os-version version & args] hierarchy-place]
-  `(do
-     (let [h# ~hierarchy-place
-           m# (atom {})]
-       (defn ~name
-         {:hierarchy h# :methods m#}
-         [~os ~os-version ~version ~@args]
-         (dispatch-version '~name
-          ~os ~os-version ~version [~@args] (var-get h#) @m#)))))
+  {:arglists
+   '[[name [os os-version version & args :as dispatch] & {:keys [hierarchy]}]]}
+  [name & args]
+  (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
+        hierarchy (:hierarchy options 'pallet.compute/os-hierarchy)
+        attr (dissoc (meta name) [:file :line :ns])]
+    `(defmulti-every ~name
+       ~@(if attr [attr])
+       [(fn [k# [os# os-version# version#]]
+          (and (map? k#) (isa? ~hierarchy os# (:os k#))))
+        (fn [k# [os# os-version# version#]]
+          (and (map? k#) (version-matches? os-version# (:os-version k#))))
+        (fn [k# [os# os-version# version#]]
+          (and (map? k#) (version-matches? version# (:version k#))))]
+       {:selector #(multi-version-selector % ~hierarchy)})))
+
 
 (defmacro defmethod-version
   "Adds a method to the specified multi-version function for the specified

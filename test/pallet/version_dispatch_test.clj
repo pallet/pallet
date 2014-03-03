@@ -2,43 +2,42 @@
   (:require
    [clojure.test :refer :all]
    [pallet.compute :refer [os-hierarchy]]
+   [pallet.plan :refer [defmethod-plan]]
    [pallet.test-utils]
    [pallet.version-dispatch :refer :all]))
 
-(defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
+(defmulti-version os-ver [os os-ver ver arg] os-hierarchy)
 
-(defmethod-version
+(defmethod-plan
     os-ver {:os :rhel :os-version [1 0] :version nil}
     [id os-version version arg]
   [arg 1])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :rh-base :os-version [[2 0] nil] :version [2 1]}
     [os os-version version arg]
   [arg 2])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :centos :os-version [nil [1 0]] :version [nil [3 1]]}
     [os os-version version arg]
   [arg 3])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :debian :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 4])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :ubuntu :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 5])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :ubuntu :os-version [[1 2] [1 3]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 6])
-(defmethod-version
+(defmethod-plan
     os-ver {:os :ubuntu :os-version [[1 1] [1 4]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 7])
 
 (deftest basic
-  (is (:hierarchy (meta #'os-ver)))
-  (is (:methods (meta #'os-ver)))
   (testing "basic dispatch"
     (is (= [::arg 1]  (os-ver :rhel [1 0] [9 9] ::arg)))
     (is (= [::arg 2]  (os-ver :rhel [3 0] [2 1] ::arg)))
