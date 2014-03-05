@@ -5,10 +5,10 @@
    [pallet.actions.direct.rsync
     :refer [default-options rsync-command rsync-sudo-user]]
    [pallet.local.execute :refer [local-checked-script]]
-   [pallet.core.session
-    :refer [admin-user effective-username target-ip target-node]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
+   [pallet.core.session
+    :refer [admin-user target-ip target-node]]
    [pallet.node :refer [ssh-port]]
    [pallet.ssh.file-upload.sftp-upload :refer [target]]))
 
@@ -33,8 +33,6 @@
   FileUpload
   (upload-file-path [_ session target-path action-options]
     (target upload-root (rsync-user session) target-path))
-  (user-file-path [_ session target-path action-options username]
-    (target upload-root username target-path))
   (upload-file
     [_ session local-path target-path action-options]
     (rsync-upload-file

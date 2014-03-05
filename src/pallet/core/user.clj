@@ -92,3 +92,11 @@
   (-> user
       (maybe-update-in [:password] obfuscate)
       (maybe-update-in [:sudo-password] obfuscate)))
+
+(defn effective-username
+  "Return the effective username for a user.  This is the :sudo-user,
+  unless :no-sudo is set, in which case it is just the :username."
+  [{:keys [no-sudo sudo-user username]}]
+  (if no-sudo
+    username
+    (or sudo-user "root")))
