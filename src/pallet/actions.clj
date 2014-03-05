@@ -44,9 +44,9 @@
     `(exec-script*
       ~session
       (checked-script
-       (if *script-location-info*
-         ~(str script-name " (" file ":" line ")")
-         ~script-name)
+       (str ~script-name
+            (if *script-location-info*
+              ~(str " (" file ":" line ")")))
        ~@script))))
 
 ;;; # Flow Control
