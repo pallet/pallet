@@ -4,12 +4,17 @@
    [pallet.actions :refer [directory exec-checked-script]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.crate.filesystem :as filesystem]))
+   [pallet.crate.filesystem :as filesystem]
+   [pallet.test-utils
+    :refer [with-no-source-line-comments no-location-info]]))
 
-(use-fixtures :once (logging-threshold-fixture))
+(use-fixtures :once
+  (logging-threshold-fixture)
+  no-location-info
+  with-no-source-line-comments)
 
 (deftest make-xfs-filesytem-test
-  (is (script-no-comment=
+  (is (=
        (first
         (build-actions/build-actions
          {:phase-context "make-xfs-filesytem"}
@@ -22,7 +27,7 @@
          (filesystem/make-xfs-filesytem "/dev/a"))))))
 
 (deftest mount-test
-  (is (script-no-comment=
+  (is (=
        (first
         (build-actions/build-actions
          {:phase-context "mount"}
@@ -35,7 +40,7 @@
         (build-actions/build-actions
          {}
          (filesystem/mount "/dev/a" "/mnt/a")))))
-  (is (script-no-comment=
+  (is (=
        (first
         (build-actions/build-actions
          {:phase-context "mount"}
