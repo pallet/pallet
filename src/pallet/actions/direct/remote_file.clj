@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.action :refer [action-options implement-action]]
    [pallet.action-plan :as action-plan]
    [pallet.actions
@@ -13,7 +14,7 @@
             wait-for-file]]
    [pallet.actions-impl
     :refer [copy-filename md5-filename new-filename upload-filename
-            remote-file-action]]
+            remote-file-action setup-node-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.core.file-upload
@@ -26,9 +27,9 @@
    [pallet.script.lib :refer [wait-while]]
    [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.ssh.node-state
-    :refer [new-file-content record-checksum verify-checksum]]
+    :refer [new-file-content record-checksum setup-node-script verify-checksum]]
    [pallet.ssh.node-state.state-root
-    :refer [state-root-backup state-root-checksum]]
+    :refer [state-root-backup state-root-checksum state-root-setup]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment script]]
    [pallet.template :as templates]
@@ -37,6 +38,7 @@
 (def default-file-uploader (sftp-upload {}))
 (def default-checksum (state-root-checksum {}))
 (def default-backup (state-root-backup {}))
+(def default-node-setup (state-root-setup {}))
 
 (defn file-uploader
   [action-options]
@@ -257,4 +259,13 @@
                      (str "Waiting for " path " to be removed")
                      (str "Failed waiting for " path " to be removed")])]
       (wait-while test-expr standoff max-retries waiting-msg failed-msg))]
+   session])
+
+(implement-action setup-node-action :direct
+  {:action-type :script :location :target}
+  [session usernames]
+  [[{:language :bash}
+    (setup-node-script
+     (or (:node-setup action-options) default-node-setup)
+     session usernames)]
    session])
