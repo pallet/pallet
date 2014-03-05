@@ -17,14 +17,15 @@
             remote-file-action setup-node-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.core.file-upload
-    :refer [upload-file upload-file-path user-file-path]]
-   [pallet.core.session :refer [effective-username]]
+   [pallet.core.file-upload :as file-upload
+    :refer [upload-file upload-file-path]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit mkdir
             path-group path-mode path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
+   [pallet.ssh.content-files :refer [content-path]]
+   [pallet.ssh.content-files.user-content-files :refer [user-content-files]]
    [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.ssh.node-state
     :refer [new-file-content record-checksum setup-node-script verify-checksum]]
@@ -39,6 +40,7 @@
 (def default-checksum (state-root-checksum {}))
 (def default-backup (state-root-backup {}))
 (def default-node-setup (state-root-setup {}))
+(def default-content-files (user-content-files {}))
 
 (defn file-uploader
   [action-options]
@@ -111,11 +113,12 @@
           uploader (file-uploader action-options)
           file-checksum (or (:file-checksum action-options) default-checksum)
           file-backup (or (:file-backup action-options) default-backup)
+          content-files (or (:content-files action-options)
+                            default-content-files)
 
           new-path (if local-file
                      (upload-file-path uploader session path action-options)
-                     (user-file-path uploader session path action-options
-                                     (effective-username session)))
+                     (content-path content-files session action-options path))
           md5-path (str new-path ".md5")
 
           proxy (get-for session [:proxy] nil)

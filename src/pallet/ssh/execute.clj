@@ -8,8 +8,8 @@
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.core.session :refer [effective-username]]
-   [pallet.core.user :refer [obfuscated-passwords]]
+   [pallet.core.session :refer [effective-user]]
+   [pallet.core.user :refer [effective-username obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
@@ -214,7 +214,7 @@
                 rv))))
     (transport/send-stream
      connection (io/input-stream file) remote-name {:mode 0600}))
-  (let [effective-user (effective-username session)
+  (let [effective-user (effective-username (effective-user session))
         state-group (-> session :user :state-group)]
     (cond
      state-group
