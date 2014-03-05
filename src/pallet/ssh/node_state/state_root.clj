@@ -7,10 +7,11 @@
    [pallet.script.lib :as lib
     :refer [canonical-path cat chgrp chmod chown cp diff dirname exit file ls
             md5sum md5sum-verify mkdir path-group path-mode path-owner rm
-            tail user-home xargs]]
+            tail sudo tmp-dir user-home xargs]]
    [pallet.ssh.node-state :refer [file-backup file-checksum]]
-   [pallet.ssh.node-state.protocols :refer [FileBackup FileChecksum]]
-   [pallet.stevedore :refer [chain-commands chained-script fragment script]]))
+   [pallet.ssh.node-state.protocols :refer [FileBackup FileChecksum NodeSetup]]
+   [pallet.stevedore
+    :refer [chain-commands chain-commands* chained-script fragment script]]))
 
 (defn default-state-root
   "Provide a computed default for state-root if it isn't set."
@@ -192,6 +193,32 @@ permissions. Note this is not the final directory."
       (create-path-with-template path state-path)
       (record-md5 path (md5-path state-path)))))
 
+(defrecord StateRootSetup [state-root]
+  NodeSetup
+  (setup-node-script [_ session usernames]
+    (chain-commands*
+     (for [username usernames
+           :let [dir (state-path session state-root
+                                 (fragment (user-home ~username)))
+                 tmp (fragment
+                      @(chain-or
+                        ((sudo :no-prompt true :user ~username)
+                         "/bin/bash" -l -c (quoted echo (str "'" (tmp-dir) "'")))
+                        (println (file (tmp-dir) ~username))))
+                 tmp-dir (state-path session state-root tmp)]]
+       (fragment
+        (chain-and
+         (set! dir ~dir)
+         (println "Creating user dir " @dir)
+         (mkdir @dir :path true)
+         (chmod "0700" @dir)
+         (chown ~username @dir)
+         (set! dir ~tmp-dir)
+         (println "Creating user tmp " @dir)
+         (mkdir @dir :path true)
+         (chmod "0700" @dir)
+         (chown ~username @dir)))))))
+
 (defn state-root-backup
   "Return a state-root backup instance that can keep backups."
   [{:keys [state-root] :as options}]
@@ -201,6 +228,11 @@ permissions. Note this is not the final directory."
   "Return a state-root checksum instance that can verify md5 checksums."
   [{:keys [state-root] :as options}]
   (map->StateRootChecksum options))
+
+(defn state-root-setup
+  "Return a state-root-setup instance that can setup the state root."
+  [{:keys [state-root] :as options}]
+  (map->StateRootSetup options))
 
 (defmethod file-backup :state-root
   [_ options]

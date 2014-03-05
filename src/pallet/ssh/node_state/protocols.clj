@@ -11,3 +11,7 @@
     "Verify the expected MD5 of the file at path.")
   (record-checksum [_ session path]
     "Save the MD5 for the file at path."))
+
+(defprotocol NodeSetup
+  (setup-node-script [_ session usernames]
+    "Setup paths on the node for usernames"))

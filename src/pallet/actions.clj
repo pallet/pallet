@@ -363,6 +363,14 @@ value is itself an action return value."
   [m]
   (check-spec m `remote-directory-arguments &form))
 
+(defn setup-node
+  "Action to setup the node.  Use this if file transfers fail due to
+  e.g state-root not existing."
+  []
+  (with-action-options {:script-env-fwd [:TMP :TMPDIR :TEMP]
+                        :script-env {:XX (stevedore/fragment @TEMPDIR)}}
+    (setup-node-action [(:username (admin-user))])))
+
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action."

@@ -3,12 +3,13 @@
   (:require
    [clojure.test :refer :all]
    [pallet.action :refer [with-action-options]]
-   [pallet.actions :refer [directory exec-checked-script]]
+   [pallet.actions :refer [directory exec-checked-script setup-node]]
    [pallet.algo.fsmop :refer [failed?]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.api :refer [phase-errors]]
    [pallet.crate :refer [admin-user]]
+   [pallet.executors :refer [force-target-via-ssh-executor]]
    [pallet.script.lib
     :refer [chgrp chmod chown file mkdir path-group path-mode path-owner
             state-root tmp-dir user-home]]
@@ -22,34 +23,12 @@
         op (lift
             (group-spec "local")
             :phase (plan-fn
-                    (with-action-options {:script-prefix :sudo
-                                          :script-env-fwd [:TMP :TEMP :TMPDIR]}
-                      (directory
-                       (fragment (file (state-root) "pallet")))
-                      (directory
-                       (fragment (file (state-root) "pallet"
-                                       (user-home ~(:username (admin-user)))))
-                       :owner (:username (admin-user))
-                       :recursive false)
-                      ;; tmp needs handling specially, as it is not
-                      ;; necessarily root owned, while the parent dir
-                      ;; definitely is.
-                      (exec-checked-script
-                       "Ensure tmp"
-                       (if (directory? (tmp-dir))
-                         (do
-                           (set! tpath (file (state-root) "pallet" (tmp-dir)))
-                           (mkdir @tpath :path true)
-                           (if-not (== @(path-group (tmp-dir))
-                                       @(path-group $tpath))
-                             (chgrp @(path-group (tmp-dir)) @tpath))
-                           (if-not (== @(path-mode (tmp-dir))
-                                       @(path-mode $tpath))
-                             (chmod @(path-mode (tmp-dir)) @tpath))
-                           (if-not (== @(path-owner (tmp-dir))
-                                       @(path-owner $tpath))
-                             (chown @(path-owner (tmp-dir)) @tpath)))))))
+                       (with-action-options
+                         {:script-prefix :sudo
+                          :script-env-fwd [:TMP :TEMPDIR :TEMP]}
+                         (setup-node)))
             :compute compute
+            :executor force-target-via-ssh-executor
             :async true)
         session @op]
     (is (not (failed? op)))
