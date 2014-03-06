@@ -13,18 +13,6 @@
    [pallet.tag :as tag]
    [pallet.target :as target]))
 
-;;; # Middleware aware plan execution
-(ann execute [BaseSession TargetMap PlanFn -> PlanResult])
-(defn execute
-  "Apply a plan function with metadata to the target."
-  ([session target plan-fn execute-f]
-     (let [{:keys [middleware]} (meta plan-fn)]
-       (if middleware
-         (middleware session target plan-fn)
-         (execute-f session target plan-fn))))
-  ([session target plan-fn]
-     (execute session target plan-fn plan/execute)))
-
 ;;; # Admin-user setting middleware
 (ann image-user-middleware [PlanExecFn -> PlanExecFn])
 (defn image-user-middleware

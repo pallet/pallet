@@ -12,12 +12,11 @@
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
    [pallet.phase :as phase]
-   [pallet.plan :refer [plan-fn]]
+   [pallet.plan :refer [execute-target-plan plan-fn]]
    [pallet.script :as script]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
    [pallet.session.action-plan :refer [target-path]]
-   [pallet.target-ops :refer [execute-target-plan]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]))
@@ -47,13 +46,6 @@
              session target (phase/target-phase (:phases target) phase))]
         (logging/debugf "build-actions result-map %s" result-map)
         result-map))))
-
-
-;; (fn test-exec-setttings-fn [_ _]
-;;              {:user (:user session *admin-user*)
-;;               :executor echo-executor
-;;               :execute-status-fn stop-execution-on-error})
-;;            (assoc (:server session) :phases {phase f})
 
 (defn build-session
   "Takes the session map, and tries to add the most keys possible.

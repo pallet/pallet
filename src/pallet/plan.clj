@@ -1,6 +1,7 @@
 (ns pallet.plan
   "API for execution of pallet plan functions."
   (:require
+   [clojure.core.async :as async :refer [<!! chan]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
@@ -22,7 +23,8 @@
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
-   [pallet.exception :refer [compiler-exception domain-error?]]
+   [pallet.exception
+    :refer [combine-exceptions compiler-exception domain-error?]]
    [pallet.session
     :refer [base-session?
             executor plan-state recorder
@@ -30,6 +32,7 @@
    [pallet.target :refer [has-node? set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
+   [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
@@ -85,7 +88,6 @@
         (throw e))
       rv)))
 
-
 (ann execute* [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute*
   "Execute a plan function on a target.
@@ -139,7 +141,8 @@ The result is also written to the recorder in the session."
 (defn execute
   "Execute a plan function.  If there is a `target` with a `:node`,
   then we execute the plan-fn using the core execute function,
-  otherwise we just call the plan function."
+  otherwise we just call the plan function.
+  Suitable for use as a plan middleware handler function."
   [session {:keys [node] :as target} plan-fn]
   {:pre [(map? target)]}
   (debugf "execute %s %s" target plan-fn)
@@ -148,16 +151,93 @@ The result is also written to the recorder in the session."
     (if plan-fn
       {:return-value (plan-fn session)})))
 
+(def target-result-map
+  (-> plan-result-map
+      (dissoc :action-results)
+      (assoc (optional-key :action-results) [action-result-map]
+             :target {schema/Keyword schema/Any})))
+
+(defn execute-target-plan
+  "Using the session, execute plan-fn on target. Uses any plan
+  middleware defined on the plan-fn."
+  [session target plan-fn]
+  {:pre [(or (nil? plan-fn) (fn? plan-fn))]
+   :post [(validate target-result-map %)]}
+  (let [{:keys [middleware]} (meta plan-fn)]
+    (-> (if middleware
+          (middleware session target plan-fn)
+          (execute session target plan-fn))
+        (assoc :target target))))
+
+;;; # Execute Plan Functions on Mulitple Targets
+(defn ^:internal execute-plan-fns*
+  "Using the executor in `session`, execute phase on all targets.
+  The targets are executed in parallel, each in its own thread.  A
+  single [result, exception] tuple will be written to the channel ch,
+  where result is a sequence of results for each target, and exception
+  is a composite exception of any thrown exceptions.
+
+  Does not call phase middleware.  Does call plan middleware."
+  [session target-plans ch]
+  (let [c (chan)]
+    (->
+     (map-thread (fn execute-plan-fns [[target plan-fn]]
+                   (try
+                     [(execute-target-plan session target plan-fn)]
+                     (catch Exception e
+                       (let [data (ex-data e)]
+                         (if (contains? data :action-results)
+                           [data e]
+                           [nil e])))))
+                 target-plans)
+     (concat-chans c))
+    (reduce-results c ch)))
+
+(defn execute-plan-fns
+  "Execute plan functions on targets.  Write a result tuple to the
+  channel, ch.  Targets are grouped by phase-middleware, and phase
+  middleware is called.  plans are executed in parallel.
+  `target-plans` is a sequence of target, plan-fn tuples."
+  ([session target-plans ch]
+     (debugf "execute-plan-fns %s target-plans" (count target-plans))
+     (let [mw-targets (group-by (comp :phase-middleware meta second)
+                                target-plans)
+           c (chan)]
+       (concat-chans
+        (for [[mw target-plans] mw-targets]
+          (if mw
+            (mw session target-plans ch)
+            (execute-plan-fns* session target-plans ch)))
+        c)
+       (reduce-results c ch)))
+  ([session target-plans]
+     (let [c (chan)]
+       (execute-plan-fns session target-plans c)
+       (let [[results e] (<!! c)]
+         (if (or (nil? e) (domain-error? e))
+           results
+           (throw (ex-info "execute-plan-fns failed" {:results results} e)))))))
 
 ;;; TODO make sure these error reporting functions are relevant and correct
 
 ;;; # Exception reporting
-(ann ^:no-check plan-errors
-     [PlanResult -> (U nil PlanResult)])
+(def ^:internal adorned-plan-result-map
+  (assoc plan-result-map schema/Keyword schema/Any))
+(def ^:internal adorned-target-result-map
+  (assoc target-result-map schema/Keyword schema/Any))
+
 (defn plan-errors
   "Return a plan result containing just the errors in the action results
   and any exception information.  If there are no errors, return nil."
   [plan-result]
+  {:pre [(validate
+          (schema/either adorned-plan-result-map adorned-target-result-map)
+          plan-result)]
+   :post [(or
+           (nil? %)
+           (validate
+            (schema/either adorned-plan-result-map adorned-target-result-map)
+            plan-result))]}
   (let [plan-result (update-in plan-result [:action-results]
                                #(filter :error %))]
     (if (or (:exception plan-result)
@@ -165,47 +245,31 @@ The result is also written to the recorder in the session."
       plan-result)))
 
 
-;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
-(ann ^:no-check errors
-     [(Nilable (NonEmptySeqable PlanResult)) ->
-      (Nilable (NonEmptySeqable PlanResult))])
 (defn errors
   "Return a sequence of errors for a sequence of result maps.
    Each element in the sequence represents a failed action, and is a
    map, with :target, :error, :context and all the return value keys
    for the return value of the failed action."
   [results]
+  {:pre [(every? #(validate adorned-target-result-map %) results)]
+   :post [(every? (fn [r] (validate adorned-target-result-map r)) results)]}
   (seq (remove nil? (map plan-errors results))))
 
-
-(ann error-exceptions
-     [(Nilable (NonEmptySeqable PlanResult)) -> (Seqable Throwable)])
 (defn error-exceptions
-  "Return a sequence of exceptions from a sequence of errors for an operation."
-  [errors]
-  (->> errors
-       ((inst map Throwable PlanResult)
-        ((inst comp ActionErrorMap Throwable PlanResult) :exception :error))
-       (filter identity)))
+  "Return a sequence of exceptions from a sequence of results."
+  [results]
+  {:pre [(every? #(validate adorned-target-result-map %) results)]
+   :post [(every? (fn [e] (instance? Throwable e)) %)]}
+  (seq (remove nil? (map :exception results))))
 
-(ann throw-errors [(Nilable (NonEmptySeqable PlanResult)) -> nil])
-(defn throw-phase-errors
-  "Throw an exception if the errors sequence is non-empty."
-  [errors]
-  (when-let [e (seq errors)]
+(defn throw-errors
+  "Throw an exception if there is any exception in results."
+  [results]
+  {:pre [(every? #(validate adorned-target-result-map %) results)]
+   :post [(nil? %)]}
+  (when-let [e (seq (remove nil? (map :exception results)))]
     (throw
-     (ex-info
-      (str "Errors: "
-           (string/join
-            " "
-            ((inst map (U String nil) PlanResult)
-             ((inst comp ActionErrorMap String PlanResult) :message :error)
-             e)))
-      {:errors e}
-      (first (error-exceptions errors))))))
-
-
-
+     (combine-exceptions e))))
 
 ;;; ### plan functions
 
