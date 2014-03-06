@@ -29,7 +29,7 @@
           (a session :a :b)
           (is (= [{:target (session/target session)
                    :result {:args [:a :b]
-                            :action (:action (meta a))
+                            :action 'a
                             :options {:user user/*admin-user*}}}]
                  (plan/plan (session/executor session)))))))))
 
@@ -46,7 +46,7 @@
       (b session :a)
       (is (= [{:target (session/target session)
                :result {:args [:a]
-                        :action (:action (meta b))
+                        :action 'pallet.action-test/b
                         :options {:user user/*admin-user*
                                   :m 1}}}]
              (plan/plan (session/executor session))))))
@@ -56,7 +56,7 @@
         (b session :a))
       (is (= [{:target (session/target session)
                :result {:args [:a]
-                        :action (:action (meta b))
+                        :action 'pallet.action-test/b
                         :options {:n 2
                                   :m 1
                                   :user user/*admin-user*}}}]

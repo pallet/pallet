@@ -22,15 +22,14 @@
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
-   [pallet.exception :refer [compiler-exception]]
+   [pallet.exception :refer [compiler-exception domain-error?]]
    [pallet.session
     :refer [base-session?
             executor plan-state recorder
             set-executor set-recorder target-session? user]]
    [pallet.target :refer [has-node? set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
-   [pallet.utils
-    :refer [apply-map local-env map-arg-and-ref]]
+   [pallet.utils :refer [local-env map-arg-and-ref]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]])
   (:import
@@ -101,19 +100,22 @@ The result is also written to the recorder in the session."
         ;; We need the script context for script blocks in the plan
         ;; functions.
         (debugf "execute* %s" target)
-        (let [rv (try
-                   (plan-fn session)
-                   (catch Exception e
-                     ;; Wrap the exception so we can return the
-                     ;; accumulated results.
-                     (throw (ex-info "Exception in plan-fn"
-                                     {:action-results (results r)
-                                      :target target}
-                                     e))))]
-          {:action-results (results r)
-           :return-value rv
-           :target target})))))
+        (let [[rv e] (try
+                       [(plan-fn session)]
+                       (catch Exception e
+                         [nil e]))
+              result {:action-results (results r)
+                      :target target}
+              result (if e
+                       (assoc result :exception e)
+                       (assoc result :return-value rv))]
+          (if (or (nil? e) (domain-error? e))
+            result
+            ;; Wrap the exception so we can return the
+            ;; accumulated results.
+            (throw (ex-info "Exception in plan-fn" result e))))))))
 
+(ann execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute
   "Execute a plan function.  If there is a `target` with a `:node`,
   then we execute the plan-fn using the core execute function,
@@ -130,6 +132,19 @@ The result is also written to the recorder in the session."
 ;;; TODO make sure these error reporting functions are relevant and correct
 
 ;;; # Exception reporting
+(ann ^:no-check plan-errors
+     [PlanResult -> (U nil PlanResult)])
+(defn plan-errors
+  "Return a plan result containing just the errors in the action results
+  and any exception information.  If there are no errors, return nil."
+  [plan-result]
+  (let [plan-result (update-in plan-result [:action-results]
+                               #(filter :error %))]
+    (if (or (:exception plan-result)
+            (seq (:action-results plan-result)))
+      plan-result)))
+
+
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed
 (ann ^:no-check errors
      [(Nilable (NonEmptySeqable PlanResult)) ->
@@ -140,25 +155,7 @@ The result is also written to the recorder in the session."
    map, with :target, :error, :context and all the return value keys
    for the return value of the failed action."
   [results]
-  (seq
-   (concat
-    (->>
-     results
-     ((inst map PlanResult PlanResult)
-      (fn> [ar :- PlanResult]
-           ((inst update-in
-                  PlanResult (Nilable (NonEmptySeqable ActionResult)))
-            ar [:result]
-            (fn> [rs :- (NonEmptySeqable ActionResult)]
-                 (seq (filter (fn> [r :- ActionResult]
-                                   (get r :error))
-                              rs))))))
-     (mapcat (fn> [ar :- PlanResult]
-                  ((inst map PlanResult PlanResult)
-                   (fn> [r :- PlanResult]
-                        (merge (dissoc ar :result) r))
-                   (get ar :result)))))
-    (filter (inst :error ActionErrorMap) results))))
+  (seq (remove nil? (map plan-errors results))))
 
 
 (ann error-exceptions

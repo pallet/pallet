@@ -4,48 +4,86 @@
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan]
-   [pallet.core.executor.ssh :as ssh]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
+   [pallet.exception :refer [domain-info]]
    [pallet.plan :refer :all]
    [pallet.session :as session
-    :refer [executor recorder set-target set-user]]
+    :refer [executor recorder set-target set-user target user]]
    [pallet.user :as user]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
+(defn plan-session
+  "Return a session with a plan executor."
+  []
+  (-> (session/create {:executor (plan/plan-executor)
+                       :recorder (in-memory-recorder)})
+      (set-user user/*admin-user*)))
+
+(def ubuntu-target {:override {:os-family :ubuntu
+                               :os-version "13.10"
+                               :packager :apt}
+                    :node (localhost)})
+
 (deftest execute-action-test
   (testing "execute-action"
-    (let [session (->
-                   (session/create {:executor (plan/plan-executor)
-                                    :recorder (in-memory-recorder)})
-                   (set-target {})
-                   (set-user user/*admin-user*))
-          result (execute-action session {:a 1})]
-      (is (= {:target {} :result {:a 1}} result)
+    (let [session (-> (plan-session)
+                      (set-target ubuntu-target))
+          result (execute-action session {:action {:action-symbol 'a}
+                                          :args [1]})]
+      (is (= {:target (target session) :result { :action 'a :args [1]}}
+             result)
           "returns the result of the action")
       (is (= [result] (plan/plan (executor session)))
           "uses the session executor")
       (is (= [result] (results (recorder session)))
           "records the results in the session recorder"))))
 
-(defn test-session []
-  (->
-   (session/create {:executor (ssh/ssh-executor)})
-   (set-user user/*admin-user*)))
-
-(deftest execute-localhost-test
-  (let [session (test-session)
-        plan (fn [session]
-               (exec-script* session "ls")
-               :rv)
-        result (execute session {:node (localhost)} plan)]
-    (is (map? result))
-    (is (= 1 (count (:action-results result))))
-    (is (every? #(zero? (:exit %)) (:action-results result)))
-    (is (= :rv (:return-value result)))
-    (is (= {:node (localhost)} (:target result)))))
+(deftest execute-test
+  (testing "execute"
+    (let [session (plan-session)
+          plan (fn [session]
+                 (exec-script* session "ls")
+                 :rv)
+          result (execute session ubuntu-target plan)]
+      (is (map? result))
+      (is (= 1 (count (:action-results result))))
+      (is (= [{:target ubuntu-target
+               :result {:action 'pallet.actions.decl/exec-script*
+                        :args ["ls"],
+                        :options {:user (user session)}}}]
+             (:action-results result)))
+      (is (= :rv (:return-value result)))
+      (is (not (plan-errors result)))))
+  (testing "execute with non-domain exception"
+    (let [session (plan-session)
+          e (ex-info "some exception" {})
+          plan (fn [session] (throw e))]
+      (is (thrown-with-msg?
+           clojure.lang.ExceptionInfo #"Exception in plan-fn"
+           (execute session ubuntu-target plan))
+          "non domain error should throw")
+      (testing "throws an exception"
+        (let [execute-e (try (execute session ubuntu-target plan)
+                             (catch clojure.lang.ExceptionInfo e
+                               e))
+              result (ex-data execute-e)]
+          (is (= ubuntu-target (:target result)) "reporting the target")
+          (is (= e (:exception result)) "reporting the cause exception")
+          (is (not (contains? result :rv)) "doesn't record a return value")
+          (is (plan-errors result))))))
+  (testing "execute with domain exception"
+    (let [session (plan-session)
+          e (domain-info "some exception" {})
+          plan (fn [session] (throw e))
+          result (execute session ubuntu-target plan)]
+      (is (map? result) "doesn't throw")
+      (is (zero? (count (:action-results result))))
+      (is (= e (:exception result)) "reports the exception")
+      (is (not (contains? result :rv)) "doesn't record a return value")
+      (is (plan-errors result)))))
 
 
 (deftest plan-fn-test

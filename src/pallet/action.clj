@@ -14,7 +14,7 @@
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
    [pallet.plan :refer [execute-action]]
-   [pallet.session :as session :refer [target-session?]]
+   [pallet.session :as session :refer [validate-target-session]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [maybe-assoc multi-fn?]]))
 
@@ -50,7 +50,7 @@
 (defn action-execute
   "Call the session executor for the action with argv."
   [session action argv]
-  {:pre [(target-session? session)]}
+  {:pre [(validate-target-session session)]}
   (let [options (merge (:options action) (action-options session))
         user (effective-user (session/user session) action-options)
         options (update-in options [:user] merge user)]

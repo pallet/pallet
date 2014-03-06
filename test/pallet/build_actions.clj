@@ -156,7 +156,6 @@
   [result]
   (let [result
         (-> result
-            (update-in [:action] :action-symbol)
             (update-in [:options]
                        (fn [{:keys [script-comments user] :as options}]
                          (let [options (if (= user *admin-user*)
