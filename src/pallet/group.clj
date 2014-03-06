@@ -79,7 +79,8 @@ Uses a TargetMap to describe a node with its group-spec info."
   spec/server-spec-schema
   [[:group-name] Keyword
    (optional-path [:node-filter]) IFn
-   (optional-path [:count]) Number])
+   (optional-path [:count]) Number
+   (optional-path [:removal-selection-fn]) IFn])
 
 (def-map-schema lift-options-schema
   environment-strict-schema
@@ -116,7 +117,6 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 ;;; ## Group-spec
 
-;;; TODO add :removal-selection-fn
 (defn group-spec
   "Create a group-spec.
 
@@ -136,7 +136,11 @@ Uses a TargetMap to describe a node with its group-spec info."
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this group-spec
    - :node-filter    a predicate that tests if a node is a member of this
-                     group."
+                     group.
+
+   - :removal-selection-fn a function that will be called to select
+                           nodes for removal. Arguments are the number of
+                           nodes to select and a sequence of current nodes."
   ;; Note that the node-filter is not set here for the default group-name based
   ;; membership, so that it does not need to be updated by functions that modify
   ;; a group's group-name.
