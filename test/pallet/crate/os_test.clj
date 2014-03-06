@@ -23,6 +23,5 @@
         result (execute session {:node (localhost)} os)]
     (is (map? result))
     (is (= 2 (count (:action-results result))))
-    (is (= (localhost) (-> result :target :node)))
     (is (map? (node-os (localhost) (plan-state session)))
         "The os phase updates the plan-state with the discovered os details")))

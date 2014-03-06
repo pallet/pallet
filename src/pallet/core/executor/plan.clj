@@ -6,8 +6,7 @@
 (deftype PlanActionExecutor [actions]
   ActionExecutor
   (execute [executor target action]
-    (let [rv {:target target
-              :result (update-in action [:action] :action-symbol)}]
+    (let [rv {:result (update-in action [:action] :action-symbol)}]
       (swap! actions conj rv)
       rv)))
 

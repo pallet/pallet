@@ -12,81 +12,113 @@
    [pallet.core.plan-state :as plan-state]
    [pallet.core.types :refer [ComputeService TargetMapSeq]]
    [pallet.crate.os :refer [os]]
-   [pallet.exception :refer [combine-exceptions]]
+   [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :as phase :refer [phases-with-meta]]
-   [pallet.plan :as api :refer [execute plan-fn]]
+   [pallet.plan :as plan :refer [plan-fn]]
    [pallet.session :as session
     :refer [base-session? extension plan-state set-extension target
             target-session? update-extension]]
    [pallet.spec :refer [bootstrapped-meta set-targets unbootstrapped-meta]]
    [pallet.target :as target]
    [pallet.thread-expr :refer [when->]]
-   [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]))
+   [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-;;; # Lift
-(defmulti target-id-map
-  "Return a map with the identity information for a target.  The
-  identity information is used to identify phase result maps."
-  :target-type)
+;;; # Execute Plan Functions on Mulitple Targets
 
-(defmethod target-id-map :node [target]
-  (select-keys target [:node]))
+;; (defmulti target-id-map
+;;   "Return a map with the identity information for a target.  The
+;;   identity information is used to identify phase result maps."
+;;   :target-type)
 
-(defn execute-target-phase
-  "Using the session, execute phase on a single target."
-  [session phase {:keys [node phases target-type]
-                  :or {target-type :node} :as target}]
-  {:pre [(or node (= target-type :group))]}
-  ((fnil merge {})
-   (phase/execute-phase session target phases phase execute)
-   (target-id-map (assoc target :target-type target-type))
-   {:phase phase}))
+;; (defmethod target-id-map :node [target]
+;;   (select-keys target [:node]))
 
-(defn execute-phase
+(def target-result-map
+  (-> plan/plan-result-map
+      (dissoc :action-results)
+      (assoc (optional-key :action-results) [plan/action-result-map]
+             :target {schema/Keyword schema/Any})))
+
+(defn execute-target-plan
+  "Using the session, execute plan-fn on target."
+  [session
+   {:keys [node phases target-type] :or {target-type :node} :as target}
+   plan-fn]
+  {:pre [(or node (= target-type :group))]
+   :post [(validate target-result-map %)]}
+  (assoc (middleware/execute session target plan-fn plan/execute)
+    :target target))
+
+(defn ^:internal execute-plan-fns*
   "Using the executor in `session`, execute phase on all targets.
   The targets are executed in parallel, each in its own thread.  A
   single [result, exception] tuple will be written to the channel ch,
   where result is a sequence of results for each target, and exception
-  is a composite exception of any thrown exceptions."
-  [session phase targets ch]
+  is a composite exception of any thrown exceptions.
+
+  Does not call phase middleware.  Does call plan middleware."
+  [session target-plans ch]
   (let [c (chan)]
     (->
-     (map-thread #(execute-target-phase session phase %) targets)
+     (map-thread (fn execute-plan-fns [[target plan-fn]]
+                   (try
+                     [(execute-target-plan session target plan-fn)]
+                     (catch Exception e
+                       (let [data (ex-data e)]
+                         (if (contains? data :action-results)
+                           [data e]
+                           [nil e])))))
+                 target-plans)
      (concat-chans c))
     (reduce-results c ch)))
 
-(defn execute-phase-with-middleware
-  "Execute phase on all targets, using phase middleware.  Put a result
-  tuple onto the channel, ch."
-  [session phase targets ch]
-  (debugf "lift-phase-with-middleware %s on %s targets" phase (count targets))
-  (let [mw-targets (group-by (comp :phase-middleware meta) targets)
-        c (chan)]
-    (concat-chans
-     (for [[mw targets] mw-targets]
-       (if mw
-         (mw session phase targets ch)
-         (execute-phase session phase targets ch)))
-     c)
-    (reduce-results c ch)))
+(defn execute-plan-fns
+  "Execute plan functions on targets.  Write a result tuple to the
+  channel, ch.  Targets are grouped by phase-middleware, and phase
+  middleware is called.  plans are executed in parallel.
+  `target-plans` is a sequence of target, plan-fn tuples."
+  ([session target-plans ch]
+     (debugf "execute-plan-fns %s target-plans" (count target-plans))
+     (let [mw-targets (group-by (comp :phase-middleware meta second)
+                                target-plans)
+           c (chan)]
+       (concat-chans
+        (for [[mw target-plans] mw-targets]
+          (if mw
+            (mw session target-plans ch)
+            (execute-plan-fns* session target-plans ch)))
+        c)
+       (reduce-results c ch)))
+  ([session target-plans]
+     (let [c (chan)]
+       (execute-plan-fns session target-plans c)
+       (let [[results e] (<!! c)]
+         (if (or (nil? e) (domain-error? e))
+           results
+           (throw (ex-info "execute-plan-fns failed" {:results results} e)))))))
 
+;;; # Lift
 (defn lift-phase
   "Execute phase on each of targets, write a result tuple to the
   channel, ch."
   [session phase targets consider-targets ch]
   {:pre [(every? (some-fn target/node #(= :group (:target-type %))) targets)]}
-  (go-try ch
-    (let [session (set-targets
-                   session
-                   (filter target/node (concat targets consider-targets)))
-          c (chan)
-          _ (execute-phase-with-middleware session phase targets c)
-          [results exception] (<! c)
-          phase-name (phase/phase-kw phase)
-          res (->> results (mapv #(assoc % :phase phase-name)))]
-      (>! ch [res exception]))))
+  (let [target-plans (map
+                      (juxt identity #(phase/target-phase (:phases %) phase))
+                      targets)]
+    (go-try ch
+      (let [session (set-targets ;; TODO move this higher
+                     session
+                     (filter target/node (concat targets consider-targets)))
+            c (chan)
+            _ (execute-plan-fns session target-plans c)
+            [results exception] (<! c)
+            phase-name (phase/phase-kw phase)
+            res (->> results (mapv #(assoc % :phase phase-name)))]
+        (>! ch [res exception])))))
 
 (defn lift-phases
   "Using `session`, execute `phases` on `targets`, while considering
@@ -109,7 +141,7 @@
               (do
                 (lift-phase session phase targets consider-targets c)
                 (let [[results exception] (<! c)
-                      errs (api/errors results)
+                      errs (plan/errors results)
                       err-nodes (set (map :node errs))
                       res (concat res results)
                       ptargets (remove (comp err-nodes :node) targets)]
@@ -194,7 +226,7 @@
     (let [c (chan)]
       (lift-phase session :destroy-server targets nil c)
       (let [[res e] (<! c)
-            errs (api/errors res)
+            errs (plan/errors res)
             error-nodes (set (map :node errs))
             nodes-to-destroy (->> targets (map :node) (remove error-nodes))]
         (compute/destroy-nodes compute-service nodes-to-destroy c)
@@ -235,38 +267,3 @@
           (debugf "create-targets results %s" (pr-str [results e1]))
           (>! ch [{:targets targets :results results}
                   (combine-exceptions [e e1])]))))))
-
-
-        ;; (lift-phase session :pallet/os
-        ;;             (map #(merge (os-detection-phases) %) targets) nil c)
-        ;; (debugf "create-targets :pallet/os running")
-        ;; (let [[results1 e1] (<! c)
-        ;;       errs1 (api/errors results1)
-        ;;       result {:targets targets :pallet/os results1}
-        ;;       err-nodes (set (map :node errs1))
-        ;;       b-targets (if-not e1 (remove (comp err-nodes :node) targets))]
-        ;;   (debugf "create-targets :pallet-os %s %s" e1 (vec errs1))
-
-
-        ;;   ;; NEED TO RUN :settings
-
-        ;;   ;; Need a low-level multi-phase function that progresses
-        ;;   ;; each node as far as possible (:pallet/os, :settings,
-        ;;   ;; :bootstrap).
-
-        ;;   ;; For this, also need exceptions to appear in :errors so
-        ;;   ;; that nodes can be properly filtered.
-
-        ;;   (lift-phase session :bootstrap b-targets nil c)
-        ;;   (debugf "create-targets :bootstrap running")
-        ;;   (let [[results2 e2] (<! c)
-        ;;         errs2 (api/errors results2)]
-        ;;     (debugf "create-targets :bootstrap results %s"
-        ;;             (pr-str [results2 e2]))
-        ;;     (>! ch [{:targets targets :pallet/os results1 :bootstrap results2}
-        ;;             (combine-exceptions
-        ;;              [e e1 e2
-        ;;               (if errs1
-        ;;                 (ex-info "pallet/os failed" {:errors errs1}))
-        ;;               (if errs2
-        ;;                 (ex-info "bootstrap failed" {:errors errs2}))])])))

@@ -114,14 +114,15 @@
   [f]
   (thread
    (try
-     [(f) nil]
+     (f)
      (catch Throwable t
        [nil t]))))
 
 (defn map-thread
   "Apply zero-arity function, f, to each element of coll, using a
   separate thread for each element.  Return a non-lazy sequence of
-  channels for the results."
+  channels for the results.  The function f should return a result,
+  exception tuple."
   [f coll]
   (doall (map #(thread-fn (fn [] (f %))) coll)))
 
@@ -135,9 +136,8 @@
     (loop [results []
            exceptions []]
       (if-let [[r e] (<! in-ch)]
-        (if e
-          (recur results (conj exceptions e))
-          (recur (conj results r) exceptions))
+        (recur (if r (conj results r) results)
+               (if e (conj exceptions e) exceptions))
         (>! out-ch [results (if-let [e (seq exceptions)]
                               (combine-exceptions e))])))))
 

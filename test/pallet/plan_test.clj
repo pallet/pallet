@@ -1,5 +1,6 @@
 (ns pallet.plan-test
   (:require
+   [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
@@ -11,7 +12,8 @@
    [pallet.plan :refer :all]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
-   [pallet.user :as user]))
+   [pallet.user :as user]
+   [schema.core :as schema :refer [validate]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -33,7 +35,8 @@
                       (set-target ubuntu-target))
           result (execute-action session {:action {:action-symbol 'a}
                                           :args [1]})]
-      (is (= {:target (target session) :result { :action 'a :args [1]}}
+      (is (validate action-result-map result))
+      (is (= {:result {:action 'a :args [1]}}
              result)
           "returns the result of the action")
       (is (= [result] (plan/plan (executor session)))
@@ -50,8 +53,7 @@
           result (execute session ubuntu-target plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
-      (is (= [{:target ubuntu-target
-               :result {:action 'pallet.actions.decl/exec-script*
+      (is (= [{:result {:action 'pallet.actions.decl/exec-script*
                         :args ["ls"],
                         :options {:user (user session)}}}]
              (:action-results result)))
@@ -60,7 +62,9 @@
   (testing "execute with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})
-          plan (fn [session] (throw e))]
+          plan (fn [session]
+                 (exec-script* session "ls")
+                 (throw e))]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo #"Exception in plan-fn"
            (execute session ubuntu-target plan))
@@ -69,22 +73,28 @@
         (let [execute-e (try (execute session ubuntu-target plan)
                              (catch clojure.lang.ExceptionInfo e
                                e))
-              result (ex-data execute-e)]
-          (is (= ubuntu-target (:target result)) "reporting the target")
-          (is (= e (:exception result)) "reporting the cause exception")
+              {:keys [action-results exception] :as result} (ex-data execute-e)]
+          (is (contains? result :action-results))
+          (is (= 1 (count action-results)))
+          (is (= exception (root-cause execute-e)) "setting a cause exception")
+          (is (= e exception) "reporting the cause exception")
+          (is (validate plan-exception-map result)
+              "reporting the action exception as cause")
+          (is (:target result) "reporting the failed target")
           (is (not (contains? result :rv)) "doesn't record a return value")
           (is (plan-errors result))))))
   (testing "execute with domain exception"
     (let [session (plan-session)
           e (domain-info "some exception" {})
-          plan (fn [session] (throw e))
+          plan (fn [session]
+                 (exec-script* session "ls")
+                 (throw e))
           result (execute session ubuntu-target plan)]
       (is (map? result) "doesn't throw")
-      (is (zero? (count (:action-results result))))
+      (is (= 1 (count (:action-results result))))
       (is (= e (:exception result)) "reports the exception")
       (is (not (contains? result :rv)) "doesn't record a return value")
       (is (plan-errors result)))))
-
 
 (deftest plan-fn-test
   (is (plan-fn [session]))

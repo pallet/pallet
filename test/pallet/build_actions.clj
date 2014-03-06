@@ -11,12 +11,13 @@
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
+   [pallet.phase :as phase]
    [pallet.plan :refer [plan-fn]]
    [pallet.script :as script]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
    [pallet.session.action-plan :refer [target-path]]
-   [pallet.target-ops :refer [execute-target-phase]]
+   [pallet.target-ops :refer [execute-target-plan]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]))
@@ -42,7 +43,8 @@
             session (dissoc session :target)
             target (assoc-in target [:phases phase] f)
             {:keys [action-results] :as result-map}
-            (execute-target-phase session phase target)]
+            (execute-target-plan
+             session target (phase/target-phase (:phases target) phase))]
         (logging/debugf "build-actions result-map %s" result-map)
         result-map))))
 

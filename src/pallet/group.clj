@@ -46,7 +46,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             targets]]
    [pallet.target-ops
     :refer [create-targets destroy-targets lift-op* lift-phase
-            os-detection-phases target-id-map]]
+            os-detection-phases]]
    [pallet.thread-expr :refer [when->]]
    [pallet.user :as user]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
@@ -744,8 +744,8 @@ the :destroy-server, :destroy-group, and :create-group phases."
 ;;; ## Operations
 ;;;
 
-(defmethod target-id-map :group [target]
-  (select-keys target [:group-name]))
+;; (defmethod target-id-map :group [target]
+;;   (select-keys target [:group-name]))
 
 (defn- groups-with-phases
   "Adds the phases from phase-map into each group in the sequence `groups`."

@@ -31,14 +31,26 @@
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
    [pallet.utils.multi :as multi
-    :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]])
+    :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
+   [schema.core :as schema :refer [check required-key optional-key validate]])
   (:import
    clojure.lang.IMapEntry
    pallet.compute.protocols.Node))
 
-;;; ## Action Plan Execution
+;;; # Action Plan Execution
 
-;;; # Execute action on a target
+(def action-result-map
+  {schema/Keyword schema/Any})
+
+(def plan-result-map
+  {:action-results [action-result-map]
+   (optional-key :return-value) schema/Any
+   (optional-key :exception) Exception})
+
+(def plan-exception-map
+  (assoc plan-result-map :target schema/Any))
+
+;;; ## Execute action on a target
 (ann execute-action [Session Action -> ActionResult])
 ;; TODO - remove tc-gnore when update-in has more smarts
 (defn execute-action
@@ -46,7 +58,8 @@
   [{:keys [target] :as session} action]
   {:pre [(target-session? session)
          (user? (user session))
-         (map? target)]}
+         (map? target)]
+   :post [(validate action-result-map %)]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
   (let [executor (executor session)]
@@ -55,18 +68,23 @@
     (let [[rv e] (try
                    [(executor/execute executor target action)]
                    (catch Exception e
-                     (let [rv (:result (ex-data e))]
-                       (when-not rv
-                         ;; Exception isn't of the expected form, so
-                         ;; just re-throw it.
-                         (throw e))
-                       [rv e])))]
+                     [nil e]))
+          [rv record?] (if e
+                         (let [data (ex-data e)]
+                           (if (contains? data :result)
+                             [(:result data) true]
+                             [nil nil]))
+                         [rv true])]
+
       (tracef "execute-action rv %s" (pr-str rv))
-      (assert (map? rv) (str "Action return value must be a map: " (pr-str rv)))
-      (record (recorder session) rv)
+      (when record?
+        (assert (map? rv)
+                (str "Action return value must be a map: " (pr-str rv)))
+        (record (recorder session) rv))
       (when e
         (throw e))
       rv)))
+
 
 (ann execute* [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute*
@@ -86,7 +104,8 @@ The result is also written to the recorder in the session."
          (or (nil? (:node target)) (has-node? target))
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
-         (executor session)]}
+         (executor session)]
+   :post [(or (nil? %) (validate plan-result-map %))]}
   (debugf "execute* %s %s" target plan-fn)
   (when plan-fn
     (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
@@ -104,8 +123,7 @@ The result is also written to the recorder in the session."
                        [(plan-fn session)]
                        (catch Exception e
                          [nil e]))
-              result {:action-results (results r)
-                      :target target}
+              result {:action-results (results r)}
               result (if e
                        (assoc result :exception e)
                        (assoc result :return-value rv))]
@@ -113,7 +131,9 @@ The result is also written to the recorder in the session."
             result
             ;; Wrap the exception so we can return the
             ;; accumulated results.
-            (throw (ex-info "Exception in plan-fn" result e))))))))
+            (throw (ex-info "Exception in plan-fn"
+                            (assoc result :target target)
+                            e))))))))
 
 (ann execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute

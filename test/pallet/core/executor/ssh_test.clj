@@ -29,5 +29,4 @@
     (is (map? result))
     (is (= 1 (count (:action-results result))))
     (is (every? #(zero? (:exit %)) (:action-results result)))
-    (is (= :rv (:return-value result)))
-    (is (= {:node (localhost)} (:target result)))))
+    (is (= :rv (:return-value result)))))

@@ -27,8 +27,7 @@
       (testing "execution"
         (let [session (test-session)]
           (a session :a :b)
-          (is (= [{:target (session/target session)
-                   :result {:args [:a :b]
+          (is (= [{:result {:args [:a :b]
                             :action 'a
                             :options {:user user/*admin-user*}}}]
                  (plan/plan (session/executor session)))))))))
@@ -44,8 +43,7 @@
   (testing "action execution"
     (let [session (test-session)]
       (b session :a)
-      (is (= [{:target (session/target session)
-               :result {:args [:a]
+      (is (= [{:result {:args [:a]
                         :action 'pallet.action-test/b
                         :options {:user user/*admin-user*
                                   :m 1}}}]
@@ -54,8 +52,7 @@
     (let [session (test-session)]
       (with-action-options session {:n 2}
         (b session :a))
-      (is (= [{:target (session/target session)
-               :result {:args [:a]
+      (is (= [{:result {:args [:a]
                         :action 'pallet.action-test/b
                         :options {:n 2
                                   :m 1
