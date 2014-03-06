@@ -3,10 +3,15 @@
   (:require
    [pallet.action :refer [implement-action]]
    [pallet.actions.decl :refer [service]]
-   [pallet.actions.impl :refer [checked-script init-script-path]]
+   [pallet.actions.impl :refer [checked-script]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.utils :refer [apply-map]]))
+
+(defn init-script-path
+  "Path to the specified initd script"
+  [service-name]
+  (str (stevedore/script (lib/etc-init)) "/" service-name))
 
 (defmulti service-impl
   (fn [{:keys [action-options state]}

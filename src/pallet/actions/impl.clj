@@ -32,12 +32,8 @@
        :dynamic true}
   *force-overwrite* false)
 
-(defn init-script-path
-  "Path to the specified initd script"
-  [service-name]
-  (str (script (~lib/etc-init)) "/" service-name))
-
 ;;; # Service Supervision
+
 ;;; TODO - remove these
 (defmulti service-script-path
   (fn [service-impl service-name] service-impl))
