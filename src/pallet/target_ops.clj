@@ -12,6 +12,7 @@
    [pallet.core.plan-state :as plan-state]
    [pallet.core.types :refer [ComputeService TargetMapSeq]]
    [pallet.crate.os :refer [os]]
+   [pallet.exception :refer [combine-exceptions]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :as phase :refer [phases-with-meta]]
@@ -22,7 +23,6 @@
    [pallet.spec :refer [bootstrapped-meta set-targets unbootstrapped-meta]]
    [pallet.target :as target]
    [pallet.thread-expr :refer [when->]]
-   [pallet.utils :refer [combine-exceptions maybe-update-in total-order-merge]]
    [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]))
 
 ;;; # Lift

@@ -30,7 +30,7 @@ service."
             target-session? update-extension]]
    [pallet.target :as target]
    [pallet.thread-expr :refer [when->]]
-   [pallet.utils :refer [combine-exceptions maybe-update-in total-order-merge]]
+   [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]])
   (:import
    clojure.lang.IFn

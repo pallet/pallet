@@ -1,9 +1,5 @@
 (ns pallet.plan
-  "API for execution of pallet plan functions.
-
-TODO: consider renaming this to pallet.core.plan, and reserving the
-api namespace for exposing functions from other namespaces, adding
-functions with more defaults, etc."
+  "API for execution of pallet plan functions."
   (:require
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore

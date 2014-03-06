@@ -8,8 +8,7 @@
     :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [debugf errorf]]
    [pallet.core.types :refer [ErrorMap]]
-   [pallet.utils :refer [combine-exceptions]]))
-
+   [pallet.exception :refer [combine-exceptions]]))
 
 ;;; # Helpers for external protocols
 (defn ^:no-check channel? [x]

@@ -356,22 +356,6 @@ value to assoc. The assoc only occurs if the value is non-nil."
   [coll arg]
   (vec (distinct (conj (or coll []) arg))))
 
-(ann combine-exceptions [(Seqable Throwable) -> (Nilable Throwable)])
-(defn combine-exceptions
-  "Wrap a sequence of exceptions into a single exception.  The first
-  element of the sequence is used as the cause of the composite
-  exception.  Removes any nil values in the input exceptions
-  sequence."
-  [exceptions]
-  (if-let [exceptions (seq (remove nil? exceptions))]
-    ;; always wrap, so we get a full stacktrace, not just a threadpool
-    ;; trace.
-    (ex-info
-     (let [s (string/join ". " (map #(str %) exceptions))]
-       (if (string/blank? s) (pr-str exceptions) s))
-     {:exceptions exceptions}
-     (first exceptions))))
-
 (ann ^:no-check map-arg-and-ref
      [(U Symbol MapDestructure) -> '[MapDestructure Symbol]])
 (defn map-arg-and-ref

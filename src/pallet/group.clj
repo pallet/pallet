@@ -35,6 +35,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             Node ScopeMap Session TargetMap
             TargetMapSeq User]]
    [pallet.environment :refer [merge-environments]]
+   [pallet.exception :refer [combine-exceptions]]
    [pallet.phase :as phase :refer [phases-with-meta process-phases]]
    [pallet.plan :as api :refer [errors]]
    [pallet.session :as session
@@ -48,8 +49,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             os-detection-phases target-id-map]]
    [pallet.thread-expr :refer [when->]]
    [pallet.user :as user]
-   [pallet.utils
-    :refer [combine-exceptions maybe-update-in total-order-merge]]
+   [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
             reduce-results]])

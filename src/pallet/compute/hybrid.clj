@@ -9,7 +9,7 @@
    [pallet.core.node :as node]
    [pallet.core.protocols :as core-impl]
    [pallet.environment]
-   [pallet.utils :refer [combine-exceptions]]
+   [pallet.exception :refer [combine-exceptions]]
    [pallet.utils.async :refer [go-try]]))
 
 (defn supported-providers []
