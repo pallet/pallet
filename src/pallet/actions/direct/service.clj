@@ -2,7 +2,7 @@
   "Service control. Deprecated in favour of pallet.crate.service."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [service]]
+   [pallet.actions.decl :refer [service]]
    [pallet.actions.impl :refer [checked-script init-script-path]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -10,18 +10,18 @@
 
 (defmulti service-impl
   (fn [{:keys [action-options state]}
-       service-name & {:keys [action if-flag if-stopped
-                              service-impl]
-                       :or {action :start service-impl :initd}
-                       :as options}]
+       service-name {:keys [action if-flag if-stopped
+                            service-impl]
+                     :or {action :start service-impl :initd}
+                     :as options}]
     service-impl))
 
 (defmethod service-impl :initd
   [{:keys [action-options state]}
-   service-name & {:keys [action if-flag if-stopped
-                          service-impl]
-                   :or {action :start}
-                   :as options}]
+   service-name {:keys [action if-flag if-stopped
+                        service-impl]
+                 :or {action :start}
+                 :as options}]
   (if (#{:enable :disable :start-stop} action)
     (stevedore/checked-script
      (format "Configure service %s" service-name)
@@ -37,10 +37,10 @@
 
 (defmethod service-impl :upstart
   [{:keys [action-options state]}
-   service-name & {:keys [action if-flag if-stopped
-                          service-impl]
-                   :or {action :start}
-                   :as options}]
+   service-name {:keys [action if-flag if-stopped
+                        service-impl]
+                 :or {action :start}
+                 :as options}]
   (if (#{:enable :disable :start-stop} action)
     (checked-script
      (format "Configure service %s" service-name)

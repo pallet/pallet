@@ -247,15 +247,6 @@
   [m]
   (check-spec m `remote-directory-arguments &form))
 
-(defaction transfer-file
-  "Function to transfer a local file to a remote path.
-Prefer remote-file or remote-directory over direct use of this action."
-  [session local-path remote-path])
-
-(defaction transfer-file-to-local
-  "Function to transfer a remote file to a local path."
-  [session remote-path local-path])
-
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
   [flag]
@@ -402,7 +393,7 @@ Content can also be copied from a blobstore.
                (:sudo-user action-options)
                (:username (admin-user session)))]
     (when local-file
-      (transfer-file session local-file path))
+      (decl/transfer-file session local-file path))
     (let [{:keys [exit] :as result}
           (decl/remote-file
            session
@@ -427,7 +418,7 @@ Content can also be copied from a blobstore.
   [session f path & args]
   (let [local-path (tmpfile)]
     (plan-context with-remote-file-fn {:local-path local-path}
-      (transfer-file-to-local session path local-path)
+      (decl/transfer-file-to-local session path local-path)
       (apply f local-path args)
       (.delete (io/file local-path)))))
 
@@ -532,7 +523,7 @@ only specified files or directories, use the :extract-files option.
                (:sudo-user action-options)
                (:username (admin-user session)))]
     (when local-file
-      (transfer-file local-file path))
+      (decl/transfer-file local-file path))
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
                                   {:script-prefix :sudo
@@ -550,12 +541,20 @@ only specified files or directories, use the :extract-files option.
          :proxy (get-environment session [:proxy] nil)}
         options)))))
 
-(defaction wait-for-file
+(defn wait-for-file
   "Wait for a file to exist"
-  [session path & {:keys [max-retries standoff service-name]
-                   :or {action :create max-versions 5
-                        install-new-files true}
-                   :as options}])
+  ([session path {:keys [max-retries standoff service-name]
+                  :or {action :create max-versions 5
+                       install-new-files true}
+                  :as options}]
+     (decl/wait-for-file session path
+                         (merge {:action :create
+                                 :max-versions 5
+                                 :install-new-files true}
+                                options)))
+  ([session path]
+     (wait-for-file session path {})))
+
 
 ;;; # Packages
 (defalias package-source-changed-flag decl/package-source-changed-flag)
@@ -673,25 +672,22 @@ only specified files or directories, use the :extract-files option.
   [session name {:keys [] :as options}]
   (decl/package-source session name (merge {:packager (packager session)})))
 
-(defaction add-rpm
+(defn add-rpm
   "Add an rpm.  Source options are as for remote file."
-  [session rpm-name & {:as options}])
+  [session rpm-name {:as options}]
+  (decl/add-rpm session rpm-name options))
 
-(defaction install-deb
+(defn install-deb
   "Add a deb.  Source options are as for remote file."
-  [session deb-name & {:as options}])
+  [session deb-name {:as options}]
+  (decl/install-deb session deb-name options))
 
-(defaction debconf-set-selections
+(defn debconf-set-selections
   "Set debconf selections.
 Specify `:line` as a string, or `:package`, `:question`, `:type` and
 `:value` options."
-  {:always-before #{package}}
-  [session {:keys [line package question type value]}])
-
-(defaction minimal-packages
-  "Add minimal packages for pallet to function"
-  {:always-before #{package-manager package-source package}}
-  [session])
+  [session {:keys [line package question type value] :as options}]
+  (decl/debconf-set-selections session options))
 
 (defmulti repository
   "Install the specified repository as a package source.
@@ -737,7 +733,7 @@ The :id key must contain a recognised repository."
     (rsync-to-local session from to options)))
 
 ;;; # Users and Groups
-(defaction group
+(defn group
   "User Group Management.
 
 `:action`
@@ -751,11 +747,14 @@ The :id key must contain a recognised repository."
 
 `:system`
 : Specify the user as a system user."
-  [session groupname & {:keys [action system gid password]
-                        :or {action :manage}
-                        :as options}])
+  ([session groupname {:keys [action system gid password]
+                       :or {action :manage}
+                       :as options}]
+     (decl/group session groupname (merge {action :manage} options)))
+  ([session groupname]
+     (group session groupname {})))
 
-(defaction user
+(defn user
   "User management.
 
 `:action`
@@ -790,14 +789,17 @@ The :id key must contain a recognised repository."
 
 `:force`
 : Force user removal."
-  [session username
-   & {:keys [action shell base-dir home system create-home
-             password shell comment group groups remove force append]
-      :or {action :manage}
-      :as options}])
+  ([session username
+    {:keys [action shell base-dir home system create-home
+            password shell comment group groups remove force append]
+     :or {action :manage}
+     :as options}]
+     (decl/user session username (merge {:action :manage} options)))
+  ([session username]
+     (user session username {})))
 
 ;;; # Services
-(defaction service
+(defn service
   "Control services.
 
    - :action  accepts either startstop, restart, enable or disable keywords.
@@ -809,9 +811,13 @@ The :id key must contain a recognised repository."
    - :service-impl    either :initd or :upstart
 
 Deprecated in favour of pallet.crate.service/service."
-  [session service-name & {:keys [action if-flag if-stopped service-impl]
-                           :or {action :start service-impl :initd}
-                           :as options}])
+  ([session service-name {:keys [action if-flag if-stopped service-impl]
+                          :or {action :start service-impl :initd}
+                          :as options}]
+     (decl/service session service-name
+                   (merge {:action :start :service-impl :initd} options)))
+  ([session service-name]
+     (service session service-name {})))
 
 (defmacro with-service-restart
   "Stop the given service, execute the body, and then restart."

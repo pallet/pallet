@@ -31,6 +31,10 @@
 (defaction package-repository [packager options])
 (defaction package-source [session name options])
 
+(defaction add-rpm [session rpm-name options])
+(defaction install-deb [session deb-name options])
+(defaction debconf-set-selections [session options])
+
 ;;; ## Files and Directories
 (defaction file [session path options])
 (defaction symbolic-link [session from name options])
@@ -40,29 +44,26 @@
 (defaction directory [session dir-path options])
 
 ;;; ## Remote File Contents
-(defaction remote-file
-  [session path
-   {:keys [action url local-file
-           remote-file link content literal template values md5 md5-url
-           owner group mode force blob blobstore overwrite-changes
-           install-new-files no-versioning max-versions
-           flag-on-changed force insecure]
-    :or {action :create max-versions 5}
-    :as options}])
+(defaction transfer-file
+  "Function to transfer a local file to a remote path.
+Prefer remote-file or remote-directory over direct use of this action."
+  [session local-path remote-path])
 
-(defaction remote-directory
-  [session path
-   {:keys [action url local-file remote-file
-           unpack tar-options unzip-options jar-options
-           strip-components md5 md5-url owner group recursive]
-    :or {action :create
-         tar-options "xz"
-         unzip-options "-o"
-         jar-options "xf"
-         strip-components 1
-         recursive true}
-    :as options}])
+(defaction transfer-file-to-local
+  "Function to transfer a remote file to a local path."
+  [session remote-path local-path])
+
+(defaction remote-file [session path options])
+(defaction remote-directory [session path options])
+(defaction wait-for-file [session path options])
+
+;;; ## Users and groups
+(defaction group [session groupname options])
+(defaction user [session username options])
+
+;;; # Services
+(defaction service [session service-name options])
 
 ;;; ## Rsync
-(defaction rsync [session local-path remote-path {:keys [port]}])
-(defaction rsync-to-local [session remote-path local-path {:keys [port]}])
+(defaction rsync [session local-path remote-path options])
+(defaction rsync-to-local [session remote-path local-path options])

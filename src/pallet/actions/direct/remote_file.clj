@@ -4,12 +4,9 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.action :refer [implement-action]]
-   [pallet.actions
-    :refer [content-options
-            transfer-file
-            transfer-file-to-local
-            wait-for-file]]
-   [pallet.actions.decl :refer [remote-file]]
+   [pallet.actions :refer [content-options]]
+   [pallet.actions.decl
+    :refer [remote-file transfer-file transfer-file-to-local wait-for-file]]
    [pallet.actions.impl :refer [checked-commands checked-script]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]

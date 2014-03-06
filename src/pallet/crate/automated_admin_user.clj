@@ -66,7 +66,7 @@
     (when install-sudo
       (sudoers/install session {:instance-id sudoers-instance-id}))
     (doseq [{:keys [username public-key-paths]} users]
-      (user session username :create-home true :shell :bash)
+      (user session username {:create-home true :shell :bash})
       (doseq [kp public-key-paths]
         (authorize-user-key session username kp)))
     (sudoers/configure session {:instance-id sudoers-instance-id})))

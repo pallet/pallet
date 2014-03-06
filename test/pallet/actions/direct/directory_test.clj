@@ -2,6 +2,7 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions.direct.directory :refer [directory*]]
+   [pallet.script.lib :refer [rm]]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils
     :refer [with-bash-script-language with-ubuntu-script-template
@@ -42,5 +43,5 @@
     (is (=
          (stevedore/checked-script
           "Delete directory file1"
-          "rm --recursive --force file1")
+          (rm file1 :recursive true :force true))
          (directory* nil "file1" {:action :delete :recursive true})))))

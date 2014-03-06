@@ -8,12 +8,11 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [add-rpm
-                           debconf-set-selections
-                           install-deb
-                           minimal-packages
-                           package-source-changed-flag]]
-   [pallet.actions.decl :refer [package
+   [pallet.actions :refer [package-source-changed-flag]]
+   [pallet.actions.decl :refer [add-rpm
+                                debconf-set-selections
+                                install-deb
+                                package
                                 packages
                                 package-manager
                                 package-repository

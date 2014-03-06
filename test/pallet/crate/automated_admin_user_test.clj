@@ -26,7 +26,7 @@
          (build-plan [session {}]
            (sudoers/settings session {})
            (sudoers/install session {})
-           (user session "fred" :create-home true :shell :bash)
+           (user session "fred" {:create-home true :shell :bash})
            (sudoers/sudoers
             session
             {}
@@ -49,7 +49,7 @@
          (build-plan [session {}]
            (sudoers/settings session {})
            (sudoers/install session {})
-           (user session  "fred" :create-home true :shell :bash)
+           (user session  "fred" {:create-home true :shell :bash})
            (sudoers/sudoers
             session
             {}
@@ -72,7 +72,7 @@
          (build-plan [session {}]
            (sudoers/settings session {})
            (sudoers/install session {})
-           (user session "fred" :create-home true :shell :bash)
+           (user session "fred" {:create-home true :shell :bash})
            (sudoers/sudoers
             session
             {}
@@ -94,7 +94,7 @@
            (build-plan [session {}]
              (sudoers/settings session {})
              (sudoers/install session {})
-             (user session user-name :create-home true :shell :bash)
+             (user session user-name {:create-home true :shell :bash})
              (sudoers/sudoers
               session
               {}
@@ -128,7 +128,7 @@
            (build-plan [session session]
              (sudoers/settings session {})
              (sudoers/install session {})
-             (user session user-name :create-home true :shell :bash)
+             (user session user-name {:create-home true :shell :bash})
              (sudoers/sudoers
               session
               {}

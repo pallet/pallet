@@ -20,22 +20,23 @@
 (deftest service-test
   (is (=
        "echo start tomcat\n/etc/init.d/tomcat start\n"
-       (service-impl {} "tomcat")))
+       (service-impl {} "tomcat" {})))
   (is (=
        "echo stop tomcat\n/etc/init.d/tomcat stop\n"
-       (service-impl {} "tomcat" :action :stop)))
+       (service-impl {} "tomcat" {:action :stop})))
   (is (=
        (stevedore/checked-script
         "Configure service tomcat"
         "update-rc.d tomcat defaults 20 20")
-       (service-impl {} "tomcat" :action :enable)))
+       (service-impl {} "tomcat" {:action :enable})))
   (is (=
        (stevedore/checked-script
         "Configure service tomcat"
         "/sbin/chkconfig tomcat on --level 2345")
        (with-script-context [:centos :yum]
-         (service-impl {} "tomcat" :action :enable)))))
+         (service-impl {} "tomcat" {:action :enable})))))
 
+;; TODO
 ;; (deftest with-restart-test
 ;;   (is (=
 

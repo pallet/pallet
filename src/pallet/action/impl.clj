@@ -47,4 +47,6 @@
 (defn add-action-implementation!
   "Add an action implementation for an action."
   [action dispatch-val metadata f]
+  {:pre [action
+         (:impls action)]}
   (swap! (:impls action) assoc dispatch-val {:f f :metadata metadata}))

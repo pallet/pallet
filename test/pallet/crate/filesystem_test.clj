@@ -1,5 +1,6 @@
 (ns pallet.crate.filesystem-test
   (:require
+   [clojure.string :as string]
    [clojure.test :refer :all]
    [pallet.actions :refer [directory exec-checked-script]]
    [pallet.build-actions :refer [build-plan]]
@@ -45,7 +46,10 @@
             session
             "Mount /dev/a at /mnt/a"
             (if-not @("mountpoint" -q "/mnt/a")
-              ("mount" -t "vboxsf" -o "gid=user,uid=user"
+              ("mount" -t "vboxsf" -o
+               ~(string/join ","
+                             (for [[k v] {:uid "user" :gid "user"}]
+                               (str (name k) "=" v)))
                "/dev/a" (quoted "/mnt/a"))))))
        (build-plan [session {}]
          (filesystem/mount session

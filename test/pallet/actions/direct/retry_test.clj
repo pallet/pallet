@@ -2,23 +2,27 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [loop-until retry-until]]
-   [pallet.build-actions :refer [build-actions]]
+   [pallet.build-actions :refer [build-plan]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.stevedore :refer [script]]))
+   [pallet.stevedore :refer [script]]
+   [pallet.test-utils :refer [no-location-info with-no-source-line-comments]]))
 
-(use-fixtures :once (logging-threshold-fixture))
+(use-fixtures :once
+  (logging-threshold-fixture)
+  no-location-info
+  with-no-source-line-comments)
 
 (deftest retry-test
-  (is (script-no-comment=
-       (first (build-actions [session {}]
-                (loop-until session
-                            "x"
-                            (script (file-exists? abc)) 5 2)))
-       (first (build-actions [session {}]
-                (retry-until
-                 session
-                 {:service-name "x"}
-                 (script (file-exists? abc))))))))
+  (is (=
+       (build-plan [session {}]
+         (loop-until session
+                     "x"
+                     (script (file-exists? abc)) 5 2))
+       (build-plan [session {}]
+         (retry-until
+          session
+          {:service-name "x"}
+          (script (file-exists? abc)))))))
 
 ;; (against-background [(around :facts (with-threshold [:warn] ?form))]
 ;;   (fact

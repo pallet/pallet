@@ -69,14 +69,13 @@
                     ("sed" -i (lib/sed-ext)
                      -e (quoted "$ a \\\\\n${s}") "/etc/environment"))
                    ("exit" 1))))
-              (var vv (quoted "1"))
-              ("pallet_set_env"
-               (quoted "A") (quoted @vv)
-               (quoted (str  "A=\\\"" @vv "\\\"")))
-              (var vv (quoted "b"))
-              ("pallet_set_env"
-               (quoted "B") (quoted @vv)
-               (quoted (str  "B=\\\"" @vv "\\\""))))])))))
+              ~(stevedore/chain-commands*
+                (for [[k v] {"A" 1 "B" "b"}]
+                  (stevedore/chained-script
+                   (var vv (quoted ~v))
+                   ("pallet_set_env"
+                    (quoted ~k) (quoted @vv)
+                    (quoted (str  ~k "=\\\"" @vv "\\\"")))))))])))))
     (build-plan [session {}]
       (system-environment session "testenv" {"A" 1 :B "b"}))))
   (is
@@ -102,14 +101,13 @@
                     ("sed" -i (lib/sed-ext)
                      -e (quoted "$ a \\\\\n${s}") "/etc/environment"))
                    ("exit" 1))))
-              (var vv "'1'")
-              ("pallet_set_env"
-               (quoted "A") (quoted @vv)
-               (quoted (str  "A=\\\"" @vv "\\\"")))
-              (var vv "'b'")
-              ("pallet_set_env"
-               (quoted "B") (quoted @vv)
-               (quoted (str  "B=\\\"" @vv "\\\""))))])))))
+              ~(stevedore/chain-commands*
+                (for [[k v] {"A" 1 "B" "b"}]
+                  (stevedore/chained-script
+                   (var vv (str "'" ~v "'"))
+                   ("pallet_set_env"
+                    (quoted ~k) (quoted @vv)
+                    (quoted (str  ~k "=\\\"" @vv "\\\"")))))))])))))
     (build-plan [session {}]
       (system-environment session "testenv" {"A" 1 :B "b"} :literal true)))))
 

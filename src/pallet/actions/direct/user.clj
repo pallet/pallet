@@ -3,7 +3,7 @@
   (:require
    [clojure.string :as string]
    [pallet.action :refer [implement-action]]
-   [pallet.actions :refer [group user]]
+   [pallet.actions.decl :refer [group user]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
@@ -17,11 +17,10 @@
 (defn user*
   "Require a user"
   [{:keys [action-options state]}
-   username
-   & {:keys [action shell base-dir home system create-home
-             password shell comment groups remove force append]
-      :or {action :manage}
-      :as options}]
+   username {:keys [action shell base-dir home system create-home
+                    password shell comment groups remove force append]
+             :or {action :manage}
+             :as options}]
   {:pre [(string? username)]}
   (let [opts (if-let [shell (get shell-names shell shell)]
                (merge options {:shell shell})
@@ -65,9 +64,9 @@
 
 (defn group*
   [{:keys [action-options state]}
-   groupname & {:keys [action system gid password]
-                :or {action :manage}
-                :as options}]
+   groupname {:keys [action system gid password]
+              :or {action :manage}
+              :as options}]
   (case action
     :create
     (stevedore/script

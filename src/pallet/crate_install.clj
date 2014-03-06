@@ -237,7 +237,7 @@ Install based on an archive
    "packages install-strategy settings values")
 
   (with-action-options session {:always-before `package/package}
-    (apply-map add-rpm session (:name rpm) (dissoc rpm :name))))
+    (add-rpm session (:name rpm) (dissoc rpm :name))))
 
 ;; install based on a rpm that installs a package repository source
 (defmethod-plan install-from :rpm-repo
@@ -250,7 +250,7 @@ Install based on an archive
       [:packages] (sequence-of String)])
    "packages install-strategy settings values")
   (with-action-options session {:always-before `package/package}
-    (apply-map add-rpm session (:name rpm) (dissoc rpm :name)))
+    (add-rpm session (:name rpm) (dissoc rpm :name)))
   (doseq [p packages] (apply-map package session p package-options)))
 
 ;; Upload a deb archive for. Options for the :debs key are as for

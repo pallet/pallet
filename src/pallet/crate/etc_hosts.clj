@@ -131,7 +131,7 @@
     (let [os (target/os-family session)]
       (debugf "hostname for os %s" os)
       os))
-  :hierarchy #'os-hierarchy)
+  {:hierarchy os-hierarchy})
 
 (defmethod-plan set-hostname* :linux
   [session hostname]

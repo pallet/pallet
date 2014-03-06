@@ -10,8 +10,9 @@
   ActionExecutor
   (execute [executor target action]
     {:pre [(:node target)]}
-    (let [script (direct-script action nil)]
-      {:script-meta (first script)
+    (let [[md script] (direct-script action nil)]
+      {:action-meta md
+       :script-meta (first script)
        :script (second script)})))
 
 (defn echo-executor

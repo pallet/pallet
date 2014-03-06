@@ -103,7 +103,7 @@
 ;;; This doesn't use declare-action, so that the action inserter
 ;;; function gets the correct signature.
 
-;;; TODO find a way to do this will still getting a top level
+;;; TODO find a way to do this while still getting a top level
 ;;; function, rather than an anonymous function.
 
 (defmacro defaction
@@ -136,15 +136,25 @@
   "Define an implementation of an action given the `action-inserter`
   action function."
   ([action-inserter dispatch-val metadata script-data f]
-     {:pre [(or (fn? f) (multi-fn? f))]}
+     {:pre [action-inserter
+            (or (fn? f) (multi-fn? f))]}
      (let [action (-> action-inserter meta :action)]
+       (when-not action
+         (throw
+          (ex-info "Trying to implement action on a non-action var"
+                   {:action action-inserter})))
        (add-action-implementation!
         action dispatch-val metadata
         (fn [& args]
           [script-data (apply f args)]))))
   ([action-inserter dispatch-val metadata f]
-     {:pre [(or (fn? f) (multi-fn? f))]}
+     {:pre [action-inserter
+            (or (fn? f) (multi-fn? f))]}
      (let [action (-> action-inserter meta :action)]
+       (when-not action
+         (throw
+          (ex-info "Trying to implement action on a non-action var"
+                   {:action action-inserter})))
        (add-action-implementation!
         action dispatch-val metadata
         (fn [& args]
