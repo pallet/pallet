@@ -1,4 +1,5 @@
 (ns pallet.utils.async-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.core.async :refer [<!! chan to-chan]]
    [clojure.test :refer :all]

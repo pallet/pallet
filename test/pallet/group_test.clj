@@ -1,4 +1,5 @@
 (ns pallet.group-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.core.async :refer [<!! chan]]
    [clojure.stacktrace :refer [print-cause-trace]]
@@ -19,7 +20,8 @@
    [pallet.plan :refer :all]
    [pallet.session :as session :refer [executor plan-state recorder]]
    [pallet.user :as user]
-   [pallet.test-utils :refer [make-localhost-compute]]))
+   [pallet.test-utils :refer [make-localhost-compute]]
+   [pallet.utils.async :refer [sync]]))
 
 (use-fixtures :once
   (logging-threshold-fixture))
@@ -246,7 +248,8 @@
   (testing "service state"
     (let [service (make-localhost-compute :group-name :local)
           ss (group/service-state
-              (compute/nodes service) [(group/group-spec :local {})])]
+              (sync (compute/nodes service))
+              [(group/group-spec :local {})])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
       (is (= (dissoc (localhost {:group-name :local}) :compute-service)
@@ -274,7 +277,8 @@
           g (group/group-spec :local {:count 1})
           c (chan)
           targets (group/service-state
-                   (compute/nodes service) [(group/group-spec :local {})])
+                   (sync (compute/nodes service))
+                   [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/node-count-adjuster
              session
@@ -304,7 +308,8 @@
                                      (exec-script* session "ls"))}})
           c (chan)
           targets (group/service-state
-                   (compute/nodes service) [(group/group-spec :local {})])
+                   (sync (compute/nodes service))
+                   [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]

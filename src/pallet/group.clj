@@ -6,6 +6,7 @@ Provides the node-spec, service-spec and group-spec abstractions.
 Provides the lift and converge operations.
 
 Uses a TargetMap to describe a node with its group-spec info."
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
    [clojure.set :refer [union]]
@@ -36,7 +37,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
-            reduce-results]]
+            reduce-results sync]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
   (:import clojure.lang.IFn))
 
@@ -694,7 +695,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
                   (fn [g] (update-in g [:phases] select-keys [:settings]))
                   all-node-set)]
     (if (seq groups)
-      (service-state (nodes compute) (concat groups consider))
+      (service-state (sync (nodes compute)) (concat groups consider))
       consider)))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}

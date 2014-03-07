@@ -8,7 +8,7 @@
    [pallet.core.protocols :as core-impl]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.utils :refer [maybe-assoc]]
-   [pallet.utils.async :refer [go-try]]
+   [pallet.utils.async :refer [deref-rex go-try]]
    [pallet.versions :refer [as-version-vector]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
@@ -129,30 +129,6 @@ Provider specific options may also be passed."
   (satisfies? pallet.compute.protocols/ComputeService c))
 
 ;;; Actions
-
-(defmacro defasync
-  "Define a function with a synchronous and an asynchronous
-  overloading.  The last argument is expected to be a channel, which
-  is removed from the argument list for the synchronous overload. If
-  there is ::protocol metadata, then this is used to implement a
-  run-time check that the first argument satisfies the protocol."
-  {:arglists '[[name doc-string? attr-map? [params*] prepost-map? body]]}
-  [name args & body]
-  (let [[name [args & body]] (name-with-attributes name (concat [args] body))
-        p (-> name meta ::protocol)
-        name (vary-meta name dissoc ::protocol)]
-    `(defn ~name
-       (~(vec (butlast args))
-        (let [ch# (chan)]
-          (~name ~@(butlast args) ch#)
-          (let [[r# e#] (<!! ch#)]
-            (when e#
-              (throw e#))
-            r#)))
-       (~args
-        ~@(if p [`(require-protocol ~p ~(first args) '~name)])
-        ~@body))))
-
 (defn- unsupported-exception [service operation]
   (ex-info "Unsupported Operation"
            {:service service
@@ -162,64 +138,64 @@ Provider specific options may also be passed."
   (when-not (satisfies? protocol service)
     (throw (unsupported-exception service operation))))
 
-(defasync nodes
+(defn nodes
   "Return the nodes in the compute service."
-  {::protocol impl/ComputeService}
   [compute ch]
+  (require-protocol impl/ComputeService compute 'nodes)
   (impl/nodes compute ch))
 
-(defasync targets
+(defn targets
   "Return the targets from the compute service."
-  {::protocol impl/ComputeService}
   [compute ch]
+  (require-protocol impl/ComputeService compute 'targets)
   (go-try ch
     (let [c (chan)]
       (impl/nodes compute c)
       (let [[nodes e] (<! c)]
         (>! ch [(map #(hash-map :node %) nodes) e])))))
 
-(defasync create-nodes
+(defn create-nodes
   "Create nodes running in the compute service."
-  {::protocol impl/ComputeServiceNodeCreateDestroy}
   [compute node-spec user node-count options ch]
   {:pre [(map? node-spec)(map? (:image node-spec))]}
+  (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'create-nodes)
   (impl/create-nodes compute node-spec user node-count options ch))
 
-(defasync destroy-nodes
+(defn destroy-nodes
   "Destroy the nodes running in the compute service. Return a sequence
   of node ids that have been destroyed."
-  {::protocol impl/ComputeServiceNodeCreateDestroy}
   [compute nodes ch]
+  (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'destroy-nodes)
   (impl/destroy-nodes compute nodes ch))
 
-(defasync images
+(defn images
   "Return the images available in the compute service."
-  {::protocol impl/ComputeServiceNodeCreateDestroy}
   [compute ch]
+  (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'images)
   (impl/images compute ch))
 
-(defasync restart-nodes
+(defn restart-nodes
   "Start the nodes running in the compute service."
-  {::protocol impl/ComputeServiceNodeStop}
   [compute nodes ch]
+  (require-protocol impl/ComputeServiceNodeStop compute 'restart-nodes)
   (impl/restart-nodes compute nodes ch))
 
-(defasync stop-nodes
+(defn stop-nodes
   "Stop the nodes running in the compute service."
-  {::protocol impl/ComputeServiceNodeStop}
   [compute nodes ch]
+  (require-protocol impl/ComputeServiceNodeStop compute 'stop-nodes)
   (impl/stop-nodes compute nodes ch))
 
-(defasync suspend-nodes
+(defn suspend-nodes
   "Suspend the nodes running in the compute service."
-  {::protocol impl/ComputeServiceNodeSuspend}
   [compute nodes ch]
+  (require-protocol impl/ComputeServiceNodeSuspend compute 'suspend-nodes)
   (impl/suspend-nodes compute nodes ch))
 
-(defasync resume-nodes
+(defn resume-nodes
   "Resume the nodes running in the compute service."
-  {::protocol impl/ComputeServiceNodeSuspend}
   [compute nodes ch]
+  (require-protocol impl/ComputeServiceNodeSuspend compute 'resume-nodes)
   (impl/resume-nodes compute nodes ch))
 
 (defn tag-nodes

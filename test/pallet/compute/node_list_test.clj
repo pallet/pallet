@@ -1,4 +1,5 @@
 (ns pallet.compute.node-list-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
@@ -6,7 +7,8 @@
    [pallet.compute.node-list :as node-list]
    [pallet.core.node :as node]
    [pallet.tag :refer [has-state-flag?]]
-   [pallet.utils :refer [tmpfile with-temporary with-temp-file]]))
+   [pallet.utils :refer [tmpfile with-temporary with-temp-file]]
+   [pallet.utils.async :refer [sync]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -36,13 +38,14 @@
 (deftest nodes-test
   (let [node {:id "n" :hostname "t"  :primary-ip "1.2.3.4" :os-family :ubuntu}
         node-list (compute/instantiate-provider :node-list :node-list [node])]
-    (is (= [(assoc node :compute-service node-list)] (compute/nodes node-list)))
-    (is (node/validate-node (first (compute/nodes node-list))))))
+    (is (= [(assoc node :compute-service node-list)]
+           (sync (compute/nodes node-list))))
+    (is (node/validate-node (first (sync (compute/nodes node-list)))))))
 
 (deftest tags-test
   (let [node {:id "n" :hostname "t" :primary-ip "1.2.3.4" :os-family :ubuntu}
         node-list (compute/instantiate-provider :node-list :node-list [node])
-        node (first (compute/nodes node-list))]
+        node (first (sync (compute/nodes node-list)))]
     (is (= node-list (node/compute-service node)))
     (is (nil? (node/tag node "some-tag")))
     (is (= ::x (node/tag node "some-tag" ::x)))

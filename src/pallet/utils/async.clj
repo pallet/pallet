@@ -1,5 +1,6 @@
 (ns pallet.utils.async
   "Generally useful async functions"
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.core.async.impl.protocols :refer [Channel]]
    [clojure.core.async
@@ -173,3 +174,29 @@
          (>! to (f x))
          (recur)))
      (close! to))))
+
+(defn deref-rex
+  "Read a rex-tuple from the specified channel.  If there is an
+  exception, throw it, otherwise return the result."
+  [ch]
+  (let [[r e] (<!! ch)]
+    (when e
+      (throw e))
+    r))
+
+(defn sync*
+  "Call an asynchrouns function that expects a single channel argument,
+  read and return a value from that channel"
+  [f]
+  (let [c (chan)]
+    (f c)
+    (deref-rex c)))
+
+(defmacro sync
+  "Given a a fn-call form, add a final channel argument, which is read
+  for a return value."
+  [fn-call]
+  (let [c (gensym "c")]
+    `(let [~c (chan)]
+       ~(concat fn-call [c])
+       (deref-rex ~c))))

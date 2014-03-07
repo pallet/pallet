@@ -1,4 +1,5 @@
 (ns pallet.ssh.actions.remote-file-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.java.io :as io]
    [clojure.stacktrace :refer [print-cause-trace print-stack-trace root-cause]]
@@ -39,8 +40,8 @@
             target-node-state
             test-username]]
    [pallet.user :refer [*admin-user* with-admin-user]]
-   [pallet.utils :as utils]
-   [pallet.utils :refer [tmpdir with-temporary]]))
+   [pallet.utils :as utils :refer [tmpdir with-temporary]]
+   [pallet.utils.async :refer [sync]]))
 
 
 (use-fixtures :once
@@ -122,7 +123,7 @@
                 (is (nil? (:exception result)))
                 (is (nil? (phase-errors result)))
                 (is (some
-                     #(= (first (nodes compute)) %)
+                     #(= (first (sync (nodes compute))) %)
                      (map :node (:targets result)))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
@@ -147,7 +148,7 @@
                               :user user)]
                   (is (nil? (phase-errors result)))
                   (is (some
-                       #(= (first (nodes compute)) %)
+                       #(= (first (sync (nodes compute))) %)
                        (map :node (:targets result))))))
               (testing "with md5 guard different content"
                 (logging/info "remote-file test: local-file with md5 guard")
@@ -166,7 +167,7 @@
                   (is (nil? (phase-errors result)))
                   (is (nil? (:exception result)))
                   (is (some
-                       #(= (first (nodes compute)) %)
+                       #(= (first (sync (nodes compute))) %)
                        (map :node (:targets result)))))))
             (testing "content"
               (let [result (lift
