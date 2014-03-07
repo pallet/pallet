@@ -31,7 +31,7 @@ Uses a TargetMap to describe a node with its group-spec info."
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
             targets]]
    [pallet.target-ops
-    :refer [create-targets destroy-targets lift-op* lift-phase
+    :refer [create-targets destroy-targets lift-op lift-phase
             os-detection-phases]]
    [pallet.user :as user]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
@@ -784,7 +784,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
                     phases (concat (when os-detect [:pallet/os-bs :pallet/os])
                                    [:settings :bootstrap] phases)]
                 (debugf "running phases %s" (vec phases))
-                (lift-op* session phases nodes-set lift-options c)
+                (lift-op session phases nodes-set lift-options c)
                 (let [[result e] (<! c)]
                   [(-> converge-result
                        (update-in [:results] concat result))
@@ -905,7 +905,7 @@ the admin-user on the nodes.
                                     {:error :no-nodes-and-no-compute-service})))
                 _ (logging/trace "Retrieved nodes")
                 c (chan)
-                _ (lift-op*
+                _ (lift-op
                    session
                    (concat
                     (when os-detect [:pallet/os :pallet/os-bs])
@@ -922,7 +922,7 @@ the admin-user on the nodes.
              e [result e]
              errs [result (ex-info "settings phase failed" {:errors errs})]
              :else (do
-                     (lift-op* session phases nodes-set lift-options c)
+                     (lift-op session phases nodes-set lift-options c)
                      (let [[lift-results e] (<! c)
                            errs (errors lift-results)
                            result (update-in result [:results]

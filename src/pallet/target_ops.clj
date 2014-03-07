@@ -78,16 +78,15 @@
                    ptargets)))
               [res (combine-exceptions es)]))))))
 
-(defn lift-op*
+(defn lift-op
   "Using `session`, execute `phases` on `targets`, while considering
   `consider-targets`.  Returns a channel containing a tuple of a
-  sequence of the results and a sequence of any exceptions thrown.
+  sequence of the results and any exception thrown.
   Each phase is a synchronisation point, and an error on any node will
   stop the processing of further phases."
   [session phases targets consider-targets ch]
-  (logging/debugf "lift-op* :phases %s :targets %s"
+  (logging/debugf "lift-op :phases %s :targets %s"
                   (vec phases) (vec (map :group-name targets)))
-  ;; TODO support post-phase, partitioning middleware, etc
   (go-try ch
     (>! ch
         (loop [phases phases
@@ -102,22 +101,6 @@
                 [res exception]
                 (recur (rest phases) res)))
             [res nil])))))
-
-(defn lift-op
-  "Execute phases on targets.  Returns a sequence of results."
-  [session phases targets consider-targets]
-  (logging/debugf "lift-op :phases %s :targets %s"
-                  (vec phases) (vec (map :group-name targets)))
-  ;; TODO - use exec-operation
-  (let [c (chan)
-        _ (lift-op* session phases targets consider-targets c)
-        [results exceptions] (<!! c)]
-    (when (seq exceptions)
-      (throw (ex-info "Exception in phase"
-                      {:results results
-                       :execptions exceptions}
-                      (first exceptions))))
-    results))
 
 ;;; # Plan Functions
 
