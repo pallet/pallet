@@ -143,34 +143,20 @@ list, Alan Dipert and MeikelBrandmeyer."
        'pallet.build-actions/build-actions))
      ((resolve 'pallet.build-actions/build-actions) ~@args)))
 
-;; (defn test-session
-;;   "Build a test session"
-;;   [& components]
-;;   (add-session-verification-key
-;;    (reduce
-;;     merge
-;;     {:user *admin-user* :server {:node (make-node :id)}}
-;;     components)))
-
-(defn server
-  "Build a server for the session map"
-  [& {:as options}]
-  (apply server-spec (apply concat options)))
-
 (defn target-server
   "Build the target server for the session map"
   [& {:as options}]
-  {:server (apply server-spec (apply concat options))})
+  {:server (server-spec options)})
 
 (defn group
   "Build a group for the session map"
   [name & {:as options}]
-  (apply group-spec name (apply concat options)))
+  (group-spec name options))
 
 (defn target-group
   "Build the target group for the session map"
   [name & {:as options}]
-  {:group (apply group-spec name (apply concat options))})
+  {:group (group-spec name options)})
 
 (defmacro redef
   [ [& bindings] & body ]

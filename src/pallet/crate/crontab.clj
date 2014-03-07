@@ -115,8 +115,8 @@
 
 (defn server-spec [settings]
   (spec/server-spec
-   :phases {:settings (plan-fn [session]
-                        (pallet.crate.crontab/settings session settings))
-            :configure (plan-fn [session]
-                         (system-crontabs session :action :create)
-                         (user-crontabs session :action :create))}))
+   {:phases {:settings (plan-fn [session]
+                         (pallet.crate.crontab/settings session settings))
+             :configure (plan-fn [session]
+                          (system-crontabs session :action :create)
+                          (user-crontabs session :action :create))}}))

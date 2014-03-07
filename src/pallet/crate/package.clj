@@ -93,7 +93,8 @@
 by calls to `package` and `package-repository`"
   [{:keys [packages package-repositories instance-id] :as options}]
   (spec/server-spec
-   :phases {:settings (plan-fn [session]
-                       (settings session options))
-            :install (plan-fn [session]
-                      (install session (select-keys options [:instance-id])))}))
+   {:phases
+    {:settings (plan-fn [session]
+                 (settings session options))
+     :install (plan-fn [session]
+                (install session (select-keys options [:instance-id])))}}))

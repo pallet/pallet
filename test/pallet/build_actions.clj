@@ -62,7 +62,8 @@
                                  (or
                                   ;; (when-let [node (-> session :target :node)]
                                   ;; (node/group-name node))
-                                  :id))))
+                                  :id)
+                               {})))
         session (update-in session [:target :override :os-family]
                            #(or % :ubuntu))
         session (update-in

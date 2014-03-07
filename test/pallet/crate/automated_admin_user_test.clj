@@ -156,20 +156,20 @@
     [compute node-map node-types]
     {:aau
      (server-spec
-      :phases {:bootstrap (plan-fn [session]
-                            (automated-admin-user/settings session {})
-                            (create-admin-user session)
-                            (automated-admin-user/configure session {}))
-               :verify (plan-fn [session]
-                         (context/with-phase-context
-                           {:kw :automated-admin-user
-                            :msg "Check Automated admin user"}
-                           (exec-checked-script
-                            session
-                            "is functional"
-                            (pipe (println @SUDO_USER) ("grep" "fred")))))}
+      {:phases {:bootstrap (plan-fn [session]
+                             (automated-admin-user/settings session {})
+                             (create-admin-user session)
+                             (automated-admin-user/configure session {}))
+                :verify (plan-fn [session]
+                          (context/with-phase-context
+                            {:kw :automated-admin-user
+                             :msg "Check Automated admin user"}
+                            (exec-checked-script
+                             session
+                             "is functional"
+                             (pipe (println @SUDO_USER) ("grep" "fred")))))}}
       :count 1
-      :node-spec (node-spec :image image)
+      :node-spec (node-spec {:image image})
       :environment {:user {:username "fred"}})}
     (is
      (lift

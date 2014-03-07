@@ -163,8 +163,6 @@
 ;;; This tries to run bootstrap, so if tagging is not supported,
 ;;; bootstrap is at least attempted.
 
-;;; TODO explicit plan-state override of node data
-;;; TODO explicit middleware for tagging via plan-state
 (defn create-targets
   "Using `session` and `compute-service`, create nodes using the
   `:node-spec` in `spec`, possibly authorising `user`.  Creates

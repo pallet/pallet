@@ -21,14 +21,15 @@
   (testing "Initialise the /var/lib/pallet tree"
     (let [compute (make-localhost-compute :group-name "local")
           session (lift
-                   (group-spec "local")
+                   (group-spec "local" {})
                    :phase (plan-fn [session]
                             (let [user (admin-user session)]
                               (with-action-options session
                                 {:script-prefix :sudo
                                  :script-env-fwd [:TMP :TEMP :TMPDIR]}
                                 (directory
-                                 session (fragment (file (state-root) "pallet")))
+                                 session
+                                 (fragment (file (state-root) "pallet")))
                                 (directory
                                  session
                                  (fragment

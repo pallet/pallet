@@ -127,10 +127,9 @@ Uses a TargetMap to describe a node with its group-spec info."
   ;; Note that the node-filter is not set here for the default group-name based
   ;; membership, so that it does not need to be updated by functions that modify
   ;; a group's group-name.
-  [name
-   & {:keys [extends count image phases phases-meta default-phases packager
-             node-spec roles node-filter]
-      :as options}]
+  [name {:keys [extends count image phases phases-meta default-phases packager
+                node-spec roles node-filter]
+         :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (let [group-name (keyword (clojure.core/name name))]
     (check-group-spec

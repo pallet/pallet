@@ -19,14 +19,14 @@
                 :process-name "sleep"
                 :run-file {:content (str "#!/bin/sh\nexec /tmp/myjob")}}]
     (spec/server-spec
-     :extends [(nohup/server-spec {})]
-     :phases {:settings (plan-fn [session]
-                          (service-supervisor-config session :nohup config {}))
-              :configure (plan-fn [session]
-                           (remote-file
-                            session
-                            "/tmp/myjob"
-                            :content (fragment ("exec" "sleep" 100000000))
-                            :mode "0755"))
-              :test (plan-fn [session]
-                      (nohup-test session config))})))
+     {:extends [(nohup/server-spec {})]
+      :phases {:settings (plan-fn [session]
+                           (service-supervisor-config session :nohup config {}))
+               :configure (plan-fn [session]
+                            (remote-file
+                             session
+                             "/tmp/myjob"
+                             :content (fragment ("exec" "sleep" 100000000))
+                             :mode "0755"))
+               :test (plan-fn [session]
+                       (nohup-test session config))}})))

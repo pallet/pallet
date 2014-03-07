@@ -63,7 +63,7 @@
                   "#> remote-file " (.getPath tmp) " : SUCCESS")
              (let [compute (make-localhost-compute :group-name "local")
                    session (lift
-                            (group-spec "local")
+                            (group-spec "local" {})
                             :phase (plan-fn [session]
                                      (remote-file
                                       session (.getPath tmp) {:content "xxx"}))
@@ -82,7 +82,7 @@
       (utils/with-temporary [tmp (utils/tmpfile)]
         (let [compute (make-localhost-compute :group-name "local")
               session (lift
-                       (group-spec "local")
+                       (group-spec "local" {})
                        :phase (plan-fn [session]
                                 (remote-file
                                  session (.getPath tmp) {:content "xxx"}))
@@ -106,7 +106,7 @@
           (.delete target-tmp)
           (io/copy "text" tmp)
           (let [compute (make-localhost-compute :group-name "local")
-                local (group-spec "local")]
+                local (group-spec "local" {})]
             (testing "local-file"
               (logging/debugf "local-file is %s" (.getPath tmp))
               (let [result (lift
@@ -331,7 +331,7 @@
     ;;               "#> remote-file " (.getName tmp) " : SUCCESS")
     ;;          (let [compute (make-localhost-compute :group-name "local")
     ;;                op (lift
-    ;;                    (group-spec "local")
+    ;;                    (group-spec "local" {})
     ;;                    :phase (plan-fn [session]
     ;;                             (with-action-options session
     ;;                               {:script-dir (.getParent tmp)}
@@ -357,7 +357,7 @@
 ;;         (.delete target-tmp)
 ;;         (io/copy "text" tmp)
 ;;         (let [compute (make-localhost-compute :group-name "local")
-;;               local (group-spec "local")]
+;;               local (group-spec "local" {})]
 ;;           (testing "local-file"
 ;;             (logging/debugf "local-file is %s" (.getPath tmp))
 ;;             (let [session (lift
@@ -389,7 +389,7 @@
 ;;         (.delete target-tmp)
 ;;         (io/copy "text" tmp)
 ;;         (let [compute (make-localhost-compute :group-name "local")
-;;               local (group-spec "local")]
+;;               local (group-spec "local" {})]
 ;;           (testing "local-file"
 ;;             (logging/debugf "local-file is %s" (.getPath tmp))
 ;;             (let [result (lift
@@ -417,10 +417,10 @@
 ;;                          local-file (utils/tmpfile)]
 ;;     (let [user (local-test-user)
 ;;           local (group-spec "local"
-;;                   :phases {:configure (plan-fn [session]
+;;                   {:phases {:configure (plan-fn [session]
 ;;                                         (transfer-file-to-local
 ;;                                          session
-;;                                          remote-file local-file))})
+;;                                          remote-file local-file))}})
 ;;           compute (make-localhost-compute :group-name "local")]
 ;;       (io/copy "text" remote-file)
 ;;       (testing "with local ssh"
@@ -438,7 +438,7 @@
 ;;   (with-admin-user (local-test-user)
 ;;     (utils/with-temporary [remote-file (utils/tmpfile)]
 ;;       (let [user (local-test-user)
-;;             local (group-spec "local")
+;;             local (group-spec "local" {})
 ;;             compute (make-localhost-compute :group-name "local")]
 ;;         (io/copy "text" remote-file)
 ;;         (testing "with local ssh"
@@ -479,7 +479,7 @@
 ;;     (utils/with-temporary [tmp-file (utils/tmpfile)
 ;;                            tmp-file-2 (utils/tmpfile)]
 ;;       (let [user (local-test-user)
-;;             local (group-spec "local")
+;;             local (group-spec "local" {})
 ;;             compute (make-localhost-compute :group-name "local")]
 ;;         (testing "with local ssh"
 ;;           (let [node (test-utils/make-localhost-node)]

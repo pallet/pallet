@@ -73,5 +73,5 @@
 
 (defn server-spec [settings & {:keys [instance-id] :as options}]
   (spec/server-spec
-   :phases {:configure (plan-fn [session]
-                         (jobs session options))}))
+   {:phases {:configure (plan-fn [session]
+                          (jobs session options))}}))

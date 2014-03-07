@@ -19,24 +19,24 @@
 
 (def initd-test-spec
   (spec/server-spec
-   :extends [(initd/server-spec {})]
-   :phases {:settings (plan-fn [session]
-                        (service-supervisor-config
-                         session
-                         :initd
-                         {:service-name "myjob"
-                          :init-file {:content (fragment (init-script))}}
-                         {}))
-            :configure (plan-fn [session]
-                         (remote-file
+   {:extends [(initd/server-spec {})]
+    :phases {:settings (plan-fn [session]
+                         (service-supervisor-config
                           session
-                          "/tmp/myjob"
-                          :content (fragment
-                                    ("#!/bin/bash")
-                                    ("exec" "sleep" 100000000))
-                          :mode "0755"))
-            :test (plan-fn [session]
-                    (initd-test session {:service-name "myjob"}))}))
+                          :initd
+                          {:service-name "myjob"
+                           :init-file {:content (fragment (init-script))}}
+                          {}))
+             :configure (plan-fn [session]
+                          (remote-file
+                           session
+                           "/tmp/myjob"
+                           :content (fragment
+                                     ("#!/bin/bash")
+                                     ("exec" "sleep" 100000000))
+                           :mode "0755"))
+             :test (plan-fn [session]
+                     (initd-test session {:service-name "myjob"}))}}))
 
 
 (defimpl init-script :default []

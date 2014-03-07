@@ -81,9 +81,9 @@ function for options to the settings map"
   [{:keys [entries config-file] :as settings}
    & {:keys [instance-id] :as options}]
   (spec/server-spec
-   :phases {:settings (plan-fn [session]
-                        (pallet.crate.limits-conf/settings
-                         session
-                         (merge settings options)))
-            :configure (plan-fn [session]
-                         (configure session options))}))
+   {:phases {:settings (plan-fn [session]
+                         (pallet.crate.limits-conf/settings
+                          session
+                          (merge settings options)))
+             :configure (plan-fn [session]
+                          (configure session options))}}))

@@ -246,7 +246,7 @@
   (testing "service state"
     (let [service (make-localhost-compute :group-name :local)
           ss (group/service-state
-              (compute/nodes service) [(group/group-spec :local)])]
+              (compute/nodes service) [(group/group-spec :local {})])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
       (is (= (dissoc (localhost {:group-name :local}) :compute-service)
@@ -258,8 +258,8 @@
     (let [service (make-localhost-compute :group-name :local)
           ss (group/all-group-nodes
               service
-              [(group/group-spec :local)]
-              [(group/group-spec :other)])]
+              [(group/group-spec :local {})]
+              [(group/group-spec :other {})])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
       (is (= (dissoc (localhost {:group-name :local}) :compute-service)
@@ -271,10 +271,10 @@
                                    :plan-state (in-memory-plan-state)
                                    :user user/*admin-user*})
           service (make-localhost-compute :group-name :local)
-          g (group/group-spec :local :count 1)
+          g (group/group-spec :local {:count 1})
           c (chan)
           targets (group/service-state
-                   (compute/nodes service) [(group/group-spec :local)])
+                   (compute/nodes service) [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/node-count-adjuster
              session
@@ -299,11 +299,12 @@
                                    :plan-state (in-memory-plan-state)})
           service (make-localhost-compute :group-name :local)
           g (group/group-spec :local
-              :count 1
-              :phases {:configure (plan-fn [session] (exec-script* session "ls"))})
+              {:count 1
+               :phases {:configure (plan-fn [session]
+                                     (exec-script* session "ls"))}})
           c (chan)
           targets (group/service-state
-                   (compute/nodes service) [(group/group-spec :local)])
+                   (compute/nodes service) [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]
@@ -321,8 +322,8 @@
   (testing "converge"
     (let [service (make-localhost-compute :group-name :local)
           g (group/group-spec :local
-              :count 1
-              :phases {:x (plan-fn [session] (exec-script* session "ls"))})
+              {:count 1
+              :phases {:x (plan-fn [session] (exec-script* session "ls"))}})
           res (group/converge [g] :compute service)]
       (is (map? res) "Result is a map")
       (is (= #{:targets :old-node-ids :results} (set (keys res)))

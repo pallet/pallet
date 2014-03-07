@@ -54,22 +54,22 @@ service."
   (validate server-spec-schema m))
 
 ;;; ## Spec Merges
-;;; When extending specs, we need to merge spec defintions.
-(def
-  ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
-  merge-spec-algorithm
+;;; When extending specs, we need to merge spec definitions.
+
+(def ^:internal merge-spec-algorithm
+  "Map from key to merge algorithm. Specifies how specs are merged."
   {:phases :merge-phases
    :roles :union
    :group-names :union
    :default-phases :total-ordering})
 
-(defn merge-specs
+(defn ^:internal merge-specs
   "Merge specs using the specified algorithms."
   [algorithms a b]
   (merge-keys algorithms a b))
 
-(defn extend-specs
-  "Merge in the inherited specs"
+(defn ^:internal extend-specs
+  "Return spec with inherits, a sequence of specs, merged into it."
   ([spec inherits algorithms]
      (if inherits
        (merge-specs
@@ -83,7 +83,7 @@ service."
      (extend-specs spec inherits merge-spec-algorithm)))
 
 ;;; ## Phase Metadata
-;;; Metadata for some phases defined by server-specs
+;;; Metadata for some phases defined by server-specs.
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
   {:middleware (-> execute
@@ -105,9 +105,6 @@ only not flagged with a :bootstrapped keyword."}
 
 
 ;;; ## Server-spec
-
-;;; TODO put node-spec under the :node-spec key
-
 (defn server-spec
   "Create a server-spec.
 
@@ -122,16 +119,15 @@ only not flagged with a :bootstrapped keyword."}
                      inherit phases, etc.
    - :roles          defines a sequence of roles for the server-spec. Inherited
                      by anything that :extends the server-spec.
-   - :node-spec      default node-spec for this server-spec
    - :packager       override the choice of packager to use
 
 For a given phase, inherited phase functions are run first, in the order
 specified in the `:extends` argument."
-  [& {:keys [phases phases-meta default-phases packager node-spec extends roles]
-      :as options}]
+  [{:keys [phases phases-meta default-phases packager extends roles]
+    :as options}]
   {:post [(check-server-spec %)]}
   (->
-   (dissoc options :extends :node-spec :phases-meta)
+   (dissoc options :extends :phases-meta)
    (cond->
     roles (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)

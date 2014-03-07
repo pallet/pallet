@@ -31,7 +31,7 @@
       (let [user (assoc *admin-user*
                    :username (test-username) :no-sudo true)
             compute (make-localhost-compute :group-name "tag")
-            tag (group-spec "tag" :packager :no-packages)]
+            tag (group-spec "tag" {:packager :no-packages})]
         (io/copy "text" tmp)
         (.delete target-dir)
 

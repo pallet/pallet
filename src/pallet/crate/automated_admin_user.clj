@@ -75,11 +75,11 @@
   ^{:doc "Convenience server spec to add the current admin-user on bootstrap."}
   with-automated-admin-user
   (server-spec
-   :phases {:settings (plan-fn [session]
-                        (debugf "with-automated-admin-user :settings")
-                        (sudoers/settings session {})
-                        (settings session {})
-                        (create-admin-user session))
-            :bootstrap (plan-fn [session]
-                         (package-manager session :update)
-                         (configure session {}))}))
+   {:phases {:settings (plan-fn [session]
+                         (debugf "with-automated-admin-user :settings")
+                         (sudoers/settings session {})
+                         (settings session {})
+                         (create-admin-user session))
+             :bootstrap (plan-fn [session]
+                          (package-manager session :update)
+                          (configure session {}))}}))

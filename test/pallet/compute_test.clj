@@ -51,3 +51,15 @@
     (is (= input3 (check-node-spec input3)))
     (is (= input4 (check-node-spec input4)))
     (is (= input5 (check-node-spec input5)))))
+
+(deftest node-spec-test
+  (is (= {:image {:image-id "xx"}}
+         (node-spec {:image {:image-id "xx"}})))
+  (is (= {:hardware {}}
+         (node-spec {:hardware {}})))
+  (is (= {:location {:subnet-id "subnet-xxxx"}}
+         (node-spec {:location {:subnet-id "subnet-xxxx"}})))
+  (is (= {:hardware {:hardware-model "xxxx"}}
+         (node-spec {:hardware {:hardware-model "xxxx"}})))
+  (testing "type"
+    (is (= :pallet.compute/node-spec (type (node-spec {:hardware {}}))))))

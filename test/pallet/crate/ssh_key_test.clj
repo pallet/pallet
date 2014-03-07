@@ -276,7 +276,7 @@
   (with-temp-file [tmp ""]
     (let [compute (make-localhost-compute :group-name "local")
           session (lift
-                   (group-spec "local")
+                   (group-spec "local" {})
                    :phase (plan-fn [session]
                             (config session
                                     "github.com" {"StrictHostKeyChecking" "no"}

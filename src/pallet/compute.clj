@@ -277,7 +277,7 @@ Provider specific options may also be passed."
               inbound-ports
    :qos       a map for quality of service options:
               spot-price enable-monitoring"
-  [& {:keys [image hardware location network qos] :as options}]
+  [{:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
 

@@ -226,12 +226,12 @@ specs [ { [\"user1\" \"user2\"]
   "Returns a server-spec that installs sudoers in the configure phase."
   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
   (spec/server-spec
-   :phases {:settings (plan-fn [session]
-                        (pallet.crate.sudoers/settings session settings))
-            :install (plan-fn [session]
-                       (install session options))
-            :configure (plan-fn [session]
-                         (configure session options))}))
+   {:phases {:settings (plan-fn [session]
+                         (pallet.crate.sudoers/settings session settings))
+             :install (plan-fn [session]
+                        (install session options))
+             :configure (plan-fn [session]
+                          (configure session options))}}))
 
 ;; (defn bootstrap-spec
 ;;   "Returns a server-spec that installs sudoers in the bootstrap phase."
