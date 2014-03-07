@@ -48,11 +48,11 @@
   `consider-targets`.  Returns a channel containing a tuple of a
   sequence of the results and a sequence of any exceptions thrown.
   Will try and call all phases, on all targets.  Any error will halt
-  processing for the target on which the error occurs."
+  processing for the target on which the error occurs.
+  Execution is synchronised across all targets on each phase."
   [session phases targets consider-targets ch]
   (logging/debugf "lift-phases :phases %s :targets %s"
                   (vec phases) (vec (map :group-name targets)))
-  ;; TODO support post-phase, partitioning middleware, etc
   (go-try ch
     (>! ch
         (let [c (chan)]
