@@ -5,8 +5,7 @@
    [clojure.string :as string]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [chained-script script with-source-line-comments]]
-   [pallet.thread-expr :as thread-expr]))
+   [pallet.stevedore :refer [chained-script script with-source-line-comments]]))
 
 ;;; basic
 (defn translate-options
@@ -484,13 +483,11 @@
 (script/defimpl create-user :default [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (thread-expr/when->
-         (:groups options)
-         (update-in [:groups] group-seq->string))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
+        (cond->
+         (:groups options) (as-> options
+                                 (update-in options [:groups] group-seq->string)
+                                 (assoc options :g (:group options))
+                                 (dissoc options :group)))
         stevedore/map-to-arg-string)
    ~username))
 
@@ -498,9 +495,8 @@
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (thread-expr/when->
-         (:groups options)
-         (update-in [:groups] group-seq->string))
+        (cond->
+         (:groups options) (update-in [:groups] group-seq->string))
         (translate-options {:system :r :group :g :password :p :groups :G})
         stevedore/map-to-arg-string)
    ~username))
@@ -509,18 +505,16 @@
   ("/usr/sbin/usermod"
    ~(stevedore/map-to-arg-string
      (-> options
-         (thread-expr/when->
-          (:groups options)
-          (update-in [:groups] group-seq->string))))
+         (cond->
+          (:groups options) (update-in [:groups] group-seq->string))))
    ~username))
 
 (script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
-        (thread-expr/when->
-         (:groups options)
-         (update-in [:groups] group-seq->string))
+        (cond->
+         (:groups options) (update-in [:groups] group-seq->string))
         (translate-options
          {:system :r :group :g :password :p :append :a :groups :G})
         stevedore/map-to-arg-string)

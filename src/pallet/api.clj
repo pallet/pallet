@@ -31,7 +31,6 @@
   ;;   :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
   ;;  [pallet.sync :refer [enter-phase-targets]]
   ;;  [pallet.sync.in-memory :refer [in-memory-sync-service]]
-  ;;  [pallet.thread-expr :refer [when->]]
   ;;  [pallet.user :as user]
   ;;  [pallet.utils :refer [apply-map maybe-update-in total-order-merge]])
   )

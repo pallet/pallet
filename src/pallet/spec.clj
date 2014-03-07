@@ -17,7 +17,6 @@ service."
     :refer [base-session? extension plan-state set-extension target
             target-session? update-extension]]
    [pallet.target :as target]
-   [pallet.thread-expr :refer [when->]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
   (:import clojure.lang.IFn))
@@ -132,14 +131,12 @@ specified in the `:extends` argument."
       :as options}]
   {:post [(check-server-spec %)]}
   (->
-   (or node-spec {})                    ; ensure we have a map and not nil
-   (merge options)
-   (when-> roles
-           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+   (dissoc options :extends :node-spec :phases-meta)
+   (cond->
+    roles (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (maybe-update-in [:phases] phases-with-meta phases-meta default-phase-meta)
    (update-in [:default-phases] #(or default-phases % [:configure]))
-   (dissoc :extends :node-spec :phases-meta)
    (vary-meta assoc :type ::server-spec)))
 
 (defn default-phases

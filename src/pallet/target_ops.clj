@@ -15,9 +15,12 @@
             target-session? update-extension]]
    [pallet.spec :refer [bootstrapped-meta set-targets unbootstrapped-meta]]
    [pallet.target :as target]
-   [pallet.thread-expr :refer [when->]]
    [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
+
+;;; TODO explicit plan-state override of node data
+;;; TODO explicit middleware for tagging via plan-state
+;;; TODO move target-ops into spec?
 
 
 ;;; # Lift

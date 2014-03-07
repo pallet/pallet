@@ -20,7 +20,6 @@ unprecedented level of customization."
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"
                   :exclusions [org.clojure/clojurescript]]
                  [com.palletops/chiba "0.2.0"]
-                 [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
                  [com.palletops/pallet-repl "0.8.0-beta.2"
                   :exclusions [com.palletops/pallet]]

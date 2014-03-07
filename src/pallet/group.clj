@@ -32,7 +32,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.target-ops
     :refer [create-targets destroy-targets lift-op* lift-phase
             os-detection-phases]]
-   [pallet.thread-expr :refer [when->]]
    [pallet.user :as user]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
@@ -137,8 +136,8 @@ Uses a TargetMap to describe a node with its group-spec info."
     (check-group-spec
      (->
       (merge options)
-      (when-> roles
-              (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+      (cond->
+       roles (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
       (extend-specs extends)
       (maybe-update-in
        [:phases] phases-with-meta phases-meta default-phase-meta)
