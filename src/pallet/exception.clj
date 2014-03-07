@@ -1,7 +1,6 @@
 (ns pallet.exception
   "Exception functions"
   (:require
-   [clojure.core.typed :refer [ann Seqable]]
    [clojure.java.io :as io]
    [clojure.string :as string]))
 
@@ -33,7 +32,6 @@
   ([msg data cause]
      (ex-info msg (merge {:pallet/domain true} data) cause)))
 
-(ann combine-exceptions [(Seqable Throwable) -> (U nil Throwable)])
 (defn ^:internal combine-exceptions
   "Wrap a sequence of exceptions into a single exception.  The first
   element of the sequence is used as the cause of the composite

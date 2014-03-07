@@ -95,8 +95,6 @@ value that must be a VersionSpec."
   [base version hierarchy base-key version-key values default-value]
   (letfn [(matches? [v]
                      (let [i (key v)]
-                       ;;  TODO switch back to invoking keyword when
-                       ;;  core.typed supports it
                        (and (isa? hierarchy base (get i base-key))
                             (or
                              (not version)
@@ -125,7 +123,6 @@ value that must be a VersionSpec."
   (valAt [m key]
     (if (map? key)
       (lookup-os
-       ;; TODO switch back to invoking keyword when core.typed supports it
        (get key base-key)
        (get key version-key)
        hierarchy base-key version-key data nil)
@@ -133,7 +130,6 @@ value that must be a VersionSpec."
   (valAt [m key default-value]
     (if (map? key)
       (lookup-os
-       ;; TODO switch back to invoking keyword when core.typed supports it
        (get key base-key)
        (get key version-key)
        hierarchy base-key version-key data default-value)

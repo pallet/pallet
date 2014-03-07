@@ -23,8 +23,7 @@ Phase maps enable composition of operations across heterogenous nodes."
 
 (defn target-phase [phases-map phase]
   (tracef "target-phase %s %s" phases-map phase)
-  ;; TODO switch back to keyword invocation when core.typed can handle it
-  (get phases-map (phase-kw phase)))
+  ((phase-kw phase) phases-map))
 
 ;;; # Phase metadata
 (defn phases-with-meta

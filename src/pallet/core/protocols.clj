@@ -1,10 +1,6 @@
-(ns pallet.core.protocols
-  (:require
-   [clojure.core.async.impl.protocols :refer [Channel]]
-   [clojure.core.typed :refer [defprotocol>]]
-   [pallet.core.type-annotations]))
+(ns pallet.core.protocols)
 
 ;;; # General
-(defprotocol> Closeable
+(defprotocol Closeable
   "Closeable protocol."
   (close [_] "Release acquired resources."))

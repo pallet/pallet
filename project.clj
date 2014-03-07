@@ -13,9 +13,6 @@ unprecedented level of customization."
   :scm {:url "git@github.com:pallet/pallet.git"}
 
   :dependencies [[org.clojure/clojure "1.6.0-beta2"]
-                 [org.clojure/core.incubator "0.1.0"]
-                 [org.clojure/core.typed "0.2.34"
-                  :exclusions [org.clojure/clojurescript]]
                  [org.clojure/tools.logging "0.2.0"]
                  [org.clojure/tools.macro "0.1.1"]
                  ; [org.clojure/tools.cli "0.2.4"]

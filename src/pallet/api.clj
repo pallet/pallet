@@ -2,18 +2,6 @@
   "# Pallet API"
   ;; (:require
   ;;  [clojure.core.async :as async :refer [go <!]]
-  ;;  [clojure.core.typed
-  ;;   :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
-  ;;           AnyInteger Map Nilable NilableNonEmptySeq
-  ;;           NonEmptySeqable Seq Seqable]]
-  ;;  [pallet.core.type-annotations]
-  ;;  [pallet.core.types                   ; before any protocols
-  ;;   :refer [assert-not-nil assert-type-predicate keyword-map?
-  ;;           Action ActionErrorMap ActionResult BaseSession EnvironmentMap
-  ;;           ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
-  ;;           IncompleteGroupTargetMapSeq Keyword Phase PlanResult PhaseTarget PlanFn
-  ;;           PlanState Result TargetMapSeq Session TargetMap TargetPlanResult
-  ;;           User]]
   ;;  [clojure.java.io :refer [input-stream resource]]
   ;;  [clojure.pprint :refer [print-table]]
   ;;  [clojure.set :refer [union]]

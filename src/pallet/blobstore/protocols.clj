@@ -1,10 +1,8 @@
 (ns pallet.blobstore.protocols
-  "Protocols for the blobstore"
-  (:require
-   [clojure.core.typed :refer [defprotocol>]]))
+  "Protocols for the blobstore")
 
 ;;; # Blobstore
-(defprotocol> Blobstore
+(defprotocol Blobstore
   (sign-blob-request
    [blobstore container path request-map]
    "Create a signed request")
