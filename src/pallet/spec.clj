@@ -171,19 +171,13 @@ specified in the `:extends` argument."
   [session]
   (extension session targets-extension))
 
-;; ;; (defn target-nodes
-;;   "Target nodes for current converge."
-;;   [session]
-;;   (map (fn> [t :- TargetMap] (:node t)) (targets session)))
-
-
 ;;; # Map Nodes to Targets
 
 ;;; Given a sequence of nodes, we want to be able to return a sequence
 ;;; of target maps, where each target map is for a single node, and
 ;;; specifies the server-spec for that node.
 
-(defn node->target
+(defn ^:internal node->target
   "Build a target map from a node and a sequence of predicate, spec pairs.
   The target-map will contain all specs where the predicate returns
   true, merged in the order they are specified in the input sequence."
@@ -191,7 +185,8 @@ specified in the `:extends` argument."
   (reduce
    (fn [target [predicate spec]]
      (if (predicate node)
-       ((fnil merge-specs {}) target spec)))
+       (merge-specs merge-spec-algorithm target spec)
+       target))
    {:node node}
    predicate-spec-pairs))
 
@@ -203,6 +198,7 @@ specified in the `:extends` argument."
   {:pre [(every? #(and (sequential? %)
                        (= 2 (count %))
                        (fn? (first %))
-                       (map? (second %))))
+                       (map? (second %)))
+                 predicate-spec-pairs)
          (every? node? nodes)]}
   (map #(node->target predicate-spec-pairs %) nodes))
