@@ -23,7 +23,6 @@
    [pallet.compute :refer [nodes]]
    [pallet.core.file-upload :refer [upload-file-path]]
    [pallet.core.file-upload.rsync-upload :refer [rsync-upload]]
-   [pallet.contracts :refer [*verify-contracts*]]
    [pallet.group :refer [group-spec lift phase-errors]]
    [pallet.local.execute :as local]
    [pallet.plan :refer [plan-fn]]

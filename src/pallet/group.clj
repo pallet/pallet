@@ -7,9 +7,6 @@ Provides the lift and converge operations.
 
 Uses a TargetMap to describe a node with its group-spec info."
   (:require
-   [clj-schema.schema
-    :refer [constraints def-map-schema map-schema optional-path seq-schema
-            sequence-of set-of wild]]
    [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
    [clojure.set :refer [union]]
    [clojure.string :as string :refer [blank?]]
@@ -18,7 +15,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.compute
     :refer [check-node-spec compute-service? node-spec nodes
             service-properties]]
-   [pallet.contracts :refer [check-spec]]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.node :as node :refer [node?]]
    [pallet.core.plan-state :as plan-state]

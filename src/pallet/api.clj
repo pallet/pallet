@@ -11,13 +11,6 @@
   ;;  [pallet.utils.async :refer [go-logged timeout-chan]]
   ;;  [pallet.compute :as compute]
   ;;  [pallet.configure :as configure]
-  ;;  [pallet.contracts
-  ;;   :refer [check-converge-options
-  ;;           check-group-spec
-  ;;           check-lift-options
-  ;;           check-node-spec
-  ;;           check-server-spec
-  ;;           check-user]]
   ;;  [pallet.core.operations :as ops]
   ;;  [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
   ;;  [pallet.core.primitives

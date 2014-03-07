@@ -1,8 +1,6 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:require
-   [clj-schema.schema
-    :refer [def-map-schema map-schema optional-path sequence-of]]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
@@ -16,29 +14,25 @@
             remote-directory
             remote-directory-arguments
             remote-file-arguments]]
-   [pallet.contracts :refer [check-keys]]
    [pallet.crate.package.epel :refer [add-epel]]
    [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
    [pallet.plan :refer [defmethod-plan defmulti-plan]]
    [pallet.settings :refer [get-settings]]
-   [pallet.utils :refer [apply-map]])
-  (:import clojure.lang.IPersistentVector
-           clojure.lang.Keyword))
+   [pallet.utils :refer [apply-map]]
+   [pallet.utils.schema :refer [check-keys update-in-both]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-(def-map-schema crate-install-settings
-  :strict
-  [[:install-strategy] Keyword
-   (optional-path [:packages]) (sequence-of String)
-   (optional-path [:package-source]) (map-schema :loose [[:name] String])
-   (optional-path [:package-options]) (map-schema :loose [])
-   (optional-path [:preseeds]) (sequence-of IPersistentVector)
-   (optional-path [:rpm]) (map-schema
-                           :strict remote-file-arguments [[:name] String])
-   (optional-path [:debs]) remote-file-arguments
-   (optional-path [:install-source]) remote-file-arguments
-   (optional-path [:install-dir]) remote-file-arguments])
-
+(def crate-install-settings
+  {:install-strategy schema/Keyword
+   (optional-key :packages) [String]
+   (optional-key :package-source) {:name String schema/Keyword schema/Any}
+   (optional-key :package-options) {schema/Keyword schema/Any}
+   (optional-key :preseeds) [[schema/Any]]
+   (optional-key :rpm) (assoc remote-file-arguments :name String)
+   (optional-key :debs) remote-file-arguments
+   (optional-key :install-source) remote-file-arguments
+   (optional-key :install-dir) remote-file-arguments})
 
 ;;; ## Install helpers
 (defmulti-plan install-from
@@ -187,10 +181,8 @@ Install based on an archive
 ;; install based on the setting's :packages key
 (defmethod-plan install-from :packages
   [session {:keys [packages package-options preseeds] :as settings}]
-  (check-keys
-   settings [:packages]
-   (map-schema :strict [[:packages] (sequence-of String)])
-   "packages install-strategy settings values")
+  (check-keys settings [:packages] {:packages [String]}
+              "Invalid packages install-strategy settings values")
   (doseq [p preseeds]
     (debconf-set-selections session p))
   (doseq [p packages]
@@ -205,13 +197,10 @@ Install based on an archive
   (debugf "package source %s %s" package-source repository)
   (check-keys
    settings [:package-source :packages]
-   (map-schema :strict
-     [(optional-path [:package-source]) (map-schema
-                                            :loose [[:name] String])
-      (optional-path [:repository]) (map-schema
-                                        :loose [[:repository] Keyword])
-      [:packages] (sequence-of String)])
-   "package-source install-strategy settings values")
+   {(optional-key :package-source) {:name String schema/Keyword schema/Any}
+    (optional-key :repository) {:repository schema/Keyword schema/Keyword schema/Any}
+    :packages [String]}
+   "Invalid package-source install-strategy settings values")
   (if repository
     (actions/repository repository)
     (actions/package-source session (:name package-source) package-source))
@@ -231,27 +220,20 @@ Install based on an archive
   [session {:keys [rpm] :as settings}]
   (check-keys
    settings [:rpm]
-   (map-schema
-       :strict
-     [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])])
-   "packages install-strategy settings values")
-
-  (with-action-options session {:always-before `package/package}
-    (add-rpm session (:name rpm) (dissoc rpm :name))))
+   {:rpm (update-in-both remote-file-arguments 1 assoc :name String)}
+   "Invalid packages install-strategy settings values for :rpm")
+  (add-rpm session (:name rpm) (dissoc rpm :name)))
 
 ;; install based on a rpm that installs a package repository source
 (defmethod-plan install-from :rpm-repo
   [session {:keys [rpm packages package-options] :as settings}]
   (check-keys
    settings [:rpm :packages]
-   (map-schema
-       :strict
-     [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])
-      [:packages] (sequence-of String)])
-   "packages install-strategy settings values")
-  (with-action-options session {:always-before `package/package}
-    (add-rpm session (:name rpm) (dissoc rpm :name)))
-  (doseq [p packages] (apply-map package session p package-options)))
+   {:rpm (update-in-both remote-file-arguments 1 assoc :name String)
+    :packages [String]}
+   "Invalid packages install-strategy settings values for :rpm-repo")
+  (add-rpm session (:name rpm) (dissoc rpm :name))
+  (doseq [p packages] (package session p package-options)))
 
 ;; Upload a deb archive for. Options for the :debs key are as for
 ;; remote-directory (e.g. a :local-file key with a path to a local tar
@@ -280,6 +262,7 @@ Install based on an archive
   [session {:keys [install-dir install-source] :as settings}]
   (check-keys
    settings [:install-dir :install-source]
-   (map-schema :strict [[:install-dir] String [:install-source] String])
-   "archive install-strategy settings values")
+   {:install-dir String
+    :install-source remote-directory-arguments}
+   "Invalid archive install-strategy settings values")
   (apply-map remote-directory session install-dir install-source))

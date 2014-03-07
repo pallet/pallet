@@ -1,9 +1,6 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
-   [clj-schema.schema
-    :refer [constraints def-map-schema map-schema optional-path sequence-of
-            wild]]
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :as string :refer [trim]]
@@ -14,7 +11,6 @@
    [pallet.actions.decl :as decl]
    [pallet.actions.impl :refer :all]
    [pallet.context :as context]
-   [pallet.contracts :refer [check-spec]]
    [pallet.core.file-upload :refer :all]
    [pallet.environment :refer [get-environment]]
    [pallet.plan :refer [defplan plan-context]]
@@ -23,8 +19,8 @@
    [pallet.target :refer [admin-user node packager primary-ip ssh-port]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
-   [useful.ns :refer [defalias]])
-  (:import clojure.lang.Keyword))
+   [useful.ns :refer [defalias]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 (defalias exec decl/exec)
 (defalias exec-script* decl/exec-script*)
@@ -184,68 +180,65 @@
   all-options
   (concat content-options version-options ownership-options [:verify]))
 
-(def-map-schema remote-file-arguments
-  :strict
-  (constraints
-   (fn [m] (some (set content-options) (keys m))))
-  [(optional-path [:local-file]) String
-   (optional-path [:remote-file]) String
-   (optional-path [:url]) String
-   (optional-path [:md5]) String
-   (optional-path [:md5-url]) String
-   (optional-path [:content]) String
-   (optional-path [:literal]) wild
-   (optional-path [:template]) String
-   (optional-path [:values]) (map-schema :loose [])
-   (optional-path [:action]) Keyword
-   (optional-path [:blob]) (map-schema :strict
-                                       [[:container] String [:path] String])
-   (optional-path [:blobstore]) wild  ; cheating to avoid adding a reqiure
-   (optional-path [:insecure]) wild
-   (optional-path [:overwrite-changes]) wild
-   (optional-path [:install-new-files]) wild
-   (optional-path [:no-versioning]) wild
-   (optional-path [:max-versions]) Number
-   (optional-path [:flag-on-changed]) String
-   (optional-path [:owner]) String
-   (optional-path [:group]) String
-   (optional-path [:mode]) [:or String Number]
-   (optional-path [:force]) wild
-   (optional-path [:link]) String
-   (optional-path [:verify]) wild])
+(def remote-file-arguments
+  (schema/both
+   (schema/pred
+    (fn [m] (some (set content-options) (keys m)))
+    "Must have content")
+   {(optional-key :local-file) String
+    (optional-key :remote-file) String
+    (optional-key :url) String
+    (optional-key :md5) String
+    (optional-key :md5-url) String
+    (optional-key :content) String
+    (optional-key :literal) schema/Any
+    (optional-key :action) schema/Keyword
+    (optional-key :blob) {:container String :path String}
+    (optional-key :blobstore) schema/Any  ; cheating to avoid adding a reqiure
+    (optional-key :insecure) schema/Any
+    (optional-key :overwrite-changes) schema/Any
+    (optional-key :no-versioning) schema/Any
+    (optional-key :max-versions) Number
+    (optional-key :flag-on-changed) String
+    (optional-key :owner) String
+    (optional-key :group) String
+    (optional-key :mode) (schema/either String schema/Int)
+    (optional-key :force) schema/Any
+    (optional-key :link) String
+    (optional-key :verify) schema/Any}))
 
-(defmacro check-remote-file-arguments
+(defn check-remote-file-arguments
   [m]
-  (check-spec m `remote-file-arguments &form))
+  (validate remote-file-arguments m))
 
-(def-map-schema remote-directory-arguments
-  :strict
-  (constraints
-   (fn [m] (some (set content-options) (keys m))))
-  [(optional-path [:local-file]) String
-   (optional-path [:remote-file]) String
-   (optional-path [:url]) String
-   (optional-path [:md5]) String
-   (optional-path [:md5-url]) String
-   (optional-path [:action]) Keyword
-   (optional-path [:blob]) (map-schema :strict
-                                       [[:container] String [:path] String])
-   (optional-path [:blobstore]) wild  ; cheating to avoid adding a reqiure
-   (optional-path [:overwrite-changes]) wild
-   (optional-path [:owner]) String
-   (optional-path [:group]) String
-   (optional-path [:recursive]) wild
-   (optional-path [:unpack]) wild
-   (optional-path [:extract-files]) (sequence-of String)
-   (optional-path [:mode]) [:or String Number]
-   (optional-path [:tar-options]) String
-   (optional-path [:unzip-options]) String
-   (optional-path [:strip-components]) Number
-   (optional-path [:install-new-files]) wild])
+(def remote-directory-arguments
+  (schema/both
+   (schema/pred
+    (fn [m] (some (set content-options) (keys m)))
+    "Must have content")
+   {(optional-key :local-file) String
+    (optional-key :remote-file) String
+    (optional-key :url) String
+    (optional-key :md5) String
+    (optional-key :md5-url) String
+    (optional-key :action) schema/Keyword
+    (optional-key :blob) {:container String :path String}
+    (optional-key :blobstore) schema/Any ; cheating to avoid adding a reqiure
+    (optional-key :overwrite-changes) schema/Any
+    (optional-key :owner) String
+    (optional-key :group) String
+    (optional-key :recursive) schema/Any
+    (optional-key :unpack) schema/Any
+    (optional-key :extract-files) [String]
+    (optional-key :mode) (schema/either String schema/Int)
+    (optional-key :tar-options) String
+    (optional-key :unzip-options) String
+    (optional-key :strip-components) Number
+    (optional-key :install-new-files) schema/Any}))
 
-(defmacro check-remote-directory-arguments
+(defn check-remote-directory-arguments
   [m]
-  (check-spec m `remote-directory-arguments &form))
+  (validate remote-directory-arguments m))
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"

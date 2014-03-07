@@ -149,7 +149,7 @@
   (testing "no content specified"
     (with-log-to-string []
       (is (thrown-cause-with-msg?
-           Exception #".*Constraint failed.*"
+           Exception #".*does not match schema.*"
            (->
             (build-plan [session {}]
               (remote-file session "file1" {:owner "user1"}))))))))

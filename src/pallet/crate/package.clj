@@ -1,34 +1,34 @@
 (ns pallet.crate.package
   "A crate to control packages on a remote node."
   (:require
-   [clj-schema.schema :refer [def-map-schema optional-path sequence-of wild]]
    [pallet.actions :as actions]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.settings :refer [get-settings update-settings]]
    [pallet.spec :as spec]
-   [pallet.target :refer [packager]]))
+   [pallet.target :refer [packager]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 ;; TODO capture order between package, package-manager, and package-source?
 
 ;; Need to allow installing certain packages before adding a package
 ;; source for example.
 
-(def-map-schema package-repo-schema
-  [[:repository] String
-   (optional-path [:enable]) wild
-   (optional-path [:priority]) number?])
+(def package-repo-schema
+  {:repository String
+   (optional-key :enable) schema/Bool
+   (optional-key :priority) schema/Int})
 
-(def-map-schema package-schema
-  [[:package] String                        ; package name
-   (optional-path [:allow-unsigned]) String ; flag to allow unsigned pkg
-   (optional-path [:repository]) String     ; an optional repository
-   (optional-path [:version]) String    ; an optional exact version
-   (optional-path [:disable-service-start]) wild]) ; flag to disable
-                                        ; service startup
+(def package-schema
+  [[:package] String                     ; package name
+   (optional-key :allow-unsigned) String ; flag to allow unsigned pkg
+   (optional-key :repository) String     ; an optional repository
+   (optional-key :version) String        ; an optional exact version
+   (optional-key :disable-service-start)
+   schema/Any]) ; flag to disable service startup
 
-(def-map-schema package-settings-schema
-  [[:packages] (sequence-of package-schema)
-   [:package-repositories] (sequence-of package-repo-schema)])
+(def package-settings-schema
+  {:packages [package-schema]
+   :package-repositories [package-repo-schema]})
 
 (defn- conj-distinct
   [coll arg]

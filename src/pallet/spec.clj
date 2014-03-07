@@ -6,7 +6,6 @@ service."
   (:require
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
-   [pallet.contracts :refer [check-spec]]
    [pallet.core.node :refer [node?]]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.plan-state :as plan-state]

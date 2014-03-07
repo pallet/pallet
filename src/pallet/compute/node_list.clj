@@ -22,7 +22,6 @@
    [pallet.environment]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
-   [pallet.contracts :refer [check-spec]]
    [pallet.compute.protocols :as impl :refer [node-tag]]
    [pallet.core.node :as node]
    [pallet.core.protocols :as core-impl]
