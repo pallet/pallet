@@ -1,76 +1,50 @@
 (ns pallet.user
   "User for authentication."
   (:require
-   [clj-schema.schema
-    :refer [constraints
-            def-map-schema
-            map-schema
-            optional-path
-            seq-schema
-            wild]]
-   [clojure.core.typed :refer [ann ann-record pred Nilable NonEmptySeq]]
    [clojure.java.io :refer [file]]
-   [pallet.contracts :refer [bytes? check-spec]]
-   [pallet.core.types :refer [Bytes User]]
-   [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]))
+   [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-(def-map-schema user-schema
-  (constraints
-   (fn [{:keys [password private-key-path private-key]}]
-     (or password private-key private-key-path)))
-  [[:username] String
-   (optional-path [:password]) [:or String nil]
-   (optional-path [:sudo-password]) [:or String nil]
-   (optional-path [:no-sudo]) wild
-   (optional-path [:sudo-user]) [:or String nil]
-   (optional-path [:temp-key]) wild
-   (optional-path [:private-key-path]) [:or String nil]
-   (optional-path [:public-key-path]) [:or String nil]
-   (optional-path [:private-key]) [:or String bytes? nil]
-   (optional-path [:public-key]) [:or String bytes? nil]
-   (optional-path [:passphrase]) [:or String bytes? nil]])
+(def user-schema
+  (schema/both
+   (schema/pred (fn [{:keys [password private-key-path private-key]}]
+                  (or password private-key private-key-path)))
+   {:username String
+    (optional-key :password) String
+    (optional-key :sudo-password) String
+    (optional-key :no-sudo) schema/Bool
+    (optional-key :sudo-user) String
+    (optional-key :temp-key) schema/Bool
+    (optional-key :private-key-path) String
+    (optional-key :public-key-path) String
+    (optional-key :private-key) (schema/either String bytes)
+    (optional-key :public-key) (schema/either String bytes)
+    (optional-key :passphrase) (schema/either String bytes)}))
 
-(defmacro check-user
+(defn validate-user
   [m]
-  (check-spec m `user-schema &form))
+  (validate user-schema m))
 
-(ann key-files '[(Value "id_rsa") (Value "id_dsa")])
+(defn user? [m]
+  (not (check user-schema m)))
+
 (def key-files ["id_rsa" "id_dsa"])
 
-(ann ssh-home java.io.File)
 (def ssh-home (file (System/getProperty "user.home") ".ssh"))
 
-(ann default-private-key-path [-> (U nil String)])
 (defn default-private-key-path
   "Return the default private key path."
   []
   (if-let [f (first-existing-file ssh-home key-files)]
     (str f)))
 
-(ann default-public-key-path [-> (U nil String)])
 (defn default-public-key-path
   "Return the default public key path"
   []
   (if-let [f (first-existing-file ssh-home (map #(str % ".pub") key-files))]
     (str f)))
 
-(ann user? (predicate User))
-(defn user? [user]
-  (check-user user))
-
 ;; TODO remove :no-check when core-type makes fields optional in map->
-(ann ^:no-check make-user
-     [String (HMap :optional
-                   {:public-key-path String
-                    :private-key-path String
-                    :public-key (U String Bytes)
-                    :private-key (U String Bytes)
-                    :passphrase String
-                    :password String
-                    :sudo-password String
-                    :no-sudo boolean
-                    :sudo-user String}
-                   :complete? true) -> User])
 (defn make-user
   "Creates a User record with the given username and options. Generally used
    in conjunction with *admin-user* and with-admin-user, or passed
@@ -109,10 +83,9 @@
                     passphrase
                     password sudo-password no-sudo sudo-user]
              :as options}]
-  {:post [(check-user %)]}
+  {:post [(validate-user %)]}
   (assoc options :username username))
 
-(ann *admin-user* User)
 (def
   ^{:doc "The admin user is used for running remote admin commands that require
    root permissions.  The default admin user is taken from the
@@ -141,7 +114,6 @@
   `(binding [*admin-user* ~user]
      ~@exprs))
 
-(ann obfuscated-passwords [User -> User])
 (defn obfuscated-passwords
   "Return a user with obfuscated passwords"
   [user]

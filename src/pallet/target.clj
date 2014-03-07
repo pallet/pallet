@@ -4,7 +4,7 @@ specific node (or some other target)."
   (:refer-clojure :exclude [proxy])
   (:require
    [pallet.compute :as compute :refer [packager-for-os]]
-   [pallet.core.node :as node :refer [node? node-map]]
+   [pallet.core.node :as node :refer [node?]]
    [pallet.core.node-os :refer [node-os node-os-merge!]]
    [pallet.session :as session :refer [plan-state target target-session?]]
    [pallet.tag :as tag]))

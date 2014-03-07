@@ -2,12 +2,9 @@
   "Generally useful async functions"
   (:require
    [clojure.core.async.impl.protocols :refer [Channel]]
-   [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
-   [clojure.core.typed.async :refer [go> ReadOnlyPort WriteOnlyPort]]
    [clojure.core.async
     :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
    [clojure.tools.logging :refer [debugf errorf]]
-   [pallet.core.types :refer [ErrorMap]]
    [pallet.exception :refer [combine-exceptions]]))
 
 ;;; # Helpers for external protocols
@@ -17,13 +14,13 @@
 (defmacro go-logged
   "Provides a go macro, where any exception thrown by body is logged."
   [& body]
-  `(go>
-    (try
-      ~@body
-      (catch Throwable e#
-        ;; (errorf e# "Unexpected exception terminating go block")
-        (errorf (clojure.stacktrace/root-cause e#)
-                "Unexpected exception terminating go block")))))
+  `(go
+     (try
+       ~@body
+       (catch Throwable e#
+         ;; (errorf e# "Unexpected exception terminating go block")
+         (errorf (clojure.stacktrace/root-cause e#)
+                 "Unexpected exception terminating go block")))))
 
 ;; This is like core.async/pipe, but returns the channel for the
 ;; go-loop in the pipe, so we can synchronise on the pipe completing
@@ -41,9 +38,6 @@
            (do (>! to v)
                (recur)))))))
 
-(ann pipe-timeout (All [x]
-                    [(ReadOnlyPort x) AnyInteger (WriteOnlyPort x)
-                     -> (ReadOnlyPort x)]))
 (defn pipe-timeout
   "Copy values from in-ch to out-ch until ch is closed, or the
   specified timeout period expires.  If a timeout occurs, timeout-val

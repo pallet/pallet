@@ -5,7 +5,7 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture
                                            with-log-to-string]]
-   [pallet.compute.node-list :refer [make-localhost-node]]
+   [pallet.core.nodes :refer [localhost]]
    [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.ssh.execute
     :refer [get-connection ssh-script-on-target with-connection]]

@@ -1,27 +1,19 @@
 (ns pallet.middleware
   "Allow decorating how plan functions are executed."
   (:require
-   [clojure.core.typed
-    :refer [ann ann-form def-alias doseq> fn> for> letfn> inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
-            NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf]]
-   [pallet.core.types
-    :refer [BaseSession PlanExecFn PlanFn PlanResult TargetMap]]
    [pallet.plan :as plan :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
    [pallet.target :as target]))
 
 ;;; # Admin-user setting middleware
-(ann image-user-middleware [PlanExecFn -> PlanExecFn])
 (defn image-user-middleware
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]
-  (fn> [session :- BaseSession target :- TargetMap plan-fn :- Fn]
+  (fn [session target plan-fn]
     {:pre [(target/has-node? target)]}
-    (let [user (into {}
-                     (filter (inst val Any) (target/image-user target)))
+    (let [user (into {} (filter val (target/image-user target)))
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
                  user)

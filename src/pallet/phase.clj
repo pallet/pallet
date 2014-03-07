@@ -7,26 +7,20 @@ that are pallet plan functions.
 
 Phase maps enable composition of operations across heterogenous nodes."
   (:require
-   [clojure.core.typed :refer [ann Nilable Seqable]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.core.types
-    :refer [BaseSession Keyword Node Phase PhaseTarget PlanResult]]
    [pallet.middleware :as middleware]))
 
 ;;; # Phase specification functions
-(ann phase-args [Phase -> (Nilable (Seqable Any))])
 (defn phase-args [phase]
   (if (keyword? phase)
     nil
     (rest phase)))
 
-(ann phase-kw [Phase -> Keyword])
 (defn phase-kw [phase]
   (if (keyword? phase)
     phase
     (first phase)))
 
-(ann target-phase [PhaseTarget Phase -> [Any * -> Any]])
 (defn target-phase [phases-map phase]
   (tracef "target-phase %s %s" phases-map phase)
   ;; TODO switch back to keyword invocation when core.typed can handle it

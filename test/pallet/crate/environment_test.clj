@@ -7,7 +7,7 @@
    [pallet.build-actions
     :refer [build-actions build-plan build-script target-session]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.compute.node-list :refer [make-localhost-node]]
+   [pallet.core.nodes :refer [localhost]]
    [pallet.crate.environment :refer [system-environment
                                      system-environment-file]]
    [pallet.group :refer [lift group-spec phase-errors]]

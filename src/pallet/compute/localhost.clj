@@ -15,6 +15,7 @@ Node removal functions are no-ops."
    [pallet.compute.node-list :as node-list]
    [pallet.compute.protocols :as impl]
    [pallet.core.node :as node]
+   [pallet.core.nodes :refer [localhost]]
    [pallet.core.protocols]
    [pallet.tag :refer [set-state-for-node]]
    [pallet.utils.async :refer [go-try]]))
@@ -81,7 +82,7 @@ Node removal functions are no-ops."
              :or {tag-provider (->NodeTagEphemeral (atom {}))}
              :as options}]
   (let [service (LocalhostService. (atom nil) environment tag-provider)
-        node (node-list/make-localhost-node :service service)]
+        node (localhost {:compute-service service})]
     (reset! (.node service) node)
     (set-state-for-node :bootstrapped {:node node})
     service))

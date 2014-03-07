@@ -1,83 +1,81 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
-   [clj-schema.schema
-    :refer [def-map-schema map-schema optional-path sequence-of wild]]
    [clojure.core.async :as async :refer [<!! <! >! chan]]
-   [clojure.core.typed
-    :refer [ann
-            AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
-            Seq Seqable]]
    [clojure.tools.macro :refer [name-with-attributes]]
-   [pallet.core.types                   ; before any protocols
-    :refer [ComputeService GroupSpec GroupName Keyword ProviderIdentifier
-            Tags TargetMap User]]
-   [pallet.compute.protocols :as impl :refer [Node]]
+   [pallet.compute.protocols :as impl]
    [pallet.compute.implementation :as implementation]
-   [pallet.contracts :refer [check-spec]]
    [pallet.core.protocols :as core-impl]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.utils :refer [maybe-assoc]]
    [pallet.utils.async :refer [go-try]]
-   [pallet.versions :refer [as-version-vector]]))
+   [pallet.versions :refer [as-version-vector]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 ;;; ## Schema types
 
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
-(def-map-schema :loose image-spec-schema
-  [(optional-path [:image-id]) [:or String Keyword]
-   (optional-path [:image-description-matches]) String
-   (optional-path [:image-name-matches]) String
-   (optional-path [:image-version-matches]) String
-   (optional-path [:os-family]) Keyword
-   (optional-path [:os-64-bit]) wild
-   (optional-path [:os-arch-matches]) String
-   (optional-path [:os-description-matches]) String
-   (optional-path [:os-name-matches]) String
-   (optional-path [:os-version-matches]) String
-   (optional-path [:hypervisor-matches]) String
-   (optional-path [:override-login-user]) String])
+(def image-spec-schema
+  {:image-id (schema/either String schema/Keyword)})
 
-(def-map-schema :loose location-spec-schema
-  [(optional-path [:location-id]) String])
+(def image-search-schema
+  {(optional-key :image-id) (schema/either String schema/Keyword)
+   (optional-key :image-description-matches) String
+   (optional-key :image-name-matches) String
+   (optional-key :image-version-matches) String
+   (optional-key :os-family) schema/Keyword
+   (optional-key :os-64-bit) schema/Bool
+   (optional-key :os-arch-matches) String
+   (optional-key :os-description-matches) String
+   (optional-key :os-name-matches) String
+   (optional-key :os-version-matches) String
+   (optional-key :hypervisor-matches) String
+   (optional-key :override-login-user) String
+   schema/Keyword schema/Any})
 
-(def-map-schema :loose hardware-spec-schema
-  [(optional-path [:hardware-id]) String
-   (optional-path [:min-ram]) Number
-   (optional-path [:min-cores]) Number
-   (optional-path [:min-disk]) Number])
+(def location-spec-schema
+  {(optional-key :location-id) String
+   schema/Keyword schema/Any})
 
-(def-map-schema inbound-port-spec-schema
-  [[:start-port] Number
-   (optional-path [:end-port]) Number
-   (optional-path [:protocol]) String])
+(def hardware-spec-schema
+  {(optional-key :hardware-id) String
+   (optional-key :min-ram) Number
+   (optional-key :min-cores) Number
+   (optional-key :min-disk) Number
+   schema/Keyword schema/Any})
+
+(def inbound-port-spec-schema
+  {:start-port Number
+   (optional-key :end-port) Number
+   (optional-key :protocol) String})
 
 (def inbound-port-schema
-  [:or inbound-port-spec-schema Number])
+  (schema/either inbound-port-spec-schema Number))
 
-(def-map-schema :loose network-spec-schema
-  [(optional-path [:inbound-ports]) (sequence-of inbound-port-schema)])
+(def network-spec-schema
+  {(optional-key :inbound-ports) [inbound-port-schema]
+   schema/Keyword schema/Any})
 
-(def-map-schema :loose qos-spec-schema
-  [(optional-path [:spot-price]) Number
-   (optional-path [:enable-monitoring]) wild])
+(def qos-spec-schema
+  {(optional-key :spot-price) Number
+   (optional-key :enable-monitoring) schema/Bool
+   schema/Keyword schema/Any})
 
-(def-map-schema node-spec-schema
-  [(optional-path [:image]) image-spec-schema
-   (optional-path [:location]) location-spec-schema
-   (optional-path [:hardware]) hardware-spec-schema
-   (optional-path [:network]) network-spec-schema
-   (optional-path [:qos]) qos-spec-schema
-   (optional-path [:provider]) (map-schema :loose [])])
+(def node-spec-schema
+  {(optional-key :image) image-spec-schema
+   (optional-key :location) location-spec-schema
+   (optional-key :hardware) hardware-spec-schema
+   (optional-key :network) network-spec-schema
+   (optional-key :qos) qos-spec-schema
+   (optional-key :provider) {schema/Keyword schema/Any}
+   schema/Keyword schema/Any})
 
-(defmacro check-node-spec
+(defn check-node-spec
   [m]
-  (check-spec m `node-spec-schema &form))
-
+  (validate node-spec-schema m))
 
 ;;; Meta
-(ann supported-providers [-> (NilableNonEmptySeq ProviderIdentifier)])
 (defn supported-providers
   "Return a list of supported provider names.
 Each name is suitable to be passed to compute-service."
@@ -85,14 +83,10 @@ Each name is suitable to be passed to compute-service."
   (implementation/supported-providers))
 
 ;;; Compute Service instantiation
-(ann missing-provider-re java.util.regex.Pattern)
 (def ^:private
   missing-provider-re
   #"No method in multimethod 'service' for dispatch value: (.*)")
 
-(ann instantiate-provider
-     [ProviderIdentifier & :optional {:identity String :credential String}
-      -> pallet.compute.protocols/ComputeService])
 (defn instantiate-provider
   "Instantiate a compute service. The provider name should be a recognised
 jclouds provider, \"node-list\", \"hybrid\", or \"localhost\". The other
@@ -129,7 +123,6 @@ Provider specific options may also be passed."
                    :cause cause})))
         (throw e)))))
 
-(ann ^:no-check compute-service? [Any -> boolean])
 (defn compute-service?
   "Predicate for the argument satisfying the ComputeService protocol."
   [c]
@@ -229,8 +222,6 @@ Provider specific options may also be passed."
   [compute nodes ch]
   (impl/resume-nodes compute nodes ch))
 
-(ann tag-nodes [ComputeService (Seqable Node) Tags ->
-                (Nilable (NonEmptySeqable Node))])
 (defn tag-nodes
   "Set the `tags` on all `nodes`."
   ([compute nodes tags]
@@ -246,14 +237,12 @@ Provider specific options may also be passed."
   [compute node-name base-name]
   (impl/matches-base-name? compute node-name base-name))
 
-(ann close [ComputeService -> nil])
 (defn close
   "Close the compute service, releasing any acquired resources."
   [compute]
   (require-protocol core-impl/Closeable compute :close)
   (core-impl/close compute))
 
-(ann service-properties [ComputeService -> Map])
 (defn service-properties
   "Return a map of service details.  Contains a :provider key at a minimum.
   May contain current credentials."
@@ -292,9 +281,11 @@ Provider specific options may also be passed."
   {:pre [(or (nil? image) (map? image))]}
   (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
 
+
+;;; TODO move these into a knowledge base
+
 ;;; Hierarchies
 
-(ann ^:no-check os-hierarchy Hierarchy)
 ;; TODO fix the no-check when derive has correct annotations
 (def os-hierarchy
   (-> (make-hierarchy)
@@ -324,28 +315,7 @@ Provider specific options may also be passed."
       (derive :darwin :bsd-base)
       (derive :os-x :bsd-base)))
 
-(defmacro defmulti-os
-  "Defines a defmulti used to abstract over the target operating system. The
-   function dispatches based on the target operating system, that is extracted
-   from the session passed as the first argument.
-
-   Version comparisons are not included"
-  [name [& args]]
-  `(do
-     (defmulti ~name
-       (fn [~@args] (-> ~(first args) :server :image :os-family))
-       :hierarchy #'os-hierarchy)
-
-     (defmethod ~name :default [~@args]
-       (throw
-        (ex-info
-         (format
-          "%s does not support %s"
-          ~name (-> ~(first args) :server :image :os-family))
-         {:type :pallet/unsupported-os})))))
-
 ;;; target mapping
-(ann packager-map pallet.core.version_dispatch.VersionMap)
 (def packager-map
   (version-map os-hierarchy :os :os-version
                {{:os :debian-base} :apt
@@ -356,7 +326,6 @@ Provider specific options may also be passed."
                 {:os :os-x} :brew
                 {:os :darwin} :brew}))
 
-(ann packager-for-os [Keyword (Nilable String) -> Keyword])
 (defn packager-for-os
   "Package manager"
   [os-family os-version]
@@ -371,7 +340,6 @@ Provider specific options may also be passed."
      (format "Unknown packager for %s %s" os-family os-version)
      {:type :unknown-packager}))))
 
-(ann admin-group [Keyword (Nilable String) -> String])
 (defn admin-group
   "Default admin group for host"
   [os-family os-version]

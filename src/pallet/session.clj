@@ -39,13 +39,6 @@ The session is a map with well defined keys:
 : the current target
 "
   (:require
-   [clojure.core.typed
-    :refer [ann def-alias fn> inst tc-ignore
-            Atom1 Map Nilable NilableNonEmptySeq NonEmptySeqable Seqable]]
-   [pallet.core.types ;; before anything that uses the protocols this annotates
-    :refer [assert-type-predicate
-            ActionOptions BaseSession Executor ExecutionState Keyword PlanState
-            Recorder ScopeMap Session TargetMap User]]
    [pallet.core.executor :refer [executor?]]
    [pallet.core.plan-state
     :refer [get-settings get-scopes merge-scopes plan-state?]]
@@ -74,7 +67,6 @@ The session is a map with well defined keys:
 (def target-session
   (assoc base-session :target {schema/Keyword schema/Any}))
 
-(ann ^:no-check base-session? (predicate BaseSession))
 (defn base-session?
   [x]
   (not (schema/check base-session x)))
@@ -87,11 +79,6 @@ The session is a map with well defined keys:
   [x]
   (schema/validate target-session x))
 
-(ann create [(HMap
-              :mandatory {:executor Executor}
-              :optional {:recorder Record
-                         :plan-state StateGet})
-             -> BaseSession])
 (defn create
   "Create a session with the specified components."
   [{:keys [recorder plan-state executor action-options user
@@ -111,19 +98,16 @@ The session is a map with well defined keys:
      {:plan-state plan-state})))
 
 
-(ann plan-state [BaseSession -> PlanState])
 (defn plan-state
   "Get the plan state"
   [session]
   (:plan-state session))
 
-(ann recorder [BaseSession -> Recorder])
 (defn recorder
   "Get the action recorder"
   [session]
   (-> session :execution-state :recorder))
 
-(ann executor [BaseSession -> Executor])
 (defn executor
   "Get the action executor."
   [session]
@@ -131,32 +115,27 @@ The session is a map with well defined keys:
    :post [(executor? %)]}
   (-> session :execution-state :executor))
 
-(ann set-executor [BaseSession Executor -> BaseSession])
 (defn set-executor
   "Get the action executor."
   [session executor]
   {:pre [(executor? executor)]}
   (assoc-in session [:execution-state :executor] executor))
 
-(ann action-options [BaseSession -> ActionOptions])
 (defn action-options
   "Get the action options."
   [session]
   (-> session :execution-state :action-options))
 
-(ann merge-action-options [BaseSession (HMap) -> ActionOptions])
 (defn merge-action-options
   "Update the default action options modifiers defined on the session"
   [session m]
   (update-in session [:execution-state :action-options] merge m))
 
-(ann environment [BaseSession -> (HMap)])
 (defn ^:internal environment
   "Get the environment map."
   [session]
   (-> session :execution-state :environment))
 
-(ann set-environment [(HMap) -> BaseSession])
 (defn ^:internal set-environment
   "Set the environment map."
   [session environment]
@@ -182,28 +161,24 @@ The session is a map with well defined keys:
   [session extension-kw value]
   (assoc-in session [:execution-state :extension extension-kw] value))
 
-(ann ^:no-check user [BaseSession -> User])
 (defn user
   "Return a session with `user` as the known admin user."
   [session]
   {:post [(user? %)]}
   (-> session :execution-state :user))
 
-(ann ^:no-check set-user [BaseSession User -> BaseSession])
 (defn set-user
   "Return a session with `user` as the known admin user."
   [session user]
   {:pre [(user? user)]}
   (assoc-in session [:execution-state :user] user))
 
-(ann ^:no-check set-recorder [BaseSession Recorder -> BaseSession])
 (defn set-recorder
   "Return a session with `recorder` as the action result recorder."
   [session recorder]
   {:post [(recorder? (pallet.session/recorder %))]}
   (assoc-in session [:execution-state :recorder] recorder))
 
-(ann set-target [BaseSession TargetMap -> Session])
 (defn set-target
   "Return a session with `:target` as the current target."
   [session target]
@@ -211,7 +186,6 @@ The session is a map with well defined keys:
    :post [(target-session? %)]}
   (assoc session :target target))
 
-(ann target [Session -> TargetMap])
 (defn target
   "Current session target map."
   [session]

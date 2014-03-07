@@ -5,7 +5,6 @@
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan :refer [plan-executor]]
-   [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.exception :refer [domain-info]]
@@ -24,10 +23,13 @@
                        :recorder (in-memory-recorder)})
       (set-user user/*admin-user*)))
 
-(def ubuntu-target {:override {:os-family :ubuntu
-                               :os-version "13.10"
-                               :packager :apt}
-                    :node (localhost)})
+(defn node []
+  {:id "somenode"
+   :os-family :ubuntu
+   :os-version "13.10"
+   :packager :apt})
+
+(def ubuntu-target {:node (node)})
 
 (deftest execute-action-test
   (testing "execute-action"
@@ -128,7 +130,7 @@
 (def ubuntu-target {:override {:os-family :ubuntu
                                :os-version "13.10"
                                :packager :apt}
-                    :node (localhost)})
+                    :node (node)})
 
 (deftest execute-plan-fns-test
   (testing "execute-plan-fns"

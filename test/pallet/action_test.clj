@@ -4,7 +4,6 @@
    [pallet.action :refer :all]
    [pallet.action-options :refer [with-action-options]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.compute.node-list :as node-list]
    [pallet.core.executor.plan :as plan]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.session :as session]
@@ -16,7 +15,7 @@
   []
   (-> (session/create {:executor (plan/plan-executor)
                        :recorder (in-memory-recorder)})
-      (session/set-target {:node (node-list/node "localhost" {})})
+      (session/set-target {:node {:id "localhost"}})
       (session/set-user user/*admin-user*)))
 
 (deftest declare-action-test

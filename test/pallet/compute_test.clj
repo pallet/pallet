@@ -10,17 +10,17 @@
   (is (= :portage (packager-for-os :gentoo nil)))
   (is (= :brew (packager-for-os :os-x nil))))
 
-(defmulti-os testos [session])
-(defmethod testos :linux [session] :linux)
-(defmethod testos :debian [session] :debian)
-(defmethod testos :rh-base [session] :rh-base)
+;; (defmulti-os testos [session])
+;; (defmethod testos :linux [session] :linux)
+;; (defmethod testos :debian [session] :debian)
+;; (defmethod testos :rh-base [session] :rh-base)
 
-(deftest defmulti-os-test
-  (is (= :linux (testos {:server {:image {:os-family :arch}}})))
-  (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
-  (is (= :debian (testos {:server {:image {:os-family :debian}}})))
-  (is (thrown? clojure.lang.ExceptionInfo
-               (testos {:server {:image {:os-family :unspecified}}}))))
+;; (deftest defmulti-os-test
+;;   (is (= :linux (testos {:server {:image {:os-family :arch}}})))
+;;   (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
+;;   (is (= :debian (testos {:server {:image {:os-family :debian}}})))
+;;   (is (thrown? clojure.lang.ExceptionInfo
+;;                (testos {:server {:image {:os-family :unspecified}}}))))
 
 (deftest schemas-are-loose-test
   (let [input  {:network {:security-group "default"}}

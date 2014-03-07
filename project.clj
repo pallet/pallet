@@ -34,7 +34,7 @@ unprecedented level of customization."
                   :exclusions [org.clojure/clojure]]
                  [pallet-map-merge "0.1.0"]
                  [org.clojars.runa/clj-schema "0.9.4"]
-                 [prismatic/schema "0.1.6"]
+                 [prismatic/schema "0.2.1"]
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]

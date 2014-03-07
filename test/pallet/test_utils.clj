@@ -10,8 +10,10 @@
    [pallet.common.context :refer [throw-map]]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
+   [pallet.core.node :as node]
    [pallet.execute :as execute]
    [pallet.core.executor :refer [node-state]]
+   [pallet.core.nodes :refer [localhost]]
    [pallet.group :refer [group-spec]]
    [pallet.script :as script]
    [pallet.session :as session]
@@ -110,23 +112,24 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn make-node
   "Simple node for testing"
   [node-name {:as options}]
-  {:pre [node-name]}
-  (node-list/make-node
-   node-name
-   (:group-name options node-name)
-   (:ip options "1.2.3.4")
-   (:os-family options :ubuntu)
+  {:pre [node-name]
+   :post [(node/validate-node %)]}
+  (merge
+   {:hostname (str (name (:group-name options node-name)) "-0")
+    :id (name node-name)
+    :primary-ip (:ip options "1.2.3.4")
+    :os-family (:os-family options :ubuntu)}
    (dissoc options :group-name :ip :os-family)))
 
 (defn make-localhost-node
   "Simple localhost node for testing"
   [{:as options}]
-  (node-list/make-localhost-node options))
+  (localhost options))
 
 (defn make-localhost-compute
   [& {:as options}]
   (node-list/node-list-service
-   [(make-localhost-node options)]))
+   [(localhost options)]))
 
 (defmacro build-resources
   "Forwarding definition"

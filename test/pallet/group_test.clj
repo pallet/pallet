@@ -249,8 +249,8 @@
               (compute/nodes service) [(group/group-spec :local)])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
-      (is (= (dissoc (localhost) :service)
-             (dissoc (:node (first ss)) :service)))
+      (is (= (dissoc (localhost {:group-name :local}) :compute-service)
+             (dissoc (:node (first ss)) :compute-service)))
       (is (every? :node ss)))))
 
 (deftest all-group-nodes-test
@@ -262,8 +262,8 @@
               [(group/group-spec :other)])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
-      (is (= (dissoc (localhost) :service)
-             (dissoc (:node (first ss)) :service))))))
+      (is (= (dissoc (localhost {:group-name :local}) :compute-service)
+             (dissoc (:node (first ss)) :compute-service))))))
 
 (deftest node-count-adjuster-test
   (testing "node-count-adjuster"

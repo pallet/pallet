@@ -2,93 +2,123 @@
   "Provider level API for nodes in pallet"
   (:refer-clojure :exclude [proxy])
   (:require
-   [clojure.core.typed :refer [ann AnyInteger Map Nilable]]
-   [pallet.core.types ;; before any protocols
-    :refer [Hardware Keyword Proxy User]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.logging :refer [trace]]
-   [pallet.compute.protocols :as impl :refer [Node ComputeService]]))
+   [pallet.compute.protocols :as impl]
+   [pallet.user :refer [user-schema]]
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-;;; Nodes
-(ann ssh-port [Node -> AnyInteger])
+;;; # Node functions
+(def proxy-map
+  {:port schema/Int})
+
+(def node-schema
+  {:id String
+   (optional-key :compute-service) pallet.compute.protocols.ComputeService
+   (optional-key :ssh-port) schema/Int
+   (optional-key :primary-ip) String
+   (optional-key :private-ip) String
+   (optional-key :is-64bit) schema/Any
+   (optional-key :hostname) String
+   (optional-key :run-state) (schema/enum
+                              :running :stopped :suspended :terminated)
+   (optional-key :proxy) proxy-map
+   (optional-key :os-family) schema/Keyword
+   (optional-key :os-version) String
+   (optional-key :packager) schema/Keyword
+   (optional-key :image-user) user-schema
+   (optional-key :hardware) {schema/Keyword schema/Any}})
+
+(defn validate-node
+  "Predicate to test whether an object implements the Node protocol"
+  [obj]
+  (schema/validate node-schema obj))
+
+(defn node?
+  "Predicate to test whether an object implements the Node protocol"
+  [obj]
+  (not (schema/check node-schema obj)))
+
 (defn ssh-port
   "Extract the port from the node's user Metadata"
   [node]
-  (impl/ssh-port node))
+  {:pre [(validate node-schema node)]
+   :post [(number? %)]}
+  (:ssh-port node 22))
 
-(ann primary-ip [Node -> String])
 (defn primary-ip
   "Returns the first public IP for the node."
   [node]
-  (impl/primary-ip node))
+  {:pre [(validate node-schema node)]}
+  (:primary-ip node))
 
-(ann private-ip [Node -> (Nilable String)])
 (defn private-ip
   "Returns the first private IP for the node."
   [node]
-  (impl/private-ip node))
+  {:pre [(validate node-schema node)]}
+  (:private-ip node))
 
-(ann is-64bit? [Node -> boolean])
 (defn is-64bit?
   "64 Bit OS predicate"
   [node]
-  (impl/is-64bit? node))
+  {:pre [(validate node-schema node)]}
+  (:is-64bit node true))
 
-(ann hostname [Node -> String])
 (defn hostname
   "Return the node's hostname"
   [node]
-  (impl/hostname node))
+  {:pre [(validate node-schema node)]}
+  (:hostname node))
 
-;; (ann os-family [Node -> Keyword])
-;; (defn os-family
-;;   "Return a node's os-family, or nil if not available."
-;;   [node]
-;;   (impl/os-family node))
+(defn os-family
+  "Return a node's os-family, or nil if not available."
+  [node]
+  {:pre [(validate node-schema node)]}
+  (:os-family node))
 
-;; (ann os-version [Node -> String])
-;; (defn os-version
-;;   "Return a node's os-version, or nil if not available."
-;;   [node]
-;;   (impl/os-version node))
+(defn os-version
+  "Return a node's os-version, or nil if not available."
+  [node]
+  {:pre [(validate node-schema node)]}
+  (:os-version node))
 
-(ann running? [Node -> boolean])
 (defn running?
   "Predicate to test if node is running."
   [node]
-  (impl/running? node))
+  {:pre [(validate node-schema node)]}
+  (:running? node))
 
-(ann terminated? [Node -> boolean])
 (defn terminated?
   "Predicate to test if node is terminated."
   [node]
-  (impl/terminated? node))
+  {:pre [(validate node-schema node)]}
+  (:terminated? node))
 
-(ann id [Node -> String])
 (defn id
   "Return the node's id."
   [node]
-  (impl/id node))
+  {:pre [(validate node-schema node)]
+   :post [(string? %)]}
+  (:id node))
 
-(ann compute-service [Node -> ComputeService])
 (defn compute-service
   "Return the service provider the node was provided by."
   [node]
-  (impl/compute-service node))
+  {:pre [(validate node-schema node)]}
+  (:compute-service node))
 
-;; (ann packager [Node -> Keyword])
-;; (defn packager
-;;  "The packager to use on the node"
-;;  [node]
-;;  (impl/packager node))
+(defn packager
+ "The packager to use on the node"
+ [node]
+ {:pre [(validate node-schema node)]}
+ (:packager node))
 
-(ann image-user [Node -> User])
 (defn image-user
   "Return the user that is defined by the image."
   [node]
-  (impl/image-user node))
+  {:pre [(validate node-schema node)]}
+  (:image-user node))
 
-(ann hardware [Node -> Hardware])
 (defn hardware
   "Return a map with `:cpus`, `:ram`, and `:disks` information. The
 ram is reported in Mb. The `:cpus` is a sequence of maps, one for each
@@ -96,21 +126,15 @@ cpu, containing the number of `:cores` on each. The `:disks` is a
 sequence of maps, containing a :size key for each drive, in Gb. Other
 keys may be present."
   [node]
-  (impl/hardware node))
+  {:pre [(validate node-schema node)]}
+  (:hardware node))
 
-(ann proxy [Node -> Proxy])
 (defn proxy
   "A map with SSH proxy connection details."
   [node]
-  (impl/proxy node))
+  {:pre [(validate node-schema node)]}
+  (:proxy node))
 
-(ann ^:no-check node? [Any -> boolean])
-(defn node?
-  "Predicate to test whether an object implements the Node protocol"
-  [obj]
-  (satisfies? Node obj))
-
-(ann node-address [Node -> (Nilable String)])
 (defn node-address
   [node]
   {:pre [(node? node)]}
@@ -118,68 +142,38 @@ keys may be present."
     (primary-ip node) (primary-ip node)
     :else (private-ip node)))
 
-(ann tag (Fn [Node String -> String]
-             [Node String String -> String]))
+
+;;; # Functions that require a compute service in the node
+(defn taggable?
+  "Predicate to test the availability of tags."
+  [node]
+  (if-let [service (compute-service node)]
+    (impl/node-taggable? service node)))
+
 (defn tag
   "Return the specified tag."
   ([node tag-name]
+     {:pre [(compute-service node)]}
      (impl/node-tag (compute-service node) node tag-name))
   ([node tag-name default-value]
+     {:pre [(compute-service node)]}
      (impl/node-tag (compute-service node) node tag-name default-value)))
 
-(ann tags [Node -> (Map String String)])
 (defn tags
   "Return the tags."
   [node]
+  {:pre [(compute-service node)]}
   (impl/node-tags (compute-service node) node))
 
-(ann tag! [Node String String -> nil])
 (defn tag!
   "Set a value on the given tag-name."
   [node tag-name value]
   (impl/tag-node! (compute-service node) node tag-name value))
 
-(ann taggable? [Node -> boolean])
-(defn taggable?
-  "Predicate to test the availability of tags."
-  [node]
-  (impl/node-taggable? (compute-service node) node))
-
-(ann has-base-name? [Node String -> Boolean])
 (defn has-base-name?
   "Predicate for the node name matching the specified base-name"
   [node base-name]
-  (impl/has-base-name? node base-name))
-
-(ann node-map [Node -> (U
-                        (HMap :mandatory {:proxy Proxy
-                                          :ssh-port AnyInteger
-                                          :primary-ip String
-                                          :private-ip (Nilable String)
-                                          :is-64bit? boolean
-                                          :hostname String
-                                          ;; :os-family Keyword
-                                          ;; :os-version String
-                                          :running? boolean
-                                          :terminated? boolean
-                                          :id String})
-                        (HMap :mandatory {:primary-ip (Value "N/A")
-                                          :host-name (Value "N/A")}))])
-(defn node-map
-  "Convert a node into a map representing the node."
-  [node]
-  (try
-    {:proxy (proxy node)
-     :ssh-port (ssh-port node)
-     :primary-ip (primary-ip node)
-     :private-ip (private-ip node)
-     :is-64bit? (is-64bit? node)
-     :hostname (hostname node)
-     ;; :os-family (os-family node)
-     ;; :os-version (os-version node)
-     :running? (running? node)
-     :terminated? (terminated? node)
-     :id (id node)}
-    (catch Exception e
-      (trace e (with-out-str (print-cause-trace e)))
-      {:primary-ip "N/A" :host-name "N/A"})))
+  {:pre [(node? node)
+         (compute-service node)
+         (string? base-name)]}
+  (impl/matches-base-name? (compute-service node) (hostname node) base-name))

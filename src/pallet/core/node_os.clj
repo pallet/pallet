@@ -1,16 +1,8 @@
 (ns pallet.core.node-os
   "Implementation functions for the core api."
   (:require
-   [clojure.core.typed
-    :refer [ann def-alias fn> inst
-            Map Nilable NilableNonEmptySeq NonEmptySeqable Seq Vec]]
-   [pallet.core.types
-    :refer [assert-type-predicate
-            GroupName GroupSpec IncompleteGroupTargetMap Keyword OsDetailsMap
-            PlanState TargetMap]]
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.compute :refer [packager-for-os]]
-   [pallet.compute.protocols :refer [Node]]
    [pallet.core.node :as node]
    [pallet.core.plan-state
     :refer [assoc-settings get-settings plan-state? update-settings]]
@@ -19,8 +11,6 @@
    [pallet.stevedore :refer [with-script-language]]
    [pallet.utils :refer [maybe-assoc]]))
 
-;; TODO remove the no-check
-(ann ^:no-check os-details-map? (predicate OsDetailsMap))
 (defn os-details-map? [x]
   (and (map? x)
        (empty? (dissoc x :os-family :os-version :packager :arch))))
@@ -39,33 +29,30 @@
 (defn node-os!
   "Set the node os information map"
   [node plan-state os-details]
-  {:pre [(or (nil? os-details) (os-details-map? os-details))]}
+  {:pre [(or (nil? os-details) (os-details-map? os-details))
+         (plan-state? plan-state)]}
   (assoc-settings plan-state (node/id node) :pallet/os os-details {}))
 
 (defn node-os-merge!
   "Merge the os-details into the node os information map"
   [node plan-state os-details]
-  {:pre [(or (nil? os-details) (os-details-map? os-details))]}
+  {:pre [(or (nil? os-details) (os-details-map? os-details))
+         (plan-state? plan-state)]}
   (update-settings plan-state (node/id node) :pallet/os merge os-details {}))
 
-;; TODO remove the no-check when building maps in steps is easily typable
-(ann ^:no-check target-os-details [TargetMap PlanState -> OsDetailsMap])
 (defn node-os-details
   "Return a node-os details map from the plan-state.  These can be set manually,
   or are set by using the detection phases in pallet.crate.os."
   [node plan-state]
   (let [{:keys [os-family os-version] :as os-map} (node-os node plan-state)
         os-map (update-in
-                  os-map [:packager]
-                  (fn> [x :- (Nilable Keyword)]
-                    (or x
-                        (if os-family
-                          (packager-for-os os-family os-version)))))]
+                os-map [:packager]
+                (fn [x]
+                  (or x
+                      (if os-family
+                        (packager-for-os os-family os-version)))))]
     os-map))
 
-;; TODO - remove :no-check when core.type can recognise filtering of nil
-(ann ^:no-check script-template-for-node
-     [TargetMap PlanState -> (Nilable (NonEmptySeqable Keyword))])
 (defn script-template-for-node
   [node plan-state]
   {:pre [node (node/node? node)]}

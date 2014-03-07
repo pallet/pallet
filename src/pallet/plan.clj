@@ -2,18 +2,8 @@
   "API for execution of pallet plan functions."
   (:require
    [clojure.core.async :as async :refer [<!! chan]]
-   [clojure.core.typed
-    :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
-            NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :refer [debugf]]
    [clojure.tools.macro :refer [name-with-attributes]]
-   [pallet.core.type-annotations]
-   [pallet.core.types                   ; before any protocols
-    :refer [assert-not-nil assert-type-predicate keyword-map?
-            Action ActionErrorMap ActionResult BaseSession EnvironmentMap
-            ErrorMap ExecSettings ExecSettingsFn Keyword Phase PlanResult
-            PlanFn PlanState Result Session TargetMap User]]
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.context :refer [with-phase-context]]
@@ -35,10 +25,7 @@
    [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
-   [schema.core :as schema :refer [check required-key optional-key validate]])
-  (:import
-   clojure.lang.IMapEntry
-   pallet.compute.protocols.Node))
+   [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 ;;; # Action Plan Execution
 
@@ -54,7 +41,6 @@
   (assoc plan-result-map :target schema/Any))
 
 ;;; ## Execute action on a target
-(ann execute-action [Session Action -> ActionResult])
 ;; TODO - remove tc-gnore when update-in has more smarts
 (defn execute-action
   "Execute an action map within the context of the current session."
@@ -88,7 +74,6 @@
         (throw e))
       rv)))
 
-(ann execute* [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute*
   "Execute a plan function on a target.
 
@@ -137,7 +122,6 @@ The result is also written to the recorder in the session."
                             (assoc result :target target)
                             e))))))))
 
-(ann execute [BaseSession TargetMap PlanFn -> PlanResult])
 (defn execute
   "Execute a plan function.  If there is a `target` with a `:node`,
   then we execute the plan-fn using the core execute function,

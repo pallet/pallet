@@ -11,12 +11,6 @@ Uses a TargetMap to describe a node with its group-spec info."
     :refer [constraints def-map-schema map-schema optional-path seq-schema
             sequence-of set-of wild]]
    [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
-   [clojure.core.typed
-    :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
-            inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
-            NonEmptySeqable Seq Seqable]]
-   [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
    [clojure.set :refer [union]]
    [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
@@ -29,15 +23,10 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.core.node :as node :refer [node?]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
-   [pallet.core.types
-    :refer [BaseSession ComputeService ErrorMap GroupName GroupSpec
-            IncompleteGroupTargetMap IncompleteGroupTargetMapSeq
-            Node ScopeMap Session TargetMap
-            TargetMapSeq User]]
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
    [pallet.phase :as phase :refer [phases-with-meta process-phases]]
-   [pallet.plan :as api :refer [errors]]
+   [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
             recorder target target-session? update-extension]]
@@ -52,68 +41,67 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
-            reduce-results]])
-  (:import clojure.lang.IFn
-           clojure.lang.Keyword))
+            reduce-results]]
+   [schema.core :as schema :refer [check required-key optional-key validate]])
+  (:import clojure.lang.IFn))
 
 ;;; # Domain Model
 
 ;;; ## Schemas
 
+;; TODO move these to pallet.phase
 (def phase-with-args-schema
-  (seq-schema
-   :all
-   (constraints (fn [s] (keyword? (first s))))
-   wild))
+  [(schema/one schema/Keyword "phase-kw") schema/Any])
 
 (def phase-schema
-  [:or Keyword IFn phase-with-args-schema])
+  (schema/either schema/Keyword IFn phase-with-args-schema))
 
-(def-map-schema environment-strict-schema
-  [(optional-path [:algorithms]) (map-schema :loose [])
-   (optional-path [:user]) user/user-schema
-   (optional-path [:executor]) IFn
-   (optional-path [:compute]) [:or compute-service? nil]])
+(def environment-strict-schema
+  {(optional-key :user) user/user-schema
+   (optional-key :executor) IFn
+   (optional-key :compute) (schema/pred compute-service?)})
 
-(def-map-schema group-spec-schema
-  spec/server-spec-schema
-  [[:group-name] Keyword
-   (optional-path [:node-filter]) IFn
-   (optional-path [:count]) Number
-   (optional-path [:removal-selection-fn]) IFn])
+(def group-spec-schema
+  (merge spec/server-spec-schema
+         {:group-name schema/Keyword
+          (optional-key :node-filter) IFn
+          (optional-key :count) Number
+          (optional-key :removal-selection-fn) IFn}))
 
-(def-map-schema lift-options-schema
-  environment-strict-schema
-  [(optional-path [:compute]) [:or compute-service? nil]
-   (optional-path [:blobstore]) [:or nil blobstore?]
-   (optional-path [:phase]) [:or phase-schema (sequence-of phase-schema)]
-   (optional-path [:environment]) (map-schema :loose environment-strict-schema)
-   (optional-path [:user]) user/user-schema
-   (optional-path [:status-chan]) channel?
-   (optional-path [:close-status-chan?]) wild
-   (optional-path [:async]) wild
-   (optional-path [:timeout-ms]) Number
-   (optional-path [:timeout-val]) wild
-   (optional-path [:debug :script-comments]) wild
-   (optional-path [:debug :script-trace]) wild
-   (optional-path [:os-detect]) wild
-   (optional-path [:all-node-set]) set?])
+(def lift-options-schema
+  (merge
+   environment-strict-schema
+   {(optional-key :compute) (schema/pred compute-service?)
+    (optional-key :blobstore) (schema/pred blobstore?)
+    (optional-key :phase) (schema/either phase-schema [phase-schema])
+    (optional-key :environment) (assoc environment-strict-schema
+                                  schema/Keyword schema/Any)
+    (optional-key :user) user/user-schema
+    (optional-key :async) schema/Bool
+    (optional-key :timeout-ms) Number
+    (optional-key :timeout-val) schema/Any
+    (optional-key :debug) {(optional-key :script-comments) schema/Bool
+                           (optional-key :script-trace) schema/Bool}
+    (optional-key :os-detect) schema/Bool
+    (optional-key :all-node-set) #{schema/Any}}))
 
-(def-map-schema converge-options-schema
-  lift-options-schema
-  [[:compute] compute-service?])
+(def converge-options-schema
+  (->
+   lift-options-schema
+   (dissoc (optional-key :compute))
+   (assoc :compute (schema/pred compute-service?))))
 
-(defmacro check-group-spec
+(defn check-group-spec
   [m]
-  (check-spec m `group-spec-schema &form))
+  (validate group-spec-schema m))
 
-(defmacro check-lift-options
+(defn check-lift-options
   [m]
-  (check-spec m `lift-options-schema &form))
+  (validate lift-options-schema m))
 
-(defmacro check-converge-options
+(defn check-converge-options
   [m]
-  (check-spec m `converge-options-schema &form))
+  (validate converge-options-schema m))
 
 ;;; ## Group-spec
 
@@ -244,7 +232,6 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 
 ;;; # Plan-state scopes
-(ann target-scopes [TargetMap -> ScopeMap])
 (defn target-scopes
   [target]
   (merge {:group (:group-name target)
@@ -256,7 +243,6 @@ Uses a TargetMap to describe a node with its group-spec info."
                        (service-properties
                         (node/compute-service node)))})))
 
-(ann admin-user [Session -> User])
 (defn admin-user
   "User that remote commands are run under."
   [session]
@@ -285,7 +271,6 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 ;;; # Target Extension Functions
 
-(ann nodes-in-group [Session GroupName -> TargetMapSeq])
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
@@ -293,20 +278,19 @@ Uses a TargetMap to describe a node with its group-spec info."
   (->>
    (targets session)
    (filter
-    (fn> [t :- TargetMap]
-         (or (= (:group-name t) group-name)
-             (when-let [group-names (:group-names t)]
-               (get group-names group-name)))))))
+    (fn [t]
+      (or (= (:group-name t) group-name)
+          (when-let [group-names (:group-names t)]
+            (get group-names group-name)))))))
 
-(ann ^:no-check groups-with-role [BaseSession -> (Seqable GroupSpec)])
 (defn groups-with-role
   "All target groups with the specified role."
   [session role]
   (->>
    (targets session)
-   (filter (fn> [t :- TargetMap] ((:roles t #{}) role)))
-   (map (fn> [t :- TargetMap] (dissoc t :node)))
-   ((fn> [x :- TargetMapSeq] ((inst distinct TargetMap) x)))))
+   (filter (fn [t] ((:roles t #{}) role)))
+   (map (fn [t] (dissoc t :node)))
+   ((fn [x] (distinct x)))))
 
 ;; (defn groups-with-role
 ;;   "All target groups with the specified role."
@@ -317,28 +301,24 @@ Uses a TargetMap to describe a node with its group-spec info."
 ;;    (map #(dissoc % :node))
 ;;    distinct))
 
-(ann ^:no-check nodes-with-role [BaseSession -> TargetMapSeq])
 (defn nodes-with-role
   "All target nodes with the specified role."
   [session role]
   (->> (targets session)
        (filter
-        (fn> [node :- TargetMap]
+        (fn [node]
           (when-let [roles (:roles node)]
             (roles role))))))
 
-(ann role->nodes-map [BaseSession -> (Map Keyword (Seqable Node))])
 (defn role->nodes-map
   "Returns a map from role to nodes."
   [session]
   (reduce
-   (fn> [m :- (Map Keyword (Seqable Node))
-         node :- TargetMap]
-        (reduce (fn> [m :- (Map Keyword (Seqable Node))
-                      role :- Keyword]
-                     (update-in m [role] conj node))
-                m
-                (:roles node)))
+   (fn [m node]
+     (reduce (fn [m role]
+               (update-in m [role] conj node))
+             m
+             (:roles node)))
    {}
    (targets session)))
 
@@ -357,7 +337,6 @@ Uses a TargetMap to describe a node with its group-spec info."
   "The name of the tag used to record the group name on the node."
   "/pallet/group-name")
 
-(ann node-has-group-name? [Node GroupName -> boolean])
 (defn node-has-group-name?
   "Return a predicate to check if a node has the specified group name.
   If the node is taggable, we check the group-name-tag, otherwise we
@@ -369,7 +348,6 @@ Uses a TargetMap to describe a node with its group-spec info."
     (= group-name (node/tag node group-name-tag))
     (node/has-base-name? node group-name)))
 
-(ann node-in-group? [Node GroupSpec -> boolean])
 (defn node-in-group?
   "Check if a node satisfies a group's node-filter."
   {:internal true}
@@ -382,9 +360,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    node))
 
 ;;; # Map Nodes to Groups Based on Group's Node-Filter
-;; TODO remove :no-check
-(ann ^:no-check node->target-map [(Nilable (NonEmptySeqable GroupSpec)) Node
-                                 -> IncompleteGroupTargetMap])
 (defn node->target-map
   "Build a map entry from a node and a list of groups."
   {:internal true}
@@ -393,22 +368,20 @@ Uses a TargetMap to describe a node with its group-spec info."
          (node? node)]}
   (when-let [groups (seq (->>
                           groups
-                          (filter (fn> [group :- GroupSpec]
+                          (filter (fn [group]
                                     (node-in-group? node group)))
-                          (map (fn> [group :- GroupSpec]
+                          (map (fn [group]
                                  (check-group-spec group)
                                  (assoc-in
                                   group [:group-names]
                                   (set [(:group-name group)]))))))]
     (debugf "node->target-map groups %s node %s" (vec groups) node)
     (reduce
-     (fn> [target :- GroupSpec group :- GroupSpec]
+     (fn [target group]
        (merge-specs merge-spec-algorithm target group))
      {:node node}
      groups)))
 
-(ann service-state [(NonEmptySeqable Node) (Nilable (NonEmptySeqable GroupSpec))
-                    -> IncompleteGroupTargetMapSeq])
 (defn service-state
   "For a sequence of nodes, filter those nodes in the specified
   `groups`. Returns a sequence that contains a target-map for each
@@ -421,8 +394,7 @@ Uses a TargetMap to describe a node with its group-spec info."
     (debugf "service-state targets %s" (vec targets))
     targets))
 
-;; (ann ^:no-check service-groups [ComputeService -> (Seqable GroupSpec)])
-;; (defn service-groups
+;; ;; (defn service-groups
 ;;   "Query the available nodes in a `compute-service`, returning a group-spec
 ;;   for each group found."
 ;;   [compute-service]
@@ -453,13 +425,6 @@ Uses a TargetMap to describe a node with its group-spec info."
                     [:phases] phases-with-meta {} default-phase-meta)))
 
 ;;; ## Calculation of node count adjustments
-(def-alias GroupDeltaMap (HMap :mandatory {:actual AnyInteger
-                                          :target AnyInteger
-                                          :delta AnyInteger
-                                          :group GroupSpec}))
-(def-alias GroupDeltaSeq (Seqable GroupDeltaMap))
-
-(ann group-delta [TargetMapSeq GroupSpec -> GroupDeltaMap])
 (defn group-delta
   "Calculate actual and required counts for a group"
   [targets group]
@@ -478,7 +443,6 @@ Uses a TargetMap to describe a node with its group-spec info."
      :delta (- target-count existing-count)
      :group group}))
 
-(ann group-deltas [TargetMapSeq (Nilable (Seqable GroupSpec)) -> GroupDeltaSeq])
 (defn group-deltas
   "Calculate actual and required counts for a sequence of groups. Returns a map
   from group to a map with :actual and :target counts."
@@ -494,17 +458,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    groups))
 
 ;;; ### Nodes and Groups to Remove
-;; TODO remove no-check when core.typed can handle first, second on Vector*
-(def-alias GroupNodesForRemoval
-  (HMap :mandatory
-        {:targets (NonEmptySeqable TargetMap)
-         :group GroupSpec
-         :remove-group boolean}))
-
-(ann group-removal-spec
-  [GroupDeltaMap -> '[GroupSpec (HMap :mandatory
-                                      {:targets (NonEmptySeqable TargetMap)
-                                       :all boolean})]])
 (defn group-removal-spec
   "Return a map describing the group and targets to be removed."
   [{:keys [group target targets delta]}]
@@ -512,14 +465,11 @@ Uses a TargetMap to describe a node with its group-spec info."
     {:group group
      :targets (f (- delta)
                  (filter
-                  (fn> [target :- TargetMap]
+                  (fn [target]
                     (node-in-group? (:node target) group))
                   targets))
      :remove-group (zero? target)}))
 
-(ann ^:no-check group-removal-specs
-     [TargetMapSeq GroupDeltaSeq
-      -> (Seqable '[GroupSpec GroupNodesForRemoval])])
 (defn group-removal-specs
   "Finds the specified number of nodes to be removed from the given groups.
   Nodes are selected at random. Returns a map from group to a map with
@@ -550,49 +500,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    (filter (comp pos? :delta))
    (map group-add-spec)))
 
-
-;; ;; TODO remove no-check when core.typed can handle first, second on Vector*
-;; (ann ^:no-check groups-to-create [GroupDeltaSeq -> (Seq GroupSpec)])
-;; (defn groups-to-create
-;;   "Return a sequence of groups that currently have no nodes, but will have nodes
-;;   added."
-;;   [group-deltas]
-;;   (letfn> [new-group? :- [GroupDeltaMap -> boolean]
-;;            ;; TODO revert to destructuring when supported by core.typed
-;;            (new-group? [delta]
-;;             (and (zero? (get delta :actual)) (pos? (get delta :target))))]
-;;     (->>
-;;      group-deltas
-;;      (filter (fn> [delta :- GroupDelta]
-;;                   (new-group? ((inst second GroupDeltaMap) delta))))
-;;      ((inst map GroupSpec GroupDelta) (inst first GroupSpec))
-;;      ((inst map GroupSpec GroupSpec)
-;;       (fn> [group-spec :- GroupSpec]
-;;            (assoc group-spec :target-type :group))))))
-
-;; ;; TODO remove no-check when core.typed can handle first, second on Vector*
-;; (ann ^:no-check nodes-to-add
-;;      [GroupDeltaSeq -> (Seqable '[GroupSpec AnyInteger])])
-;; (defn nodes-to-add
-;;   "Finds the specified number of nodes to be added to the given groups.
-;;   Returns a map from group to a count of servers to add"
-;;   [group-deltas]
-;;   (->>
-;;    group-deltas
-;;    (filter (fn> [group-delta :- GroupDelta]
-;;                 (when (pos? (get (second group-delta) :delta))
-;;                   [(first group-delta)
-;;                    (get (second group-delta) :delta)])))))
-
-
-
 ;;; ## Node creation and removal
-;; TODO remove :no-check when core.type understands assoc
-
-
-
-(ann remove-nodes [Session ComputeService GroupSpec GroupNodesForRemoval
-                   -> nil])
 (defn remove-nodes
   "Removes `targets` from `group`. If `:remove-group` is true, then
   all nodes for the group are being removed, and the group should be
@@ -621,9 +529,6 @@ Uses a TargetMap to describe a node with its group-spec info."
                       (combine-exceptions (filter identity [e ge]))])))
           (>! ch phase-res))))))
 
-
-(ann remove-group-nodes
-  [Session ComputeService (Seqable '[GroupSpec GroupNodesForRemoval]) -> Any])
 (defn remove-group-nodes
   "Removes targets from groups accordingt to the removal-specs
   sequence.  The result is written to the channel, ch.
@@ -642,9 +547,6 @@ Uses a TargetMap to describe a node with its group-spec info."
           (recur (dec n) (conj res r) (if e (conj exceptions e) exceptions))
           (>! ch [res (combine-exceptions exceptions)]))))))
 
-
-(ann ^:no-check add-nodes
-     [Session ComputeService GroupSpec AnyInteger -> (Seq TargetMap)])
 (defn add-nodes
   "Create `count` nodes for a `group`."
   [session compute-service group count create-group ch]
@@ -673,11 +575,6 @@ Uses a TargetMap to describe a node with its group-spec info."
             (>! ch [(merge m {:create-group result})
                     e2])))))))
 
-
-(ann add-group-nodes
-  [Session ComputeService (Seqable '[GroupSpec GroupDeltaMap]) ->
-   (Seqable (ReadOnlyPort '[(Nilable (Seqable TargetMap))
-                            (Nilable (ErrorMap '[GroupSpec GroupDeltaMap]))]))])
 (defn add-group-nodes
   "Create nodes for groups."
   [session compute-service group-add-specs ch]
@@ -1184,10 +1081,12 @@ insufficient.
   [result]
   (->>
    (:results result)
-   (map #(update-in % [:action-results] (fn [r] (filter :error r))))
-   (mapcat
-    #(map (fn [r] (merge (dissoc % :action-results) r)) (:action-results %)))
-   seq))
+   errors
+   ;; (map #(update-in % [:action-results] (fn [r] (filter :error r))))
+   ;; (mapcat
+   ;;  #(map (fn [r] (merge (dissoc % :action-results) r)) (:action-results %)))
+   ;; seq
+   ))
 
 (defn phase-error-exceptions
   "Return a sequence of exceptions from phase errors for an operation. "

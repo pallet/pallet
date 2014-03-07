@@ -4,23 +4,12 @@
 A server-spec can specify phases that provide facets of a particular
 service."
   (:require
-   [clj-schema.schema
-    :refer [def-map-schema map-schema optional-path sequence-of set-of wild]]
-   [clojure.core.async :as async :refer [<! <!! >! chan]]
-   [clojure.core.typed
-    :refer [ann ann-form def-alias doseq> fn> for> letfn> loop>
-            inst tc-ignore
-            AnyInteger Map Nilable NilableNonEmptySeq
-            NonEmptySeqable Seq Seqable]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
    [pallet.contracts :refer [check-spec]]
    [pallet.core.node :refer [node?]]
    [pallet.core.node-os :refer [node-os]]
    [pallet.core.plan-state :as plan-state]
-   [pallet.core.types
-    :refer [BaseSession IncompleteGroupTargetMap IncompleteGroupTargetMapSeq
-            Node Spec SpecSeq TargetMapSeq]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :as phase :refer [phases-with-meta]]
@@ -31,51 +20,43 @@ service."
    [pallet.target :as target]
    [pallet.thread-expr :refer [when->]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
-   [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]])
-  (:import
-   clojure.lang.IFn
-   clojure.lang.Keyword))
+   [schema.core :as schema :refer [check required-key optional-key validate]])
+  (:import clojure.lang.IFn))
 
 ;;; # Domain Model
 
 ;;; ## Schemas
 
-(def-map-schema phases-schema
-  [[(wild Keyword)] IFn])
+(def phases-schema
+  {schema/Keyword IFn})
 
-(def-map-schema phase-meta-schema
-  [(optional-path [:middleware]) IFn
-   (optional-path [:phase-middleware]) IFn])
+(def phase-meta-schema
+  {(optional-key :middleware) IFn
+   (optional-key :phase-middleware) IFn})
 
-(def-map-schema override-schema
-  [(optional-path [:packager]) Keyword
-   (optional-path [:os-family]) Keyword
-   (optional-path [:os-version]) String])
+(def override-schema
+  {(optional-key :packager) schema/Keyword
+   (optional-key :os-family) schema/Keyword
+   (optional-key :os-version) String})
 
-(def-map-schema phases-meta-schema
-  [[(wild Keyword)] phase-meta-schema])
+(def phases-meta-schema
+  {schema/Keyword phase-meta-schema})
 
-(def-map-schema server-spec-schema
-  [(optional-path [:phases]) phases-schema
-   (optional-path [:roles]) (set-of Keyword)
-   (optional-path [:packager]) Keyword
-   (optional-path [:phases-meta]) phases-meta-schema
-   (optional-path [:default-phases]) (sequence-of Keyword)
-   (optional-path [:node-spec]) compute/node-spec-schema
-   (optional-path [:override]) override-schema])
+(def server-spec-schema
+  {(optional-key :phases) phases-schema
+   (optional-key :roles) #{schema/Keyword}
+   (optional-key :packager) schema/Keyword
+   (optional-key :phases-meta) phases-meta-schema
+   (optional-key :default-phases) [schema/Keyword]
+   (optional-key :node-spec) compute/node-spec-schema
+   (optional-key :override) override-schema})
 
-(defmacro check-server-spec
+(defn check-server-spec
   [m]
-  (check-spec m `server-spec-schema &form))
+  (validate server-spec-schema m))
 
 ;;; ## Spec Merges
 ;;; When extending specs, we need to merge spec defintions.
-
-(def-alias KeyAlgorithms (Map Keyword Keyword))
-(ann ^:no-check pallet.map-merge/merge-keys
-     [KeyAlgorithms (Map Any Any) * -> (Map Any Any)])
-
-(ann merge-spec-algorithm KeyAlgorithms)
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
   merge-spec-algorithm
@@ -84,9 +65,6 @@ service."
    :group-names :union
    :default-phases :total-ordering})
 
-;; TODO remove :no-check
-(ann ^:no-check merge-specs
-     [KeyAlgorithms Spec Spec -> Spec]) ;; TODO do this properly with All and :>
 (defn merge-specs
   "Merge specs using the specified algorithms."
   [algorithms a b]
@@ -154,19 +132,17 @@ specified in the `:extends` argument."
   [& {:keys [phases phases-meta default-phases packager node-spec extends roles]
       :as options}]
   {:post [(check-server-spec %)]}
-  (check-server-spec
-   (->
-    (or node-spec {})                    ; ensure we have a map and not nil
-    (merge options)
-    (when-> roles
-            (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-    (extend-specs extends)
-    (maybe-update-in [:phases] phases-with-meta phases-meta default-phase-meta)
-    (update-in [:default-phases] #(or default-phases % [:configure]))
-    (dissoc :extends :node-spec :phases-meta)
-    (vary-meta assoc :type ::server-spec))))
+  (->
+   (or node-spec {})                    ; ensure we have a map and not nil
+   (merge options)
+   (when-> roles
+           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+   (extend-specs extends)
+   (maybe-update-in [:phases] phases-with-meta phases-meta default-phase-meta)
+   (update-in [:default-phases] #(or default-phases % [:configure]))
+   (dissoc :extends :node-spec :phases-meta)
+   (vary-meta assoc :type ::server-spec)))
 
-(ann default-phases [SpecSeq -> (Seqable Keyword)])
 (defn default-phases
   "Return a sequence with the default phases for `specs`.  Applies a
   total ordering to the default-phases specified in all the specs."
@@ -197,15 +173,13 @@ specified in the `:extends` argument."
   {:pre [(every? target/has-node? targets)]}
   (set-extension session targets-extension targets))
 
-(ann targets [BaseSession -> (Nilable TargetMapSeq)])
 (defn targets
   "Return the sequence of targets for the current operation.  The
   targets are recorded in the session groups extension."
   [session]
   (extension session targets-extension))
 
-;; (ann target-nodes [BaseSession -> (Seqable Node)])
-;; (defn target-nodes
+;; ;; (defn target-nodes
 ;;   "Target nodes for current converge."
 ;;   [session]
 ;;   (map (fn> [t :- TargetMap] (:node t)) (targets session)))
@@ -217,10 +191,6 @@ specified in the `:extends` argument."
 ;;; of target maps, where each target map is for a single node, and
 ;;; specifies the server-spec for that node.
 
-;; TODO remove :no-check
-(ann ^:no-check node->target
-     [(Nilable (NonEmptySeqable '[[Node -> Boolean] Spec])) Node
-      -> IncompleteGroupTargetMap])
 (defn node->target
   "Build a target map from a node and a sequence of predicate, spec pairs.
   The target-map will contain all specs where the predicate returns
@@ -233,10 +203,6 @@ specified in the `:extends` argument."
    {:node node}
    predicate-spec-pairs))
 
-(ann node-targets
-  [(Nilable (NonEmptySeqable '[[Node -> Boolean] Spec]))
-   (NonEmptySeqable Node)
-   -> IncompleteGroupTargetMapSeq])
 (defn node-targets
   "For the sequence of nodes, nodes, return a sequence containing a
   merge of the specs matching each node.
