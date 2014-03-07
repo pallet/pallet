@@ -562,6 +562,7 @@ Uses a TargetMap to describe a node with its group-spec info."
           (create-targets
            session
            compute-service
+           (:node-spec group)
            group
            (admin-user session)
            count

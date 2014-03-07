@@ -159,19 +159,21 @@
 
 ;;; This tries to run bootstrap, so if tagging is not supported,
 ;;; bootstrap is at least attempted.
+
+;;; TODO explicit plan-state override of node data
+;;; TODO explicit middleware for tagging via plan-state
 (defn create-targets
   "Using `session` and `compute-service`, create nodes using the
   `:node-spec` in `spec`, possibly authorising `user`.  Creates
   `count` nodes, each named distinctly based on `base-name`.  Runs the
   bootstrap phase on new targets.  A rex-tuple is written to ch with a
   map, with :targets and :results keys."
-  [session compute-service spec user count base-name ch]
+  [session compute-service node-spec spec user count base-name ch]
   (debugf "create-targets %s %s" count (:group-name spec))
-  (debugf "create-targets node-spec %s" (:node-spec spec))
+  (debugf "create-targets node-spec %s" node-spec)
   (go-try ch
     (let [c (chan)]
-      (compute/create-nodes
-       compute-service (:node-spec spec) user count base-name c)
+      (compute/create-nodes compute-service node-spec user count base-name c)
       (let [[nodes e] (<! c)
             targets (map
                      (fn [node] (assoc spec :node node))
