@@ -4,6 +4,7 @@
    [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
+   [pallet.actions.test-actions :as test-actions :refer [fail]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan :refer [plan-executor]]
    [pallet.core.recorder :refer [results]]
@@ -45,6 +46,28 @@
           "returns the result of the action")
       (is (= [result] (plan/plan (executor session)))
           "uses the session executor")
+      (is (= [result] (results (recorder session)))
+          "records the results in the session recorder")))
+  (testing "execute-action with fail action"
+    (let [session (-> (plan-session)
+                      (set-target ubuntu-target))
+          e (try
+              (execute-action session
+                              {:action {:action-symbol `test-actions/fail}
+                               :args []})
+              (is false "should throw")
+              (catch Exception e
+                (is (ex-data e) "exception has ex-data")
+                e))
+          {:keys [result]} (ex-data e)]
+      (is (validate action-result-map result))
+      (is (= {:action `test-actions/fail
+              :args []
+              :error {:message "fail action"}}
+             result)
+          "returns the result of the action in the exception")
+      (is (= [result] (plan/plan (executor session)))
+          "records the failed action in the plan executor")
       (is (= [result] (results (recorder session)))
           "records the results in the session recorder"))))
 
