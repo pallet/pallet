@@ -101,3 +101,74 @@
           (is (= ["ls"] (:args (:result (first (:action-results result)))))
               "invokes the correct phase")
           (is (errors results)))))))
+
+
+(deftest lift-op-test
+  (let [node {:id "id" :os-family :ubuntu :os-version "13.10" :packager :apt}
+        node2 (assoc node :id "id2")]
+
+    (testing "with two targets with two phases"
+      (let [spec (server-spec {:phases {:x (plan-fn [session]
+                                             (exec-script* session "ls"))
+                                        :y (plan-fn [session]
+                                             (exec-script* session "ls")
+                                             (exec-script* session "pwd"))}})
+            target (assoc spec :node node)
+            spec2 (server-spec {:phases {:x (plan-fn [session]
+                                              (exec-script* session "ls"))
+                                         :y (plan-fn [session]
+                                              (exec-script* session "ls")
+                                              (exec-script* session "pwd"))}})
+            target2 (assoc spec :node node2)
+            session (plan-session)]
+        (testing "lifting two phases"
+          (let [results (sync (lift-op session [:x :y] [target target2] nil))]
+            (is (= 4 (count results)) "Runs two plans on two nodes")
+            (is (every? :phase results) "labels the target phases")
+            (is (every? :target results) "labels the target in the result")
+            (is (every? #(pos? (count (:action-results %))) results)
+                "Runs the plan action")
+            (is (not (errors results)) "Has no errors")))))
+
+    (testing "with two targets with two phases with exceptions"
+      (let [spec (server-spec {:phases {:x (plan-fn [session]
+                                             (exec-script* session "ls"))
+                                        :y (plan-fn [session]
+                                             (exec-script* session "ls")
+                                             (throw
+                                              (domain-info "some error" {}))
+                                             (exec-script* session "pwd"))}})
+            target (assoc spec :node node)
+            spec2 (server-spec {:phases {:x (plan-fn [session]
+                                              (exec-script* session "ls")
+                                              (throw (ex-info "some error" {})))
+                                         :y (plan-fn [session]
+                                              (exec-script* session "ls")
+                                              (exec-script* session "pwd"))}})
+
+            target2 (assoc spec2 :node node2)
+
+            session (plan-session)]
+        (testing "lifting two phases, with non-domain exception"
+          (is (thrown-with-msg?
+               Exception #"lift-op failed"
+               (sync (lift-op session [:x :y] [target target2] nil))))
+          (let [e (try
+                    (sync (lift-op session [:x :y] [target target2] nil))
+                    (catch Exception e
+                      e))
+                {:keys [exceptions results]} (ex-data e)]
+            (is (= 2 (count results)) "Runs one plan on two nodes")
+            (is (every? #(= :x (:phase %)) results) "only runs the :x phase")
+            (is (every? :target results) "labels the target in the result")
+            (is (every? #(pos? (count (:action-results %))) results)
+                "Runs the plan action")
+            (is (errors results) "Has errors")))
+        (testing "lifting two phases, with domain exception"
+          (let [results (sync (lift-op session [:y :x] [target target2] nil))]
+            (is (= 2 (count results)) "Runs one plan on two nodes")
+            (is (every? #(= :y (:phase %)) results) "only runs the :y phase")
+            (is (every? :target results) "labels the target in the result")
+            (is (every? #(pos? (count (:action-results %))) results)
+                "Runs the plan action")
+            (is (errors results) "Has errors")))))))

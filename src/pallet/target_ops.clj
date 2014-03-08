@@ -8,7 +8,7 @@
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :as phase :refer [phases-with-meta]]
-   [pallet.plan :as plan :refer [execute-plan-fns plan-fn]]
+   [pallet.plan :as plan :refer [execute-plan-fns errors plan-fn]]
    [pallet.session :as session
     :refer [base-session? extension plan-state set-extension target
             target-session? update-extension]]
@@ -83,11 +83,10 @@
   "Using `session`, execute `phases` on `targets`, while considering
   `consider-targets`.  Returns a channel containing a tuple of a
   sequence of the results and any exception thrown.
-  Each phase is a synchronisation point, and an error on any node will
-  stop the processing of further phases."
+  Each phase is a synchronisation point, and an error on any target will
+  stop the processing of further phases on all targets."
   [session phases targets consider-targets ch]
-  (logging/debugf "lift-op :phases %s :targets %s"
-                  (vec phases) (vec (map :group-name targets)))
+  (logging/debugf "lift-op :phases %s :targets %s" (vec phases) (count targets))
   (go-try ch
     (>! ch
         (loop [phases phases
@@ -97,9 +96,12 @@
                   _ (lift-phase session phase targets consider-targets c)
                   [results exception] (<! c)
                   res (concat res results)]
-              (if (or (some #(some :error (:action-results %)) results)
-                      exception)
-                [res exception]
+              (logging/debugf "lift-op phase %s" phase)
+              (logging/debugf "lift-op exception %s" exception)
+              (logging/debugf "lift-op errors %s" (errors results))
+              (if (or (errors results) exception)
+                [res (combine-exceptions
+                      [exception] "lift-op failed" {:results res})]
                 (recur (rest phases) res)))
             [res nil])))))
 
