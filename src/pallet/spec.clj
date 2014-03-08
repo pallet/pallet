@@ -177,28 +177,21 @@ specified in the `:extends` argument."
 ;;; of target maps, where each target map is for a single node, and
 ;;; specifies the server-spec for that node.
 
-(defn ^:internal node->target
-  "Build a target map from a node and a sequence of predicate, spec pairs.
-  The target-map will contain all specs where the predicate returns
-  true, merged in the order they are specified in the input sequence."
-  [predicate-spec-pairs node]
-  (reduce
-   (fn [target [predicate spec]]
-     (if (predicate node)
-       (merge-specs merge-spec-algorithm target spec)
-       target))
-   {:node node}
-   predicate-spec-pairs))
-
-(defn node-targets
-  "For the sequence of nodes, nodes, return a sequence containing a
-  merge of the specs matching each node.
-  `predicate-spec-pairs` is a sequence of predicate, spec tuples."
-  [predicate-spec-pairs nodes]
+(defn target-with-specs
+  "Build a target from a target and a sequence of predicate, spec pairs.
+  The returned target will contain all specs where the predicate
+  returns true, merged in the order they are specified in the input
+  sequence."
+  [predicate-spec-pairs target]
   {:pre [(every? #(and (sequential? %)
                        (= 2 (count %))
                        (fn? (first %))
                        (map? (second %)))
-                 predicate-spec-pairs)
-         (every? node? nodes)]}
-  (map #(node->target predicate-spec-pairs %) nodes))
+                 predicate-spec-pairs)]}
+  (reduce
+   (fn [target [predicate spec]]
+     (if (predicate target)
+       (merge-specs merge-spec-algorithm target spec)
+       target))
+   target
+   predicate-spec-pairs))

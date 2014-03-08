@@ -5,7 +5,6 @@
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :refer [plan-executor]]
-   [pallet.core.node :as node]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.exception :refer [domain-info]]
@@ -13,6 +12,7 @@
    [pallet.spec :refer :all]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
+   [pallet.target :as target]
    [pallet.user :as user]
    [schema.core :as schema :refer [validate]]))
 
@@ -54,17 +54,21 @@
   (testing "type"
     (is (= :pallet.spec/server-spec (type (server-spec {:roles :r1}))))))
 
-(deftest node-targets-test
-  (testing "two nodes with different os and same ssh-port"
-    (let [n1 {:id "n1" :os-family :ubuntu :ssh-port 22}
-          n2 {:id "n2" :os-family :centos :ssh-port 22}]
-      (testing "two specs with different roles"
-        (let [s1 (server-spec {:roles :r1})
-              s2 (server-spec {:roles :r2})]
-          (is (= [(assoc (server-spec {:extends [s1 s2]}) :node n1)
-                  (assoc (server-spec {:extends [s2]}) :node n2)]
-                 (node-targets
-                  [[(fn [n] (= :ubuntu (node/os-family n))) s1]
-                   [(fn [n] (= 22 (node/ssh-port n))) s2]]
-                  [n1 n2]))
-              "Targets have correct roles"))))))
+(deftest target-with-specs-test
+  (testing "two specs with different roles"
+    (let [s1 (server-spec {:roles :r1})
+          s2 (server-spec {:roles :r2})]
+      (testing "predicates that macth different nodes"
+        (let [predicate-spec-pairs [[(fn [n] (= :ubuntu
+                                                (-> n :node :os-family))) s1]
+                                    [(fn [n] (= 22 (target/ssh-port n))) s2]]]
+          (testing "node matching one spec"
+            (let [n1 {:node {:id "n1" :os-family :centos :ssh-port 22}}]
+              (is (= (assoc (server-spec {:extends [s2]}) :node (:node n1))
+                     (target-with-specs predicate-spec-pairs n1))
+                  "Target has correct roles")))
+          (testing "node matching two specs"
+            (let [n2 {:node {:id "n2" :os-family :ubuntu :ssh-port 22}}]
+              (is (= (assoc (server-spec {:extends [s1 s2]}) :node (:node n2))
+                     (target-with-specs predicate-spec-pairs n2))
+                  "Target has correct roles"))))))))
