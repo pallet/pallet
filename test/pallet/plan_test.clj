@@ -86,6 +86,21 @@
              (:action-results result)))
       (is (= :rv (:return-value result)))
       (is (not (plan-errors result)))))
+  (testing "execute with fail action"
+    (let [session (plan-session)
+          plan (fn [session]
+                 (fail session)
+                 :rv)
+          result (execute session ubuntu-target plan)]
+      (is (map? result))
+      (is (= 1 (count (:action-results result))))
+      (is (= [{:action 'pallet.actions.test-actions/fail
+               :args []
+               :options {:user (user session)}
+               :error {:message "fail action"}}]
+             (:action-results result)))
+      (is (not (contains? result :return-value)))
+      (is (plan-errors result))))
   (testing "execute with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})
