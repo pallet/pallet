@@ -26,9 +26,9 @@
       (testing "execution"
         (let [session (test-session)]
           (a session :a :b)
-          (is (= [{:result {:args [:a :b]
-                            :action 'a
-                            :options {:user user/*admin-user*}}}]
+          (is (= [{:args [:a :b]
+                   :action 'a
+                   :options {:user user/*admin-user*}}]
                  (plan/plan (session/executor session)))))))))
 
 (defaction b "b doc" {:m 1} [session x])
@@ -42,20 +42,20 @@
   (testing "action execution"
     (let [session (test-session)]
       (b session :a)
-      (is (= [{:result {:args [:a]
-                        :action 'pallet.action-test/b
-                        :options {:user user/*admin-user*
-                                  :m 1}}}]
+      (is (= [{:args [:a]
+               :action 'pallet.action-test/b
+               :options {:user user/*admin-user*
+                         :m 1}}]
              (plan/plan (session/executor session))))))
   (testing "action execution with action options"
     (let [session (test-session)]
       (with-action-options session {:n 2}
         (b session :a))
-      (is (= [{:result {:args [:a]
-                        :action 'pallet.action-test/b
-                        :options {:n 2
-                                  :m 1
-                                  :user user/*admin-user*}}}]
+      (is (= [{:args [:a]
+               :action 'pallet.action-test/b
+               :options {:n 2
+                         :m 1
+                         :user user/*admin-user*}}]
              (plan/plan (session/executor session)))))))
 
 (deftest effective-user-test

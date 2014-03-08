@@ -44,7 +44,7 @@
           (is (= :x (:phase result)) "labels the phase in the result")
           (is (= target (:target result)) "labels the target in the result")
           (is (= 1 (count (:action-results result))) "Runs the plan action")
-          (is (= ["ls"] (:args (:result (first (:action-results result)))))
+          (is (= ["ls"] (:args (first (:action-results result))))
               "invokes the correct phase")
           (is (not (errors results)))))
       (testing "with a second node"
@@ -82,7 +82,7 @@
           (is (= :x (:phase result)) "labels the phase in the result")
           (is (= target (:target result)) "labels the target in the result")
           (is (= 1 (count (:action-results result))) "Runs the plan action")
-          (is (= ["ls"] (:args (:result (first (:action-results result)))))
+          (is (= ["ls"] (:args (first (:action-results result))))
               "invokes the correct phase")))))
   (testing "with a target with a phase that throws a domain error"
     (let [e (domain-info "some error" {})
@@ -98,7 +98,7 @@
           (is (= :x (:phase result)) "labels the phase in the result")
           (is (= target (:target result)) "labels the target in the result")
           (is (= 1 (count (:action-results result))) "Runs the plan action")
-          (is (= ["ls"] (:args (:result (first (:action-results result)))))
+          (is (= ["ls"] (:args (first (:action-results result))))
               "invokes the correct phase")
           (is (errors results)))))))
 

@@ -9,4 +9,5 @@
 
 (defn fail* [action-state]
   "echo fail action; exit 1")
+
 (implement-action fail :direct {} {:language :bash} fail*)

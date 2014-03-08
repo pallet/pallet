@@ -168,7 +168,6 @@
 (defn plan-results
   [executor]
   (->> (plan executor)
-       (map :result)
        (map plan-result)))
 
 (defmacro build-plan

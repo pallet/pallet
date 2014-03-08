@@ -40,7 +40,7 @@
           result (execute-action session {:action {:action-symbol 'a}
                                           :args [1]})]
       (is (validate action-result-map result))
-      (is (= {:result {:action 'a :args [1]}}
+      (is (= {:action 'a :args [1]}
              result)
           "returns the result of the action")
       (is (= [result] (plan/plan (executor session)))
@@ -57,9 +57,9 @@
           result (execute session ubuntu-target plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
-      (is (= [{:result {:action 'pallet.actions.decl/exec-script*
-                        :args ["ls"],
-                        :options {:user (user session)}}}]
+      (is (= [{:action 'pallet.actions.decl/exec-script*
+               :args ["ls"],
+               :options {:user (user session)}}]
              (:action-results result)))
       (is (= :rv (:return-value result)))
       (is (not (plan-errors result)))))
