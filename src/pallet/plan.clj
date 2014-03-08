@@ -20,7 +20,8 @@
    [pallet.target :refer [has-node? set-target]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
-   [pallet.utils.async :refer [concat-chans map-thread reduce-results]]
+   [pallet.utils.async
+    :refer [concat-chans map-thread reduce-concat-results reduce-results]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
    [schema.core :as schema :refer [check optional-key validate]]))
@@ -173,32 +174,26 @@ The result is also written to the recorder in the session."
                            [nil e])))))
                  target-plans)
      (concat-chans c))
-    (reduce-results c ch)))
+    (reduce-results c "execute-plan-fns* failed" ch)))
 
 (defn execute-plan-fns
   "Execute plan functions on targets.  Write a result tuple to the
   channel, ch.  Targets are grouped by phase-middleware, and phase
   middleware is called.  plans are executed in parallel.
   `target-plans` is a sequence of target, plan-fn tuples."
-  ([session target-plans ch]
-     (debugf "execute-plan-fns %s target-plans" (count target-plans))
-     (let [mw-targets (group-by (comp :phase-middleware meta second)
-                                target-plans)
-           c (chan)]
-       (concat-chans
-        (for [[mw target-plans] mw-targets]
-          (if mw
-            (mw session target-plans ch)
-            (execute-plan-fns* session target-plans ch)))
-        c)
-       (reduce-results c ch)))
-  ([session target-plans]
-     (let [c (chan)]
-       (execute-plan-fns session target-plans c)
-       (let [[results e] (<!! c)]
-         (if (or (nil? e) (domain-error? e))
-           results
-           (throw (ex-info "execute-plan-fns failed" {:results results} e)))))))
+  [session target-plans ch]
+  (debugf "execute-plan-fns %s target-plans" (count target-plans))
+  (let [mw-targets (group-by (comp :phase-middleware meta second)
+                             target-plans)
+        c (chan)]
+    (debugf "execute-plan-fns %s distinct middleware" (count mw-targets))
+    (concat-chans
+     (for [[mw target-plans] mw-targets]
+       (if mw
+         (mw session target-plans c)
+         (execute-plan-fns* session target-plans c)))
+     c)
+    (reduce-concat-results c "execute-plan-fns failed" ch)))
 
 ;;; # Exception reporting
 (def ^:internal adorned-plan-result-map

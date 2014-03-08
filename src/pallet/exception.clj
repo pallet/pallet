@@ -36,18 +36,31 @@
   "Wrap a sequence of exceptions into a single exception.  The first
   element of the sequence is used as the cause of the composite
   exception.  Removes any nil values in the input exceptions
-  sequence."
-  [exceptions]
-  (if-let [exceptions (seq (remove nil? exceptions))]
-    (let [cause (or (first (filter (complement domain-error?) exceptions))
-                    (first exceptions))]
-      ;; always wrap, so we get a full stacktrace, not just a threadpool
-      ;; trace.
-      (ex-info
-       (let [s (string/join ". " (map #(str %) exceptions))]
-         (if (string/blank? s) (pr-str exceptions) s))
-       (merge
-        (if (domain-error? cause)
-          {:pallet/domain true})
-        {:exceptions exceptions})
-       cause))))
+  sequence.  The exceptions are listed in the :exceptions key of
+  the exception data."
+  ([exceptions message data]
+     (if-let [exceptions (seq (remove nil? exceptions))]
+       (let [cause (or (first (filter (complement domain-error?) exceptions))
+                       (first exceptions))
+             msg (fn [e]
+                   (if (instance? Exception e)
+                     (let [m (.getMessage e)]
+                       (if (string/blank? m)
+                         (str e)
+                         m))
+                     (str e)))]
+         ;; always wrap, so we get a full stacktrace, not just a threadpool
+         ;; trace.
+         (ex-info
+          (if (string/blank? message)
+            (let [s (string/join ". " (map msg exceptions))]
+              (if (string/blank? s) (pr-str exceptions) s))
+            message)
+          (merge
+           (if (domain-error? cause)
+             {:pallet/domain true})
+           data
+           {:exceptions exceptions})
+          cause))))
+  ([exceptions]
+     (combine-exceptions exceptions nil {})))

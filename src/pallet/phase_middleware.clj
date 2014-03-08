@@ -4,7 +4,7 @@
   (:require
    [clojure.core.async :refer [>!! chan]]
    [pallet.plan :refer [errors]]
-   [pallet.utils.async :refer [go-try reduce-results]]))
+   [pallet.utils.async :refer [go-try]]))
 
 (defn partition-nodes
   "Return a phase middleware to partition nodes using the specified

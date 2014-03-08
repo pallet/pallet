@@ -125,16 +125,38 @@
   "Reduce the results of a sequence of [result exception] tuples read
   from channel in-ch, writing a single [result exception] to out-ch,
   where the result is the sequence of all the read results, and the
-  exception is a composite exception of all the read exceptions."
-  [in-ch out-ch]
+  exception is a composite exception of all the read exceptions.  The
+  exception data contains a :results key with the accumulated
+  results."
+  [in-ch exception-msg out-ch]
   (go-try out-ch
     (loop [results []
            exceptions []]
       (if-let [[r e] (<! in-ch)]
         (recur (if r (conj results r) results)
                (if e (conj exceptions e) exceptions))
-        (>! out-ch [results (if-let [e (seq exceptions)]
-                              (combine-exceptions e))])))))
+        (>! out-ch
+            [results
+             (if-let [es (seq exceptions)]
+               (combine-exceptions es exception-msg {:results results}))])))))
+
+(defn reduce-concat-results
+  "Reduce the results of a sequence of [result exception] tuples read
+  from channel in-ch, writing a single [result exception] to out-ch,
+  where the result is the sequence of all the read results
+  concatenated, and the exception is a composite exception of all the
+  read exceptions.  The exception data contains a :results key with
+  the accumulated results."  [in-ch exception-msg out-ch]
+  (go-try out-ch
+    (loop [results []
+           exceptions []]
+      (if-let [[r e] (<! in-ch)]
+        (recur (if r (concat results r) results)
+               (if e (conj exceptions e) exceptions))
+        (>! out-ch
+            [results
+             (if-let [es (seq exceptions)]
+               (combine-exceptions es exception-msg {:results results}))])))))
 
 (defn chain-and
   "Given a channel, in-ch, that will return a series of [result,

@@ -3,7 +3,6 @@
    [clojure.core.async :as async :refer [<! <!! >! chan]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
-   [pallet.core.plan-state :as plan-state]
    [pallet.crate.os :refer [os]]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
@@ -15,8 +14,8 @@
             target-session? update-extension]]
    [pallet.spec :refer [bootstrapped-meta set-targets unbootstrapped-meta]]
    [pallet.target :as target]
-   [pallet.utils.async :refer [concat-chans go-try map-thread reduce-results]]
-   [schema.core :as schema :refer [check required-key optional-key validate]]))
+   [pallet.utils.async :refer [go-try]]
+   [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; TODO explicit plan-state override of node data
 ;;; TODO explicit middleware for tagging via plan-state
@@ -40,8 +39,10 @@
             _ (execute-plan-fns session target-plans c)
             [results exception] (<! c)
             phase-name (phase/phase-kw phase)
-            res (->> results (mapv #(assoc % :phase phase-name)))]
-        (>! ch [res exception])))))
+            results (->> results (mapv #(assoc % :phase phase-name)))]
+        (>! ch [results
+                (combine-exceptions
+                 [exception] "lift-phase failed" {:results results})])))))
 
 (defn lift-phases
   "Using `session`, execute `phases` on `targets`, while considering

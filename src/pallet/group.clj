@@ -37,7 +37,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
-            reduce-results sync]]
+            sync]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
   (:import clojure.lang.IFn))
 

@@ -1,4 +1,5 @@
 (ns pallet.plan-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
@@ -12,6 +13,7 @@
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.user :as user]
+   [pallet.utils.async :refer [sync]]
    [schema.core :as schema :refer [validate]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -139,7 +141,7 @@
                  (exec-script* session "ls")
                  :rv)
           target-plans [[ubuntu-target plan]]
-          result (execute-plan-fns session target-plans)]
+          result (sync (execute-plan-fns session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))
       (is (= :rv (:return-value (first result))))
@@ -156,14 +158,16 @@
           target-plans [[ubuntu-target plan]]]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo #"execute-plan-fns failed"
-           (execute-plan-fns session target-plans))
+           (sync (execute-plan-fns session target-plans)))
           "non domain error should throw")
       (testing "throws an exception"
-        (let [execute-e (try (execute-plan-fns session target-plans)
+        (let [execute-e (try (sync (execute-plan-fns session target-plans))
                              (catch clojure.lang.ExceptionInfo e
                                e))
-              {:keys [exception results] :as result} (ex-data execute-e)]
-          (is (= e (root-cause execute-e)) "containing the cause exception")
+              {:keys [exceptions results] :as result} (ex-data execute-e)]
+          (is (= e (root-cause execute-e)) "having the cause exception")
+          (is (some #(= e (root-cause %)) exceptions)
+              "listing an exception with the cause")
           (is (= 1 (count results)) "containing the results")
           (is (= ubuntu-target (:target (first results)))
               "reporting the target")
@@ -179,7 +183,7 @@
                  (exec-script* session "ls")
                  (throw e))
           target-plans [[ubuntu-target plan]]
-          result (execute-plan-fns session target-plans)]
+          result (sync (execute-plan-fns session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))
       (is (every? :exception result) "reports an exception")
