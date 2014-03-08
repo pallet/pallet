@@ -87,7 +87,7 @@
               (logging/warnf "localhost %s" l))))
         (logging/debugf
          "localhost <== ----------------------------------------")
-        (result-with-error-map "localhost" "Error executing script" result))
+        result)
       (finally (.delete tmpfile)))))
 
 (defn clojure-on-origin

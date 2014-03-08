@@ -10,7 +10,7 @@
    [pallet.core.node :as node]
    [pallet.core.script-builder :as script-builder]
    [pallet.execute :as execute
-    :refer [clean-logs log-script-output result-with-error-map]]
+    :refer [clean-logs log-script-output]]
    [pallet.local.execute :as local]
    [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script.lib :as lib]
@@ -158,8 +158,6 @@
                 ;; TODO fix this by putting the flags into the executor
                 ;; [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
-                result (result-with-error-map
-                        (:server endpoint) "Error executing script" result)
                 ;; Set the node-value to the result of execution, rather than
                 ;; the script.
                 result (assoc result

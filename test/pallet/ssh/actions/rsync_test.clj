@@ -3,7 +3,6 @@
    [clojure.java.io :as io]
    [clojure.test :refer :all]
    [pallet.actions :refer [rsync rsync-directory]]
-   [pallet.actions.direct.rsync :refer [rsync* rsync-to-local*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.group :refer [group-spec lift phase-errors]]
    [pallet.plan :refer [plan-fn]]

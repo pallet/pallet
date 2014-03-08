@@ -107,7 +107,8 @@
 ;;; function, rather than an anonymous function.
 
 (defmacro defaction
-  "Declares a named action."
+  "Declares a named action.  The action has defonce semantics, so
+  implementations are not lost on recompiles."
   {:arglists '[[action-name attr-map? [params*]]]
    :indent 'defun}
   [action-name & body]
@@ -116,8 +117,7 @@
         action-name (vary-meta
                      action-name assoc
                      :arglists (list 'quote [args])
-                     :defonce true
-                     :pallet/action true)
+                     :defonce true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))
