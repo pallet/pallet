@@ -12,7 +12,8 @@
    [pallet.session :as session
     :refer [base-session? extension plan-state set-extension target
             target-session? update-extension]]
-   [pallet.spec :refer [bootstrapped-meta set-targets unbootstrapped-meta]]
+   [pallet.spec
+    :refer [bootstrapped-meta extend-specs set-targets unbootstrapped-meta]]
    [pallet.target :as target]
    [pallet.utils.async :refer [go-try]]
    [schema.core :as schema :refer [check optional-key validate]]))
@@ -44,6 +45,16 @@
                 (combine-exceptions
                  [exception] "lift-phase failed" {:results results})])))))
 
+(defn partition-targets
+  "Partition targets based on results.  Return a tuple with a sequence
+  of good targets and a sequence of bad targets."
+  [results targets]
+  (let [errs (plan/errors results)
+        err-targets (set (map :target errs))
+        target-groups (group-by (comp boolean err-targets) targets)]
+    [(get target-groups false) (get target-groups true)]))
+
+
 (defn lift-phases
   "Using `session`, execute `phases` on `targets`, while considering
   `consider-targets`.  Returns a channel containing a tuple of a
@@ -66,16 +77,15 @@
                 (lift-phase session phase targets consider-targets c)
                 (let [[results exception] (<! c)
                       errs (plan/errors results)
-                      err-nodes (set (map :node errs))
                       res (concat res results)
-                      ptargets (remove (comp err-nodes :node) targets)]
+                      ptargets (first (partition-targets results ptargets))]
                   (recur
                    (rest phases)
                    res
                    (concat
                     es [exception
                         (if (seq errs)
-                          (ex-info "Phase failed on node" {:errors errs}))])
+                          (ex-info "Phase failed on target" {:errors errs}))])
                    ptargets)))
               [res (combine-exceptions es)]))))))
 
@@ -152,12 +162,20 @@
             targets (map
                      (fn [node] (assoc spec :node node))
                      nodes)]
-        (debugf "create-targets %s %s" (vec targets) e)
-        (lift-phases
-         session [:pallet/os :settings :bootstrap]
-         (map #(spec (assoc % :extends [(node-info/server-spec {})])) targets)
-         nil c)
-        (let [[results e1] (<! c)]
-          (debugf "create-targets results %s" (pr-str [results e1]))
-          (>! ch [{:targets targets :results results}
-                  (combine-exceptions [e e1])]))))))
+        (lift-phase session :pallet/os targets nil c)
+        (let [[info-results info-e :as info] (<! c)
+              [targets err-targets] (partition-targets info-results targets)]
+          (if info-e
+            (>! ch [{:targets targets
+                     :results info-results}
+                    (ex-info "create-targets failed" {} info-e)])
+            (let [targets (map #(extend-specs % [(node-info/server-spec {})])
+                               targets)]
+              (lift-phases
+               session [:settings :bootstrap]
+               targets
+               nil c)
+              (let [[results e1] (<! c)]
+                (>! ch [{:targets targets
+                         :results (concat info-results results)}
+                        (combine-exceptions [e info-e e1])])))))))))
