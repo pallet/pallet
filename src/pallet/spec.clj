@@ -5,17 +5,12 @@ A server-spec can specify phases that provide facets of a particular
 service."
   (:require
    [clojure.tools.logging :as logging :refer [debugf tracef]]
-   [pallet.compute :as compute]
-   [pallet.core.node :refer [node?]]
-   [pallet.core.node-os :refer [node-os]]
-   [pallet.core.plan-state :as plan-state]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
-   [pallet.phase :as phase :refer [phases-with-meta]]
+   [pallet.phase :refer [phases-with-meta]]
    [pallet.plan :refer [execute]]
    [pallet.session :as session
-    :refer [base-session? extension plan-state set-extension target
-            target-session? update-extension]]
+    :refer [extension set-extension update-extension]]
    [pallet.target :as target]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
@@ -46,7 +41,6 @@ service."
    (optional-key :packager) schema/Keyword
    (optional-key :phases-meta) phases-meta-schema
    (optional-key :default-phases) [schema/Keyword]
-   (optional-key :node-spec) compute/node-spec-schema
    (optional-key :override) override-schema})
 
 (defn check-server-spec
@@ -146,28 +140,28 @@ specified in the `:extends` argument."
 
 ;;; # Targets Extension in Session
 
-;;; In order to lookup group data given just a node, we write the
-;;; target maps to the groups extension in the session.
+;;; In order to lookup spec data given just a basic target, we write
+;;; the target maps to the targets extension in the session.
 
-(def ^{:doc "Keyword for the groups extension"
+(def ^{:doc "Keyword for the targets extension"
        :private true}
-  targets-extension :groups)
+  targets-extension :targets)
 
 (defn ^:internal add-target
-  "Record the target-map in the session :groups extension."
+  "Record the target-map in the session targets extension."
   [session target]
   {:pre [(target/has-node? target)]}
   (update-extension session targets-extension (fnil conj []) target))
 
 (defn ^:internal set-targets
-  "Set the target-maps in the session :groups extension."
+  "Set the target-maps in the session targets extension."
   [session targets]
   {:pre [(every? target/has-node? targets)]}
   (set-extension session targets-extension targets))
 
 (defn targets
   "Return the sequence of targets for the current operation.  The
-  targets are recorded in the session groups extension."
+  targets are recorded in the session targets extension."
   [session]
   (extension session targets-extension))
 
