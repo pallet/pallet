@@ -3,15 +3,16 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [package remote-file]]
+   [pallet.compute :refer [admin-group]]
    [pallet.crate-install :as crate-install]
    [pallet.group :as group]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.script.lib :refer [file config-root]]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
-   [pallet.session :refer [target-session?]]
+   [pallet.session :refer [target target-session?]]
    [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :refer [admin-group]]
+   [pallet.target :refer [os-family os-version]]
    [pallet.utils :as utils :refer [conj-distinct]]))
 
 ;; TODO - add recogintion of +key or key+
@@ -23,7 +24,8 @@
 (defn default-specs
   [session]
   {:pre [(target-session? session)]}
-  (let [admin-group (admin-group session)]
+  (let [target (target session)
+        admin-group (admin-group (os-family target) (os-version target))]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
      (str "%" admin-group)
@@ -50,7 +52,8 @@
 
 (defplan default-specs
   [session]
-  (let [admin-group (admin-group session)]
+  (let [target (target session)
+        admin-group (admin-group (os-family target) (os-version target))]
     (array-map
      "root" {:ALL {:run-as-user :ALL}}
      (str "%" admin-group)

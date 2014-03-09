@@ -7,12 +7,13 @@
    [pallet.actions.impl :refer [checked-commands*]]
    [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
+   [pallet.session :refer [target]]
    [pallet.stevedore :as stevedore]
    [pallet.target :refer [os-family]]))
 
 (defn system-environment-file
   [session env-name {:keys [path shared] :or {shared ::not-set} :as options}]
-  (let [os-family (os-family session)
+  (let [os-family (os-family (target session))
         shared (if (= shared ::not-set)
                  (not (#{:rhel :centos :fedora} os-family))
                  shared)

@@ -30,6 +30,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.spec :as spec
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
             targets]]
+   [pallet.target-info :refer [admin-user]]
    [pallet.target-ops
     :refer [create-targets destroy-targets lift-op lift-phase
             os-detection-phases]]
@@ -237,25 +238,6 @@ Uses a TargetMap to describe a node with its group-spec info."
             :provider (:provider
                        (service-properties
                         (node/compute-service node)))})))
-
-(defn admin-user
-  "User that remote commands are run under."
-  [session]
-  {:post [(user/user? %)]}
-  ;; Note: this is not (-> session :execution-state :user), which is
-  ;; set to the actual user used for authentication when executing
-  ;; scripts, and may be different, e.g. when bootstrapping.
-  (or (if (:target session)
-        ;; (let [m (plan-state/merge-scopes
-        ;;          (plan-state/get-scopes
-        ;;           (:plan-state session)
-        ;;           (target-scopes (target session))
-        ;;           [:user]))]
-        ;;   (and (not (empty? m)) m))
-        (-> session :target :override :user)
-        )
-      (-> session :execution-state :user)))
-
 
 ;; (ann group-name [Session -> GroupName])
 ;; (defn group-name

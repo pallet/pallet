@@ -162,7 +162,7 @@ The session is a map with well defined keys:
   (assoc-in session [:execution-state :extension extension-kw] value))
 
 (defn user
-  "Return a session with `user` as the known admin user."
+  "Return the session `user`."
   [session]
   {:post [(user? %)]}
   (-> session :execution-state :user))

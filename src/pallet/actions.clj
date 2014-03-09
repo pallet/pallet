@@ -16,7 +16,8 @@
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
    [pallet.session :refer [target target-session?]]
-   [pallet.target :refer [admin-user node packager primary-ip ssh-port]]
+   [pallet.target :as target :refer [node primary-ip ssh-port]]
+   [pallet.target-info :refer [admin-user packager]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]]
@@ -663,7 +664,8 @@ only specified files or directories, use the :extract-files option.
   {:always-before #{package-manager package}
    :execution :aggregated}
   [session name {:keys [] :as options}]
-  (decl/package-source session name (merge {:packager (packager session)})))
+  (decl/package-source session name
+                       (merge {:packager (packager session)})))
 
 (defn add-rpm
   "Add an rpm.  Source options are as for remote file."

@@ -7,17 +7,17 @@
    [clojure.string :as string]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.executor :as executor]
-   [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
    [pallet.exception
     :refer [combine-exceptions compiler-exception domain-error?]]
+   [pallet.script :refer [with-script-context]]
    [pallet.session
-    :refer [base-session?
-            executor plan-state recorder
-            set-executor set-recorder target-session? user]]
-   [pallet.target :refer [has-node? set-target]]
+    :refer [base-session? executor plan-state recorder
+            set-executor set-recorder set-target target-session? user]]
+   [pallet.stevedore :refer [with-script-language]]
+   [pallet.target :refer [has-node?]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
    [pallet.utils.async
@@ -73,6 +73,23 @@
       rv)))
 
 ;;; ## Execute a Plan Function against a Target
+(defn script-template-for-target
+  [target]
+  {:pre [target (has-node? target)]}
+  (let [{:keys [os-family os-version packager]}
+        (select-keys (:node target) [:os-family :os-version :packager])
+        context (seq (remove
+                      nil?
+                      [os-family
+                       packager
+                       (when (and os-family os-version)
+                         (keyword
+                          (format "%s-%s" (name os-family) os-version)))]))]
+    (debugf "Script context: %s" (pr-str context))
+    (when-not context
+      (debugf "No script context available: %s" target))
+    context))
+
 (defn execute*
   "Execute a plan function on a target.
 
@@ -93,17 +110,17 @@ The result is also written to the recorder in the session."
          (executor session)]
    :post [(or (nil? %) (validate plan-result-map %))]}
   (debugf "execute* %s %s" target plan-fn)
-  (when plan-fn
-    (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
-          session (-> session
-                      (set-target target)
-                      (set-recorder (if-let [recorder (recorder session)]
-                                      (juxt-recorder [r recorder])
-                                      r)))]
-      (assert (target-session? session) "target session created correctly")
-      (with-script-for-node target (plan-state session)
-        ;; We need the script context for script blocks in the plan
-        ;; functions.
+  (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn
+        session (-> session
+                    (set-target target)
+                    (set-recorder (if-let [recorder (recorder session)]
+                                    (juxt-recorder [r recorder])
+                                    r)))]
+    (assert (target-session? session) "target session created correctly")
+    ;; We need the script context for script blocks in the plan
+    ;; functions.
+    (with-script-context (script-template-for-target target)
+      (with-script-language :pallet.stevedore.bash/bash
         (debugf "execute* %s" target)
         (let [[rv e] (try
                        [(plan-fn session)]
@@ -129,9 +146,9 @@ The result is also written to the recorder in the session."
   [session {:keys [node] :as target} plan-fn]
   {:pre [(map? target)]}
   (debugf "execute %s %s" target plan-fn)
-  (if node
-    (execute* session target plan-fn)
-    (if plan-fn
+  (when plan-fn
+    (if node
+      (execute* session target plan-fn)
       {:return-value (plan-fn session)})))
 
 (def ^:internal target-result-map

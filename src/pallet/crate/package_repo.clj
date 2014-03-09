@@ -4,6 +4,7 @@
    [pallet.actions :refer [exec-checked-script package]]
    [pallet.plan :refer [defplan]]
    [pallet.script :refer [defimpl defscript]]
+   [pallet.session :refer [target]]
    [pallet.target :refer [packager]]))
 
 ;; https://help.ubuntu.com/community/Repositories/Personal
@@ -28,7 +29,7 @@
 (defplan repository-packages
   "Install packages required for building repositories"
   [session]
-  (case (packager session)
+  (case (packager (target session))
     :aptitude (package session "dpkg-dev")
     :apt (package session "dpkg-dev")
     nil))

@@ -11,9 +11,8 @@
    [pallet.script.lib :as lib]
    [pallet.session :refer [target]]
    [pallet.settings :refer [get-settings update-settings]]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.target :as target]
-   [pallet.utils :as utils]))
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]))
 
 ;;; ## Add entries to the host file settings
 (defn merge-hosts [& ms]
@@ -128,7 +127,7 @@
   (fn [session hostname]
     (assert hostname "Must specify a valid hostname")
     (debugf "hostname dispatch %s" hostname)
-    (let [os (target/os-family session)]
+    (let [os (target/os-family (target session))]
       (debugf "hostname for os %s" os)
       os))
   {:hierarchy os-hierarchy})

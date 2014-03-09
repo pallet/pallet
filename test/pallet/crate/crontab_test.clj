@@ -16,10 +16,9 @@
    [pallet.live-test :refer [images test-for test-nodes]]
    [pallet.plan :refer [plan-context plan-fn]]
    [pallet.script.lib :refer [user-home]]
-   [pallet.session :refer []]
+   [pallet.target-info :refer [admin-user]]
    [pallet.spec :refer [extend-specs]]
    [pallet.stevedore :refer [script]]
-   [pallet.target :refer [admin-user]]
    [pallet.test-utils :refer [no-location-info no-source-line-comments]]))
 
 (use-fixtures :once

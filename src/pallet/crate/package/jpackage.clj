@@ -9,9 +9,9 @@
             package-source
             repository]]
    [pallet.plan :refer [defplan]]
+   [pallet.session :refer [target]]
    [pallet.settings :refer [assoc-settings get-settings]]
-   [pallet.target :refer [os-family os-version]]
-   [pallet.utils :refer [apply-map]]))
+   [pallet.target :refer [os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -29,8 +29,9 @@
    https://bugzilla.redhat.com/show_bug.cgi?id=260161
    https://bugzilla.redhat.com/show_bug.cgi?id=497213"
   [session]
-  (let [os-family (os-family session)
-        os-version (os-version session)]
+  (let [target (target session)
+        os-family (os-family target)
+        os-version (os-version target)]
     (when (or
            (= :fedora os-family)
            (and
@@ -38,9 +39,10 @@
             (re-matches #"5\.[0-5]" os-version)))
       (with-action-options session {:action-id ::install-jpackage-compat}
         (add-rpm
+         session
          "jpackage-utils-compat-el5-0.0.1-1"
-         :url jpackage-utils-compat-rpm
-         :insecure true)))) ;; github's ssl doesn't validate
+         {:url jpackage-utils-compat-rpm
+          :insecure true})))) ;; github's ssl doesn't validate
   (package session "jpackage-utils"))
 
 (def jpackage-mirror-fmt
@@ -62,8 +64,9 @@
                  releasever "$releasever"
                  version "5.0"
                  enabled 0}}]
-  (let [os-family (os-family session)
-        os-version (os-version session)
+  (let [target (target session)
+        os-family (os-family target)
+        os-version (os-version target)
         no-updates (and            ; missing updates for fedora 13, 14
                     (= version "5.0")
                     (= :fedora os-family)

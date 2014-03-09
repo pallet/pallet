@@ -14,7 +14,7 @@
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :refer [admin-user node]]
+   [pallet.target :refer [node]]
    [pallet.transport :as transport]
    [pallet.user :refer [effective-username]]
    [pallet.utils :refer [base64-md5]])

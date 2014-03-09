@@ -3,10 +3,7 @@
 specific node (or some other target)."
   (:refer-clojure :exclude [proxy])
   (:require
-   [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.core.node :as node :refer [node?]]
-   [pallet.core.node-os :refer [node-os node-os-merge!]]
-   [pallet.session :as session :refer [plan-state target target-session?]]
    [pallet.tag :as tag]))
 
 ;;; # Target accessors
@@ -29,6 +26,9 @@ specific node (or some other target)."
              `([~'target ~@(rest args)]
                  (~node-sym (:node ~'target) ~@(rest args))))))))
 
+(defnodefn os-family)
+(defnodefn os-version)
+(defnodefn packager)
 (defnodefn ssh-port)
 (defnodefn primary-ip)
 (defnodefn private-ip)
@@ -39,6 +39,7 @@ specific node (or some other target)."
 (defnodefn id)
 (defnodefn compute-service)
 (defnodefn image-user)
+(defnodefn user)
 (defnodefn hardware)
 (defnodefn proxy)
 (defnodefn node-address)
@@ -68,64 +69,3 @@ specific node (or some other target)."
   "Return a predicate for state-flag set on target."
   [target state-flag]
   (tag/has-state-flag? (:node target) state-flag))
-
-
-;;; # Target Information base on Session
-
-;;; These functions allow for information coming from the plan-state,
-;;; as well as from the target node itself, so take a session argument
-;;; rather than a target argument.
-
-(defn os-map
-  [session]
-  {:pre [(target-session? session)]}
-  (node-os (node (target session)) (plan-state session)))
-
-(defn os-family
-  "OS-Family of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (or
-   (-> session :target :override :os-family)
-   (:os-family (os-map session))))
-
-(defn os-version
-  "OS-Family of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (or
-   (-> session :target :override :os-version)
-   (:os-version (os-map session))))
-
-(defn packager
-  "Packager of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (or
-   (-> session :target :override :packager)
-   (packager-for-os (os-family session) (os-version session))))
-
-(defn admin-user
-  "Admin-user of the target-node."
-  [session]
-  {:pre [(target-session? session)]}
-  (or
-   (-> session :target :override :user)
-   (-> session :execution-state :user)))
-
-(defn admin-group
-  "User that remote commands are run under"
-  [session]
-  (compute/admin-group
-   (os-family session)
-   (os-version session)))
-
-(defn set-target
-  "Set the target for the session"
-  [session target]
-  (when (:node target)
-    (when-let [plan-state (plan-state session)]
-      (node-os-merge!
-       (:node target) plan-state
-       (select-keys (:override target) [:os-family :os-version :packager]))))
-  (session/set-target session target))

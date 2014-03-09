@@ -3,7 +3,6 @@
   tree."
   (:require
    [pallet.actions.direct.file :as file]
-   [pallet.target :refer [admin-user]]
    [pallet.script.lib :as lib
     :refer [canonical-path cat chgrp chmod chown cp diff dirname exit file ls
             md5sum md5sum-verify mkdir path-group path-mode path-owner rm

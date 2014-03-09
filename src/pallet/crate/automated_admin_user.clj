@@ -5,9 +5,9 @@
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
    [pallet.plan :refer [defplan plan-fn]]
+   [pallet.session :as session]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.spec :refer [server-spec]]
-   [pallet.target :refer [admin-user]]
    [pallet.utils :refer [conj-distinct]]))
 
 (def facility ::automated-admin-user)
@@ -41,14 +41,14 @@
   permission to sudo without password, so that passwords don't have to appear
   in scripts, etc."
   ([session]
-     (let [user (admin-user session)]
+     (let [user (session/user session)]
        (debugf "create-admin-user for %s" (pr-str user))
        (create-admin-user
         session
         (:username user)
         (:public-key-path user))))
   ([session username]
-     (let [user (admin-user session)]
+     (let [user (session/user session)]
        (create-admin-user session username (:public-key-path user))))
   ([session username & public-key-paths]
      (update-settings session

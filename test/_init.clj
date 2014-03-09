@@ -12,7 +12,7 @@
             state-root tmp-dir user-home]]
    [pallet.session :refer [target]]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :refer [admin-user]]
+   [pallet.target-info :refer [admin-user]]
    [pallet.test-utils :refer [make-localhost-compute]]))
 
 (use-fixtures :once (logging-threshold-fixture))

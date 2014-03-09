@@ -16,6 +16,7 @@
    [pallet.plan :refer [execute-action]]
    [pallet.session :as session :refer [validate-target-session]]
    [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.target-info :refer [admin-user]]
    [pallet.utils :refer [maybe-assoc multi-fn?]]))
 
 ;;; ## Actions
@@ -52,7 +53,7 @@
   [session action argv]
   {:pre [(validate-target-session session)]}
   (let [options (merge (:options action) (action-options session))
-        user (effective-user (session/user session) action-options)
+        user (effective-user (admin-user session) action-options)
         options (update-in options [:user] merge user)]
     (execute-action session (action-map action argv options))))
 

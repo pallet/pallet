@@ -12,9 +12,8 @@
 (def proxy-map
   {:port schema/Int})
 
-(def node-schema
-  {:id String
-   (optional-key :compute-service) pallet.compute.protocols.ComputeService
+(def node-values-schema
+  {(optional-key :compute-service) pallet.compute.protocols.ComputeService
    (optional-key :ssh-port) schema/Int
    (optional-key :primary-ip) String
    (optional-key :private-ip) String
@@ -27,7 +26,12 @@
    (optional-key :os-version) String
    (optional-key :packager) schema/Keyword
    (optional-key :image-user) user-schema
+   (optional-key :user) user-schema
    (optional-key :hardware) {schema/Keyword schema/Any}})
+
+(def node-schema
+  "Schema for nodes"
+  (assoc node-values-schema :id String))
 
 (defn validate-node
   "Predicate to test whether an object implements the Node protocol"
@@ -118,6 +122,12 @@
   [node]
   {:pre [(validate node-schema node)]}
   (:image-user node))
+
+(defn user
+  "Return the user for admin on the node."
+  [node]
+  {:pre [(validate node-schema node)]}
+  (:user node))
 
 (defn hardware
   "Return a map with `:cpus`, `:ram`, and `:disks` information. The

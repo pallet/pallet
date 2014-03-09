@@ -6,7 +6,6 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.sudoers :as sudoers]
    [pallet.session :refer []]
-   [pallet.target :refer [admin-group]]
    [pallet.test-utils :refer [make-node with-private-vars]]))
 
 (use-fixtures :once (logging-threshold-fixture))
