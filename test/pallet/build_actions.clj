@@ -5,18 +5,18 @@
    [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
    [pallet.context :as context :refer [with-phase-context]]
-   [pallet.core.node-os :refer [with-script-for-node]]
    [pallet.core.executor.echo :refer [echo-executor]]
    [pallet.core.executor.plan :refer [plan plan-executor]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
    [pallet.phase :as phase]
-   [pallet.plan :refer [execute-target-plan plan-fn]]
-   [pallet.script :as script]
+   [pallet.plan :refer [execute-target-plan plan-fn script-template-for-target]]
+   [pallet.script :as script :refer [with-script-context]]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
    [pallet.session.action-plan :refer [target-path]]
+   [pallet.stevedore :refer [with-script-language]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :as utils]))
@@ -34,18 +34,15 @@
         target (target session)]
     (logging/debugf "produce-phases %s" session)
     (assert phase)
-    (with-script-for-node target (plan-state session)
-      (let [;; [action-plan plan-state]
-            ;; ((action-plan
-            ;;   (:service-state session) (:environment session) f nil session)
-            ;;  (:plan-state session))
-            session (dissoc session :target)
-            target (assoc-in target [:phases phase] f)
-            {:keys [action-results] :as result-map}
-            (execute-target-plan
-             session target (phase/target-phase (:phases target) phase))]
-        (logging/debugf "build-actions result-map %s" result-map)
-        result-map))))
+    (with-script-context (script-template-for-target target)
+      (with-script-language :pallet.stevedore.bash/bash
+        (let [session (dissoc session :target)
+              target (assoc-in target [:phases phase] f)
+              {:keys [action-results] :as result-map}
+              (execute-target-plan
+               session target (phase/target-phase (:phases target) phase))]
+          (logging/debugf "build-actions result-map %s" result-map)
+          result-map)))))
 
 (defn build-session
   "Takes the session map, and tries to add the most keys possible.

@@ -24,7 +24,6 @@
    allows the specification of specific instance of the facility. If passed a
    nil `instance-id`, then `:default` is used"
   ([session target facility {:keys [instance-id default] :as options}]
-     {:pre [(target-session? session)]}
      (plan-state/get-settings
       (plan-state session) (target/id target) facility options))
   ([session target facility]

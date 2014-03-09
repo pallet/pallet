@@ -21,3 +21,8 @@
     (or (target/packager target)
         (if-let [os-family (target/os-family target)]
           (packager-for-os os-family (target/os-version target))))))
+
+
+(defn add-node-os
+  [plan-state target]
+  )

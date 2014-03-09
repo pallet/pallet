@@ -33,6 +33,7 @@ specific node (or some other target)."
 (defnodefn primary-ip)
 (defnodefn private-ip)
 (defnodefn is-64bit?)
+(defnodefn arch)
 (defnodefn hostname)
 (defnodefn running?)
 (defnodefn terminated?)

@@ -1,16 +1,15 @@
-(ns pallet.crate.os-test
+(ns pallet.crate.node-info-test
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.plan :refer :all]
-   [pallet.core.node-os :refer [node-os]]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.crate.os :refer [os]]
+   [pallet.crate.node-info :refer [node-info os]]
    [pallet.session :as session :refer [executor plan-state recorder]]
    [pallet.user :as user]))
 
@@ -23,5 +22,5 @@
         result (execute session {:node (localhost)} os)]
     (is (map? result))
     (is (= 2 (count (:action-results result))))
-    (is (map? (node-os (localhost) (plan-state session)))
+    (is (map? (node-info session {:node (localhost)}))
         "The os phase updates the plan-state with the discovered os details")))

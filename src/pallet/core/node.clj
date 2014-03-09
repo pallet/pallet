@@ -8,6 +8,9 @@
    [pallet.user :refer [user-schema]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
+;;; TODO implement running?/terminated?/etc into a state flag
+;;; TODO implement is-64bit? based on arch?
+
 ;;; # Node functions
 (def proxy-map
   {:port schema/Int})
@@ -17,7 +20,8 @@
    (optional-key :ssh-port) schema/Int
    (optional-key :primary-ip) String
    (optional-key :private-ip) String
-   (optional-key :is-64bit) schema/Any
+   (optional-key :is-64bit) schema/Bool
+   (optional-key :arch) String
    (optional-key :hostname) String
    (optional-key :run-state) (schema/enum
                               :running :stopped :suspended :terminated)
@@ -67,6 +71,12 @@
   [node]
   {:pre [(validate node-schema node)]}
   (:is-64bit node true))
+
+(defn arch
+  "Node architecture"
+  [node]
+  {:pre [(validate node-schema node)]}
+  (:arch node))
 
 (defn hostname
   "Return the node's hostname"

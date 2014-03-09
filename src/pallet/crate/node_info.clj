@@ -1,15 +1,51 @@
-(ns pallet.crate.os
-  "OS detection for pallet to determine os and version"
+(ns pallet.crate.node-info
+  "Detection of node information, e.g to determine os and version"
   (:require
    [clojure.string :as string :refer [blank? lower-case]]
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-script]]
-   [pallet.core.node-os :refer [node-os node-os!]]
-   [pallet.plan :refer [defplan]]
+   [pallet.core.node :refer [node-values-schema]]
+   [pallet.middleware :refer [execute-on-filtered]]
+   [pallet.plan :refer [defplan plan-fn]]
+   [pallet.spec :as spec :refer [bootstrapped-meta unbootstrapped-meta]]
    [pallet.session :refer [plan-state target target-session?]]
+   [pallet.settings
+    :refer [assoc-settings get-settings get-target-settings update-settings]]
    [pallet.stevedore :refer [script]]
    [pallet.target :as target]
-   [pallet.utils :refer [maybe-assoc]]))
+   [pallet.utils :refer [maybe-assoc]]
+   [schema.core :as schema :refer [check optional-key validate]]))
+
+(def facility :pallet/os)
+
+(defn node-details-map? [x]
+  (validate node-values-schema x))
+
+(defn node-info
+  "Return the node information in settings for the specified target."
+  [session target]
+  {:pre [(target/has-node? target)]
+   :post [(or (nil? %) (node-details-map? %))]}
+  (let [node-info-map (get-target-settings session target facility)]
+    (debugf "node-info node-info-map %s" node-info-map)
+    node-info-map))
+
+(defn node-info!
+  "Set the node os information map"
+  [session node-details]
+  {:pre [(or (nil? node-details) (node-details-map? node-details))]}
+  (assoc-settings session facility node-details))
+
+(defn node-info-merge!
+  "Merge the os-details into the node os information map"
+  [session node-details]
+  {:pre [(or (nil? node-details) (node-details-map? node-details))]}
+  (update-settings session facility merge node-details))
+
+(defn target-with-os
+  "Adds any inferred os details to a target"
+  [target plan-state]
+  (merge (node-info (target/node target) plan-state) target))
 
 ;;; NB no script functions here
 (defn os-detection
@@ -112,4 +148,26 @@
         distro (infer-distro session)
         m (dissoc (merge os distro) :action-symbol :context)]
     (debugf "os %s %s %s" os distro m)
-    (node-os! (target/node (target session)) (plan-state session) m)))
+    (node-info! session m)))
+
+(defn server-spec
+  "Return a spec with pallet os-detection phases.  When all-targets is
+  false, the default, it will only run on targets without a specified
+  os-family."
+  [{:keys [all-targets] :as settings}]
+  (spec/server-spec
+   {:phases
+    {:pallet/os (vary-meta
+                 (plan-fn [session] (os session))
+                 merge (if all-targets
+                         unbootstrapped-meta
+                         (update-in unbootstrapped-meta [:middleware]
+                                    #(execute-on-filtered
+                                      % (complement target/os-family)))))
+     :pallet/os-bs (vary-meta
+                    (plan-fn [session] (os session))
+                    merge (if all-targets
+                            bootstrapped-meta
+                            (update-in bootstrapped-meta [:middleware]
+                                       #(execute-on-filtered
+                                         % (complement target/os-family)))))}}))

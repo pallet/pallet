@@ -3,7 +3,7 @@
    [clojure.core.async :as async :refer [<! <!! >! chan]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
-   [pallet.crate.os :refer [os]]
+   [pallet.crate.node-info :as node-info]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
@@ -105,19 +105,6 @@
                 (recur (rest phases) res)))
             [res nil])))))
 
-;;; # Plan Functions
-
-(defn os-detection-phases
-  "Return a phase map with pallet os-detection phases."
-  []
-  ;; TODO add middleware guard to only run if no info in plan-state
-  {:pallet/os (vary-meta
-               (plan-fn [session] (os session))
-               merge unbootstrapped-meta)
-   :pallet/os-bs (vary-meta
-                  (plan-fn [session] (os session))
-                  merge bootstrapped-meta)})
-
 ;;; # Creating and Removing Nodes
 
 (defn destroy-targets
@@ -168,7 +155,7 @@
         (debugf "create-targets %s %s" (vec targets) e)
         (lift-phases
          session [:pallet/os :settings :bootstrap]
-         (map #(update-in % [:phases] merge (os-detection-phases)) targets)
+         (map #(spec (assoc % :extends [(node-info/server-spec {})])) targets)
          nil c)
         (let [[results e1] (<! c)]
           (debugf "create-targets results %s" (pr-str [results e1]))

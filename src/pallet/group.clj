@@ -16,6 +16,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.compute
     :refer [check-node-spec compute-service? node-spec nodes
             service-properties]]
+   [pallet.crate.node-info :as node-info]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.node :as node :refer [node?]]
    [pallet.core.plan-state :as plan-state]
@@ -32,8 +33,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             targets]]
    [pallet.target-info :refer [admin-user]]
    [pallet.target-ops
-    :refer [create-targets destroy-targets lift-op lift-phase
-            os-detection-phases]]
+    :refer [create-targets destroy-targets lift-op lift-phase]]
    [pallet.user :as user]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
@@ -706,7 +706,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
   (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
         phase-map (if os-detect
-                    (merge phase-map (os-detection-phases))
+                    (merge phase-map (:phases (node-info/server-spec {})))
                     phase-map)
         _ (debugf "phase-map %s" phase-map)
         groups (if (map? group-spec->count)
@@ -843,7 +843,7 @@ the admin-user on the nodes.
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         phase-map (if os-detect
-                    (merge phase-map (os-detection-phases))
+                    (merge phase-map (:phases (node-info/server-spec {})))
                     phase-map)
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
