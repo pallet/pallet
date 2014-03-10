@@ -148,7 +148,9 @@
         distro (infer-distro session)
         m (dissoc (merge os distro) :action-symbol :context)]
     (debugf "os %s %s %s" os distro m)
-    (node-info! session m)))
+    (when (plan-state session)
+      (node-info! session m))
+    m))
 
 (defn server-spec
   "Return a spec with pallet os-detection phases.  When all-targets is

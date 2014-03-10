@@ -16,6 +16,7 @@
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.spec :refer [server-spec]]
+   [pallet.target :as target]
    [pallet.target-ops :refer :all]
    [pallet.user :as user]
    [pallet.utils.async :refer [go-try sync]]
@@ -185,16 +186,21 @@
                                 {:id (name (gensym "id"))})))]))))
 
 (deftest create-nodes-test
-  (let [session (plan-session)
-        results (sync (create-targets
-                       session
-                       (OneShotCreateService.)
-                       {:image {:image-id "x"}}
-                       (server-spec {:phases
-                                     {:x (plan-fn [session]
-                                           (exec-script* session "ls"))}})
-                       (session/user session)
-                       3
-                       "base"))]
-    (is (= 3 (count (:targets results))))
-    (is (not (errors (:results results))))))
+  (testing "Create targets with explicit pallet.os phase, no plan-state."
+    (let [session (plan-session)
+          results (sync (create-targets
+                         session
+                         (OneShotCreateService.)
+                         {:image {:image-id "x"}}
+                         (server-spec {:phases
+                                       {:pallet/os (plan-fn [session]
+                                                     {:os-family :ubuntu})}})
+                         (session/user session)
+                         3
+                         "base"))]
+      (is (= 3 (count (:targets results)))
+          "creates the correct number of targets")
+      (is (not (errors (:results results)))
+          "doesn't report any errors")
+      (is (every? target/os-family (:targets results))
+          "targets have :os-family set"))))

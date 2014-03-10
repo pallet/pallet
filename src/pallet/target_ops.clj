@@ -164,7 +164,17 @@
                      nodes)]
         (lift-phase session :pallet/os targets nil c)
         (let [[info-results info-e :as info] (<! c)
-              [targets err-targets] (partition-targets info-results targets)]
+              [targets err-targets] (partition-targets info-results targets)
+              infos (into {} (map (juxt (comp target/id :target) :return-value)
+                                  (filter :return-value info-results)))
+              targets (map (fn [target]
+                             (if-let [info (get infos (target/id target))]
+                               (update-in target [:node] merge info)
+                               target))
+                           targets)]
+          (clojure.tools.logging/debugf "info-results %s" (pr-str info-results))
+          (clojure.tools.logging/debugf "infos %s" (pr-str infos))
+          (clojure.tools.logging/debugf "new targets %s" (pr-str targets))
           (if info-e
             (>! ch [{:targets targets
                      :results info-results}
