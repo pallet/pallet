@@ -327,7 +327,8 @@
     (let [service (make-localhost-compute :group-name :local)
           g (group/group-spec :local
               {:count 1
-              :phases {:x (plan-fn [session] (exec-script* session "ls"))}})
+               :phases {:configure (plan-fn [session]
+                                     (exec-script* session "ls"))}})
           res (group/converge [g] :compute service)]
       (is (map? res) "Result is a map")
       (is (= #{:targets :old-node-ids :results} (set (keys res)))

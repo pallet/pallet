@@ -332,7 +332,8 @@ Uses a TargetMap to describe a node with its group-spec info."
   {:pre [(node? node)
          (check-group-spec group)]}
   (debugf "node-in-group? node %s group %s" node group)
-  (debugf "node-in-group? node in group %s" (node-has-group-name? node (name (:group-name group))))
+  (debugf "node-in-group? node in group %s"
+          (node-has-group-name? node (name (:group-name group))))
   ((:node-filter group #(node-has-group-name? % (name (:group-name group))))
    node))
 

@@ -167,12 +167,13 @@ The result is also written to the recorder in the session."
   middleware defined on the plan-fn."
   [session target plan-fn]
   {:pre [(or (nil? plan-fn) (fn? plan-fn))]
-   :post [(validate target-result-map %)]}
-  (let [{:keys [middleware]} (meta plan-fn)]
-    (-> (if middleware
-          (middleware session target plan-fn)
-          (execute session target plan-fn))
-        (assoc :target target))))
+   :post [(or (nil? %) (validate target-result-map %))]}
+  (let [{:keys [middleware]} (meta plan-fn)
+        result (if middleware
+                 (middleware session target plan-fn)
+                 (execute session target plan-fn))]
+    (if result
+      (assoc result :target target))))
 
 ;;; ## Execute Plan Functions on Mulitple Targets
 (defn ^:internal execute-plan-fns*

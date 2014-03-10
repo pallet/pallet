@@ -11,6 +11,7 @@
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.exception :refer [domain-info]]
+   [pallet.middleware :refer [execute-on-filtered]]
    [pallet.plan :refer :all]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
@@ -200,7 +201,40 @@
       (is (not (errors result)))
       (is (not (error-exceptions result)))
       (is (nil? (throw-errors result)))))
-  (testing "execute with non-domain exception"
+  (testing "execute-plan-fns with plan metadata"
+    (testing "to filter out a plan"
+      (let [session (plan-session)
+            plan
+            ^{:middleware (-> execute
+                              (execute-on-filtered (constantly false)))}
+            (fn
+              [session]
+              (exec-script* session "ls")
+              :rv)
+            target-plans [[ubuntu-target plan]]
+            result (sync (execute-plan-fns session target-plans))]
+        (is (not (seq result)))
+        (is (not (errors result)))
+        (is (not (error-exceptions result)))
+        (is (nil? (throw-errors result)))))
+    (testing "to include a filtered plan"
+      (let [session (plan-session)
+            plan (fn ^{:metadata (-> execute
+                                     (middleware/execute-on-filtered
+                                      (constantly true)))}
+                   [session]
+                   (exec-script* session "ls")
+                   :rv)
+            target-plans [[ubuntu-target plan]]
+            result (sync (execute-plan-fns session target-plans))]
+        (is (= 1 (count result)))
+        (is (every? #(validate target-result-map %) result))
+        (is (= :rv (:return-value (first result))))
+        (is (every? (complement plan-errors) result))
+        (is (not (errors result)))
+        (is (not (error-exceptions result)))
+        (is (nil? (throw-errors result))))))
+  (testing "execute-plan-fns with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})
           plan (fn [session]
@@ -227,7 +261,7 @@
           (is (errors results))
           (is (error-exceptions results))
           (is (thrown? clojure.lang.ExceptionInfo (throw-errors results)))))))
-  (testing "execute with domain exception"
+  (testing "execute-plan-fns with domain exception"
     (let [session (plan-session)
           e (domain-info "some exception" {})
           plan (fn [session]
