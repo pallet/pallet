@@ -7,7 +7,7 @@
 
 (deftest with-action-options-tets
   (let [session (session/create {:executor (plan/plan-executor)})
-        m {:kw 1}]
+        m {:sudo-user "user"}]
     (is (empty? (action-options session)))
     (with-action-options session m
       (is (= m (action-options session))))

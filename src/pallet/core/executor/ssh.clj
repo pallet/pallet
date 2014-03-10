@@ -38,7 +38,8 @@
         :script (let [{:keys [exit err out] :as result}
                       (if (= :target (:location metadata :target))
                         (execute-ssh transport node action value)
-                        (execute-local node action value))]
+                        (execute-local node action value))
+                      result (merge result (select-keys metadata [:summary]))]
                   (when out
                     (swap! state update-node-state (node/id node) out))
                   (when (and exit (pos? exit)

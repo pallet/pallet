@@ -4,6 +4,7 @@
    [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions.test-actions :as test-actions :refer [fail]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan :refer [plan-executor]]
@@ -84,6 +85,18 @@
                :args ["ls"],
                :options {:user (user session)}}]
              (:action-results result)))
+      (is (= :rv (:return-value result)))
+      (is (not (plan-errors result)))))
+  (testing "execute with record-all false"
+    (let [session (plan-session)
+          plan (fn [session]
+                 (with-action-options session {:record-all false}
+                   (exec-script* session "ls"))
+                 :rv)
+          result (execute session ubuntu-target plan)]
+      (is (map? result))
+      (is (= 1 (count (:action-results result))))
+      (is (= [{}] (:action-results result)) "no details in action-results")
       (is (= :rv (:return-value result)))
       (is (not (plan-errors result)))))
   (testing "execute with fail action"

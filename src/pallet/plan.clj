@@ -67,7 +67,12 @@
       (when record?
         (assert (map? rv)
                 (str "Action return value must be a map: " (pr-str rv)))
-        (record (recorder session) rv))
+        (let [rv (if (:record-all (action :options) true)
+                   rv
+                   (if (or (:error rv) e)
+                     rv
+                     (select-keys rv [:summary])))]
+          (record (recorder session) rv)))
       (when e
         (throw e))
       rv)))

@@ -1,9 +1,21 @@
 (ns pallet.action-options
   "Options for controlling the behaviour of actions."
   (:require
-   [pallet.session :as session]))
+   [pallet.session :as session]
+   [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; # Action Options
+
+(def action-options-schema
+  {(optional-key :error-on-non-zero-exit) schema/Bool
+   (optional-key :new-login-after-action) schema/Bool
+   (optional-key :record-all) schema/Bool
+   (optional-key :script-comments) schema/Bool
+   (optional-key :script-dir) String
+   (optional-key :script-env) {(schema/either schema/Keyword String) schema/Any}
+   (optional-key :script-env-fwd) [(schema/either schema/Keyword String)]
+   (optional-key :script-prefix) schema/Keyword
+   (optional-key :sudo-user) String})
 
 (defn action-options
   "Return any action-options currently defined on the session."
@@ -32,10 +44,16 @@ options.
 
 `:new-login-after-action`
 : Force a new ssh login after the action.  Useful if the action effects the
-  login environment and you want the affect to be visible immediately."
+  login environment and you want the affect to be visible immediately.
+
+`:record-all`
+: control the recording of action-option results.  When set to false,
+only the action summary and any error is recorded.  Defaults to true."
   [session m & body]
   (when-not (symbol? session)
     (throw
      (Exception. "with-action-options expects a symbol as first argument.")))
-  `(let [~session (session/merge-action-options ~session ~m)]
-     ~@body))
+  `(let [m# ~m]
+     (validate action-options-schema m#)
+     (let [~session (session/merge-action-options ~session ~m)]
+         ~@body)))

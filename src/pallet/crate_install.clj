@@ -2,7 +2,6 @@
   "Install methods for crates"
   (:require
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions
     :as actions
@@ -198,7 +197,8 @@ Install based on an archive
   (check-keys
    settings [:package-source :packages]
    {(optional-key :package-source) {:name String schema/Keyword schema/Any}
-    (optional-key :repository) {:repository schema/Keyword schema/Keyword schema/Any}
+    (optional-key :repository) {:repository schema/Keyword
+                                schema/Keyword schema/Any}
     :packages [String]}
    "Invalid package-source install-strategy settings values")
   (if repository
@@ -206,9 +206,8 @@ Install based on an archive
     (actions/package-source session (:name package-source) package-source))
   (let [modified? true ;; TODO (target-flag? package-source-changed-flag)
         ]
-    (with-action-options session {:always-before #{package}}
-      (when modified?
-        (package-manager session :update)))
+    (when modified?
+      (package-manager session :update))
     (tracef "packages %s options %s" (vec packages) package-options)
     (doseq [p preseeds]
       (debconf-set-selections session p))
@@ -243,18 +242,14 @@ Install based on an archive
   [session {:keys [debs package-source packages]}]
   (let [path (or (-> package-source :apt :path)
                  (-> package-source :aptitude :path))]
-    (with-action-options
-      session
-      {:action-id ::deb-install
-       :always-before #{::update-package-source ::install-package-source}}
-      (remote-directory session path
-       (merge
-        {:mode "755"
-         :strip-components 0}
-        (dissoc debs :name)))
-      (repository-packages session)
-      (rebuild-repository session path))
-      (actions/package-source session (:name package-source) package-source)
+    (remote-directory session path
+                      (merge
+                       {:mode "755"
+                        :strip-components 0}
+                       (dissoc debs :name)))
+    (repository-packages session)
+    (rebuild-repository session path)
+    (actions/package-source session (:name package-source) package-source)
     (doseq [p packages] (package session p))))
 
 ;; Install based on an archive

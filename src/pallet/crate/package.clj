@@ -8,6 +8,9 @@
    [pallet.target :refer [packager]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
+
+;; TODO functions to help witching between package crate and actions
+;; when writing crates.
 ;; TODO capture order between package, package-manager, and package-source?
 
 ;; Need to allow installing certain packages before adding a package

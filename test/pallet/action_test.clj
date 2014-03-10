@@ -49,11 +49,11 @@
              (plan/plan (session/executor session))))))
   (testing "action execution with action options"
     (let [session (test-session)]
-      (with-action-options session {:n 2}
+      (with-action-options session {:sudo-user "user"}
         (b session :a))
       (is (= [{:args [:a]
                :action 'pallet.action-test/b
-               :options {:n 2
+               :options {:sudo-user "user"
                          :m 1
                          :user user/*admin-user*}}]
              (plan/plan (session/executor session)))))))

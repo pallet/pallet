@@ -1,7 +1,6 @@
 (ns pallet.crate.package.rpmforge
   "Actions for working with the rpmforge repository"
   (:require
-   [pallet.action-options :refer [with-action-options]]
    [pallet.actions
     :refer [exec-checked-script package package-manager repository]]
    [pallet.actions.direct.remote-file :refer [remote-file*]]
@@ -17,19 +16,18 @@
   "Add the rpmforge repository"
   [session {:keys [version distro arch]
             :or {version "0.5.2-2" distro "el5" arch "i386"}}]
-  (with-action-options session {:always-before #{package-manager package}}
-    (exec-checked-script
-     session
-     "Add rpmforge repositories"
-     (chain-or
-      (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))
-        (do
-          ~(first
-            (remote-file*
-             session
-             "rpmforge.rpm"
-             {:url (format rpmforge-url-pattern version distro arch)}))
-          ("rpm" -U --quiet "rpmforge.rpm")))))))
+  (exec-checked-script
+   session
+   "Add rpmforge repositories"
+   (chain-or
+    (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))
+      (do
+        ~(first
+          (remote-file*
+           session
+           "rpmforge.rpm"
+           {:url (format rpmforge-url-pattern version distro arch)}))
+        ("rpm" -U --quiet "rpmforge.rpm"))))))
 
 (defmethod repository :rpmforge
   [session args]

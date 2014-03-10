@@ -518,22 +518,17 @@ only specified files or directories, use the :extract-files option.
                (:username (admin-user session)))]
     (when local-file
       (decl/transfer-file local-file path))
-    ;; we run as root so we don't get permission issues
-    (with-action-options session (merge
-                                  {:script-prefix :sudo
-                                   :sudo-user (:sudo-user (admin-user session))}
-                                  local-file-options)
-      (directory session path {:owner owner :group group :recursive false})
-      (decl/remote-directory
-       session
-       path
-       (merge
-        {:install-new-files *install-new-files* ; capture bound values
-         :overwrite-changes *force-overwrite*
-         :owner user
-         :blobstore (get-environment session [:blobstore] nil)
-         :proxy (get-environment session [:proxy] nil)}
-        options)))))
+    (directory session path {:owner owner :group group :recursive false})
+    (decl/remote-directory
+     session
+     path
+     (merge
+      {:install-new-files *install-new-files* ; capture bound values
+       :overwrite-changes *force-overwrite*
+       :owner user
+       :blobstore (get-environment session [:blobstore] nil)
+       :proxy (get-environment session [:proxy] nil)}
+      options))))
 
 (defn wait-for-file
   "Wait for a file to exist"

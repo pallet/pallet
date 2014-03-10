@@ -1,7 +1,6 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
-   [pallet.action-options :refer [with-action-options]]
    [pallet.actions
     :refer [add-rpm
             package
@@ -37,12 +36,11 @@
            (and
             (#{:rhel :centos} os-family)
             (re-matches #"5\.[0-5]" os-version)))
-      (with-action-options session {:action-id ::install-jpackage-compat}
-        (add-rpm
-         session
-         "jpackage-utils-compat-el5-0.0.1-1"
-         {:url jpackage-utils-compat-rpm
-          :insecure true})))) ;; github's ssl doesn't validate
+      (add-rpm
+       session
+       "jpackage-utils-compat-el5-0.0.1-1"
+       {:url jpackage-utils-compat-rpm
+        :insecure true}))) ;; github's ssl doesn't validate
   (package session "jpackage-utils"))
 
 (def jpackage-mirror-fmt

@@ -50,14 +50,14 @@ The session is a map with well defined keys:
    [pallet.utils :as utils]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-
 (def execution-state
   {:executor pallet.core.executor.protocols.ActionExecutor
    (optional-key :recorder) pallet.core.recorder.protocols.Record
    (optional-key :action-options) {schema/Keyword schema/Any}
    (optional-key :user) schema/Any
    (optional-key :environment) schema/Any
-   (optional-key :extension) {schema/Keyword schema/Any}})
+   (optional-key :extension) {schema/Keyword schema/Any}
+   (optional-key :record-all) {schema/Keyword schema/Bool}})
 
 (def base-session
   {:execution-state execution-state
