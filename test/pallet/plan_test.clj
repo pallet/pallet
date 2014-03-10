@@ -1,6 +1,7 @@
 (ns pallet.plan-test
   (:refer-clojure :exclude [sync])
   (:require
+   [clojure.core.async :refer [>!]]
    [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
@@ -16,7 +17,7 @@
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.user :as user]
-   [pallet.utils.async :refer [sync]]
+   [pallet.utils.async :refer [go-try sync]]
    [schema.core :as schema :refer [validate]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -201,7 +202,7 @@
       (is (not (errors result)))
       (is (not (error-exceptions result)))
       (is (nil? (throw-errors result)))))
-  (testing "execute-plan-fns with plan metadata"
+  (testing "execute-plan-fns with plan middleware"
     (testing "to filter out a plan"
       (let [session (plan-session)
             plan
@@ -219,12 +220,11 @@
         (is (nil? (throw-errors result)))))
     (testing "to include a filtered plan"
       (let [session (plan-session)
-            plan (fn ^{:metadata (-> execute
-                                     (middleware/execute-on-filtered
-                                      (constantly true)))}
-                   [session]
-                   (exec-script* session "ls")
-                   :rv)
+            plan ^{:middleware (-> execute
+                                   (execute-on-filtered (constantly true)))}
+            (fn [session]
+              (exec-script* session "ls")
+              :rv)
             target-plans [[ubuntu-target plan]]
             result (sync (execute-plan-fns session target-plans))]
         (is (= 1 (count result)))
@@ -234,6 +234,43 @@
         (is (not (errors result)))
         (is (not (error-exceptions result)))
         (is (nil? (throw-errors result))))))
+  (testing "execute-plan-fns with phase middleware"
+    (let [mw (fn [handler flag]
+               (fn [session target-plans ch]
+                 (if flag
+                   (handler session target-plans ch)
+                   (go-try ch
+                     (>! ch [])))))]
+      (testing "to filter out plans"
+        (let [session (plan-session)
+              plan
+              ^{:phase-middleware (-> execute-plan-fns* (mw false))}
+              (fn
+                [session]
+                (exec-script* session "ls")
+                :rv)
+              target-plans [[ubuntu-target plan]]
+              result (sync (execute-plan-fns session target-plans))]
+          (is (not (seq result)))
+          (is (not (errors result)))
+          (is (not (error-exceptions result)))
+          (is (nil? (throw-errors result)))))
+      (testing "to include filtered plans"
+        (let [session (plan-session)
+              plan ^{:phase-middleware (-> execute-plan-fns* (mw true))}
+              (fn
+                [session]
+                (exec-script* session "ls")
+                :rv)
+              target-plans [[ubuntu-target plan]]
+              result (sync (execute-plan-fns session target-plans))]
+          (is (= 1 (count result)))
+          (is (every? #(validate target-result-map %) result))
+          (is (= :rv (:return-value (first result))))
+          (is (every? (complement plan-errors) result))
+          (is (not (errors result)))
+          (is (not (error-exceptions result)))
+          (is (nil? (throw-errors result)))))))
   (testing "execute-plan-fns with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})

@@ -32,6 +32,7 @@
   parameter."
   ([from to] (pipe from to true))
   ([from to close?]
+     {:pre [(channel? from) (channel? to)]}
      (go-loop []
        (let [v (<! from)]
          (if (nil? v)
@@ -68,6 +69,7 @@
   Ordering of values is from a single chan is preserved, but the channels
   may be sampled in any order."
   ([chans to close?]
+     {:pre [(every? channel? chans) (channel? to)]}
      (go-logged
       (doseq [i (for [c chans] (pipe c to false))]
 

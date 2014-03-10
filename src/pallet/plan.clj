@@ -166,7 +166,8 @@ The result is also written to the recorder in the session."
   "Using the session, execute plan-fn on target. Uses any plan
   middleware defined on the plan-fn."
   [session target plan-fn]
-  {:pre [(or (nil? plan-fn) (fn? plan-fn))]
+  {:pre [(or (nil? plan-fn) (fn? plan-fn))
+         (map? target)]
    :post [(or (nil? %) (validate target-result-map %))]}
   (let [{:keys [middleware]} (meta plan-fn)
         result (if middleware
