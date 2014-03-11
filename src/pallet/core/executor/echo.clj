@@ -3,7 +3,6 @@
   (:require
    [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
-   [pallet.echo.execute :as echo]
    [pallet.user :refer [user?]]))
 
 (deftype EchoActionExecutor [result-chan]
