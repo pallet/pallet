@@ -37,6 +37,8 @@ specific node (or some other target)."
 (defnodefn hostname)
 (defnodefn running?)
 (defnodefn terminated?)
+(defnodefn suspended?)
+(defnodefn stopped?)
 (defnodefn id)
 (defnodefn compute-service)
 (defnodefn image-user)

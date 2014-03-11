@@ -100,13 +100,25 @@
   "Predicate to test if node is running."
   [node]
   {:pre [(validate node-schema node)]}
-  (:running? node))
+  (= (:run-state node) :running))
 
 (defn terminated?
   "Predicate to test if node is terminated."
   [node]
   {:pre [(validate node-schema node)]}
-  (:terminated? node))
+  (= (:run-state node) :terminated))
+
+(defn suspended?
+  "Predicate to test if node is terminated."
+  [node]
+  {:pre [(validate node-schema node)]}
+  (= (:run-state node) :suspended))
+
+(defn stopped?
+  "Predicate to test if node is terminated."
+  [node]
+  {:pre [(validate node-schema node)]}
+  (= (:run-state node) :stopped))
 
 (defn id
   "Return the node's id."
