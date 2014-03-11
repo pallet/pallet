@@ -10,6 +10,7 @@
    [pallet.compute :refer [service-properties]]
    [pallet.core.primitives :refer [phase-errors]]
    [pallet.node :refer [node-map]]
+   [pallet.repl :refer [explain-session session-summary]]
    [pallet.task-utils
     :refer [comma-sep->kw-seq
             comma-sep->seq
@@ -100,6 +101,7 @@
         (if (failed? op)
           (binding [*out* *err*]
             (println "An error occured")
+            (explain-session @op)
             (when-let [e (seq (phase-errors op))]
               (pprint (->> e (map :error) (map #(dissoc % :type)))))
             (when-let [e (and (failed? op) (:exception (fail-reason op)))]
@@ -110,4 +112,4 @@
           (when-not quiet
             (if (= format "edn")
               (pprint (map node-map (map :node (:targets @op))))
-              (print-targets @op))))))))
+              (session-summary @op))))))))
