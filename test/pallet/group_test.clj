@@ -247,7 +247,7 @@
   (testing "service state"
     (let [service (make-localhost-compute :group-name :local)
           ss (group/service-state
-              (sync (compute/nodes service))
+              (sync (compute/targets service))
               [(group/group-spec :local {})])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (first ss))))
@@ -276,7 +276,7 @@
           g (group/group-spec :local {:count 1})
           c (chan)
           targets (group/service-state
-                   (sync (compute/nodes service))
+                   (sync (compute/targets service))
                    [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/node-count-adjuster
@@ -307,7 +307,7 @@
                                      (exec-script* session "ls"))}})
           c (chan)
           targets (group/service-state
-                   (sync (compute/nodes service))
+                   (sync (compute/targets service))
                    [(group/group-spec :local {})])
           _ (is (every? :node targets))
           r (group/converge* [g] c {:compute service})

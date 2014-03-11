@@ -208,6 +208,7 @@
       (throw e))
     r))
 
+;; TODO add timeout options
 (defn sync*
   "Call an asynchrouns function that expects a single channel argument,
   read and return a value from that channel"

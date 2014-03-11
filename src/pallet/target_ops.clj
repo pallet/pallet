@@ -154,7 +154,7 @@
   map, with :targets and :results keys."
   [session compute-service node-spec spec user count base-name ch]
   (debugf "create-targets %s %s" count (:group-name spec))
-  (debugf "create-targets node-spec %s" node-spec)
+  (tracef "create-targets node-spec %s" node-spec)
   (go-try ch
     (let [c (chan)]
       (compute/create-nodes compute-service node-spec user count base-name c)
@@ -172,9 +172,9 @@
                                (update-in target [:node] merge info)
                                target))
                            targets)]
-          (clojure.tools.logging/debugf "info-results %s" (pr-str info-results))
-          (clojure.tools.logging/debugf "infos %s" (pr-str infos))
-          (clojure.tools.logging/debugf "new targets %s" (pr-str targets))
+          (tracef "info-results %s" (pr-str info-results))
+          (tracef "infos %s" (pr-str infos))
+          (tracef "new targets %s" (pr-str targets))
           (if info-e
             (>! ch [{:targets targets
                      :results info-results}

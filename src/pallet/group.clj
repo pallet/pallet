@@ -13,9 +13,9 @@ Uses a TargetMap to describe a node with its group-spec info."
    [clojure.string :as string :refer [blank?]]
    [clojure.tools.logging :as logging :refer [debugf tracef]]
    [pallet.blobstore :refer [blobstore?]]
-   [pallet.compute
-    :refer [check-node-spec compute-service? node-spec nodes
-            service-properties]]
+   [pallet.compute :as compute
+    :refer [check-node-spec compute-service? node-spec
+            node-spec-schema service-properties]]
    [pallet.crate.node-info :as node-info]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.node :as node :refer [node?]]
@@ -30,7 +30,8 @@ Uses a TargetMap to describe a node with its group-spec info."
             recorder target target-session? update-extension]]
    [pallet.spec :as spec
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
-            targets]]
+            targets target-with-specs]]
+   [pallet.target :as target]
    [pallet.target-info :refer [admin-user]]
    [pallet.target-ops
     :refer [create-targets destroy-targets lift-op lift-phase]]
@@ -63,7 +64,8 @@ Uses a TargetMap to describe a node with its group-spec info."
          {:group-name schema/Keyword
           (optional-key :node-filter) IFn
           (optional-key :count) Number
-          (optional-key :removal-selection-fn) IFn}))
+          (optional-key :removal-selection-fn) IFn
+          (optional-key :node-spec) node-spec-schema}))
 
 (def lift-options-schema
   (merge
@@ -314,80 +316,51 @@ Uses a TargetMap to describe a node with its group-spec info."
   "The name of the tag used to record the group name on the node."
   "/pallet/group-name")
 
-(defn node-has-group-name?
-  "Return a predicate to check if a node has the specified group name.
+(defn target-has-group-name?
+  "Return a predicate to check if a target node has the specified group name.
   If the node is taggable, we check the group-name-tag, otherwise we
   fall back onto checking the whether the node's base-name matches the
   group name."
-  [node group-name]
-  {:pre [(node? node)]}
-  (if (node/taggable? node)
-    (= group-name (node/tag node group-name-tag))
-    (node/has-base-name? node group-name)))
+  [target group-name]
+  {:pre [(target/node target)]}
+  (if (target/taggable? target)
+    (= group-name (target/tag target group-name-tag))
+    (target/has-base-name? target group-name)))
 
-(defn node-in-group?
+(defn target-in-group?
   "Check if a node satisfies a group's node-filter."
   {:internal true}
-  [node group]
-  {:pre [(node? node)
+  [target group]
+  {:pre [(target/node target)
          (check-group-spec group)]}
-  (debugf "node-in-group? node %s group %s" node group)
-  (debugf "node-in-group? node in group %s"
-          (node-has-group-name? node (name (:group-name group))))
-  ((:node-filter group #(node-has-group-name? % (name (:group-name group))))
-   node))
+  (debugf "node-in-group? target %s group %s" target group)
+  (debugf "node-in-group? target in group %s"
+          (target-has-group-name? target (name (:group-name group))))
+  ((:node-filter group #(target-has-group-name? % (name (:group-name group))))
+   target))
 
 ;;; # Map Nodes to Groups Based on Group's Node-Filter
-(defn node->target-map
-  "Build a map entry from a node and a list of groups."
-  {:internal true}
-  [groups node]
-  {:pre [(every? #(check-group-spec %) groups)
-         (node? node)]}
-  (when-let [groups (seq (->>
-                          groups
-                          (filter (fn [group]
-                                    (node-in-group? node group)))
-                          (map (fn [group]
-                                 (check-group-spec group)
-                                 (assoc-in
-                                  group [:group-names]
-                                  (set [(:group-name group)]))))))]
-    (debugf "node->target-map groups %s node %s" (vec groups) node)
-    (reduce
-     (fn [target group]
-       (merge-specs merge-spec-algorithm target group))
-     {:node node}
-     groups)))
-
 (defn service-state
-  "For a sequence of nodes, filter those nodes in the specified
+  "For a sequence of targets, filter those nodes in the specified
   `groups`. Returns a sequence that contains a target-map for each
-  matching node."
-  [nodes groups]
+  matching target."
+  [targets groups]
   {:pre [(every? #(check-group-spec %) groups)
-         (every? node? nodes)]}
-  (let [_ (tracef "service-state %s" (vec nodes))
-        targets (seq (remove nil? (map #(node->target-map groups %) nodes)))]
+         (every? target/node targets)]}
+  (tracef "service-state %s" (vec targets))
+  (let [group-member? (fn [group]
+                        (let [group-name (name (:group-name group))]
+                          (:node-filter
+                           group
+                           (fn [target]
+                             (target-has-group-name? target group-name)))))
+        predicate-spec-pairs (map (juxt group-member? identity) groups)
+        _ (debugf "service-state p-s-p %s" (pr-str predicate-spec-pairs))
+        targets (map #(target-with-specs predicate-spec-pairs %) targets)]
     (debugf "service-state targets %s" (vec targets))
-    targets))
-
-;; ;; (defn service-groups
-;;   "Query the available nodes in a `compute-service`, returning a group-spec
-;;   for each group found."
-;;   [compute-service]
-;;   (->> (nodes compute-service)
-;;        (remove terminated?)
-;;        (map group-name)
-;;        (map (fn> [gn :- GroupName] {:group-name gn}))
-;;        (map (fn> [m :- (HMap :mandatory {:group-name GroupName})]
-;;               ((inst vary-meta
-;;                      (HMap :mandatory {:group-name GroupName})
-;;                      Keyword Keyword)
-;;                m assoc :type :pallet.api/group-spec)))))
+    (filter :group-name targets)))
 
 ;;; # Operations
-
 
 (def ^{:doc "node-specific environment keys"}
   node-keys [:image :phases])
@@ -429,8 +402,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   (map
    (fn [group]
      (group-delta (filter
-                   (fn [t]
-                     (node-in-group? (:node t) group))
+                   (fn [t] (target-in-group? t group))
                    targets)
                   group))
    groups))
@@ -443,8 +415,7 @@ Uses a TargetMap to describe a node with its group-spec info."
     {:group group
      :targets (f (- delta)
                  (filter
-                  (fn [target]
-                    (node-in-group? (:node target) group))
+                  (fn [target] (target-in-group? target group))
                   targets))
      :remove-group (zero? target)}))
 
@@ -546,7 +517,7 @@ Uses a TargetMap to describe a node with its group-spec info."
            compute-service
            (:node-spec group)
            group
-           (admin-user session)
+           (session/user session)
            count
            {:node-name (name (:group-name group))}
            c)
@@ -678,7 +649,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
                   (fn [g] (update-in g [:phases] select-keys [:settings]))
                   all-node-set)]
     (if (seq groups)
-      (service-state (sync (nodes compute)) (concat groups consider))
+      (service-state (sync (compute/targets compute)) (concat groups consider))
       consider)))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
@@ -976,96 +947,14 @@ the admin-user on the nodes.
       options [:async :operation :status-chan :close-status-chan?
                :timeout-ms :timeout-val]))))
 
-(defn lift-nodes
-  "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
-provides a way of lifting phases, which doesn't tie you to working with all
-nodes in a group.  Consider using this only if the functionality in `lift` is
-insufficient.
-
-`phases`
-: a sequence of phase keywords (identifying phases) or plan functions, that
-  should be applied to the target nodes.  Note that there are no default phases.
-
-## Options:
-
-`:user`
-: the admin-user to use for operations on the target nodes.
-
-`:environment`
-: an environment map, to be merged into the environment.
-
-`:plan-state`
-: an state map, which can be used to passing settings across multiple lift-nodes
-  invocations.
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out."
-  [targets phases
-   & {:keys [user environment plan-state async timeout-ms timeout-val]
-      :or {environment {} plan-state {}}
-      :as options}]
-  (let [[phases phase-map] (process-phases phases)
-        targets (groups-with-phases targets phase-map)
-        environment (merge-environments
-                     environment
-                     (select-keys options environment-args))]
-    (letfn [(lift-nodes* [operation]
-              ;; (lift-partitions
-              ;;  operation
-              ;;  targets plan-state environment phases
-              ;;  (dissoc options
-              ;;          :environment :plan-state :async
-              ;;          :timeout-val :timeout-ms))
-              )]
-      (exec-operation lift-nodes* options))))
-
-(defn group-nodes
-  "Return a sequence of node-maps for each node in the specified group-specs.
-
-## Options:
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out."
-  [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
-  (letfn [(group-nodes* [operation] (group-nodes operation compute groups))]
-    ;; TODO
-    ;; (exec-operation group-nodes* options)
-    ))
-
-
-;;; # Exception reporting
+;;; # Exception and Error Reporting
 (defn phase-errors
   "Return a sequence of phase errors for an operation.
    Each element in the sequence represents a failed action, and is a map,
    with :target, :error, :context and all the return value keys for the return
    value of the failed action."
   [result]
-  (->>
-   (:results result)
-   errors
-   ;; (map #(update-in % [:action-results] (fn [r] (filter :error r))))
-   ;; (mapcat
-   ;;  #(map (fn [r] (merge (dissoc % :action-results) r)) (:action-results %)))
-   ;; seq
-   ))
+  (->> (:results result) errors))
 
 (defn phase-error-exceptions
   "Return a sequence of exceptions from phase errors for an operation. "
