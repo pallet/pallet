@@ -1,11 +1,13 @@
 (ns pallet.configure-test
+  (:refer-clojure :exclude [sync])
   (:require
    [clojure.java.io :refer [file]]
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
    [pallet.configure :refer :all]
-   [pallet.utils :refer [tmpdir]]))
+   [pallet.utils :refer [tmpdir]]
+   [pallet.utils.async :refer [sync]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -87,20 +89,28 @@
     (is (= "fred" (:username admin-user)))))
 
 (deftest admin-user-from-config-test
-  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
+  (let [admin-user (admin-user-from-config
+                    {:admin-user {:username "fred"}})]
     (is (= "fred" (:username admin-user)))))
 
 (def nl-service-form
   '{:nl {:provider :node-list
-         :node-list [["worker" "worker" "192.168.1.37"
-                      :ubuntu :os-version "10.04"
-                      :is-64bit false]]}})
+         :node-list [{:id "worker"
+                      :hostname "worker"
+                      :primary-ip "192.168.1.37"
+                      :os-family :ubuntu
+                      :os-version "10.04"
+                      :is-64bit false}]}})
+
 (def nl-form
   '(defpallet
      :services {:nl {:provider :node-list
-                     :node-list [["worker" "worker" "192.168.1.37"
-                                  :ubuntu :os-version "10.04"
-                                  :is-64bit false]]}}))
+                     :node-list [{:id "worker"
+                                  :hostname "worker"
+                                  :primary-ip "192.168.1.37"
+                                  :os-family :ubuntu
+                                  :os-version "10.04"
+                                  :is-64bit false}]}}))
 
 (deftest compute-service-test
   (let [tmp (tmpdir)
@@ -121,16 +131,16 @@
       (is (compute-service :test) "from resource")
       (testing "config.clj"
         (spit pallet nl-form)
-        (is (= 1 (count (nodes (compute-service :nl)))) "from config file")
-        (is (zero? (count (nodes (compute-service :nl :node-list []))))
+        (is (= 1 (count (sync (nodes (compute-service :nl))))) "from config file")
+        (is (zero? (count (sync (nodes (compute-service :nl :node-list [])))))
             "override options")
         (.delete pallet))
       (testing "services/xx.clj"
         (spit service nl-service-form)
-        (is (= 1 (count (nodes (compute-service :nl)))) "from services file")
+        (is (= 1 (count (sync (nodes (compute-service :nl))))) "from services file")
         (testing "services/.DS_Store doesn't cause error"
           (spit ds_store "fred")
-          (is (= 1 (count (nodes (compute-service :nl)))) "from services file")
+          (is (= 1 (count (sync (nodes (compute-service :nl))))) "from services file")
           (.delete ds_store))
         (.delete service))
       (finally

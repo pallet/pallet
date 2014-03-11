@@ -9,7 +9,6 @@
    ~/.pallet/services/*.clj"
   (:require
    [chiba.plugin :refer [data-plugins]]
-   [clojure.core.incubator :refer [-?>]]
    [clojure.java.io :as java-io]
    [clojure.java.io :refer [resource]]
    [clojure.string :as string]
@@ -19,7 +18,8 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.compute :refer [instantiate-provider]]
    [pallet.environment :as environment]
-   [pallet.user :refer [make-user]]
+   [pallet.user
+    :refer [default-private-key-path default-public-key-path make-user]]
    [pallet.utils :as utils]))
 
 (def ^{:private true
@@ -394,7 +394,13 @@ with the service configuration in the configuration file."
   "Set the admin user based on a config map"
   [config]
   (when-let [admin-user (:admin-user config)]
-    (make-user (:username admin-user) admin-user)))
+    (let [admin-user (if ((some-fn :password :private-key-path :private-key)
+                          admin-user)
+                       admin-user
+                       (assoc admin-user
+                         :private-key-path (default-private-key-path)
+                         :public-key-path (default-public-key-path)))]
+      (make-user (:username admin-user) admin-user))))
 
 (defn admin-user-from-config-file
   "Create an admin user form a configuration map."
