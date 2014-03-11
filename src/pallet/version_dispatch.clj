@@ -13,7 +13,7 @@ The basic idea is that you wish to dispatch on hierarchy where the dispatched
 data may provide a version."
   (:require
    [clojure.string :as string]
-   [pallet.compute :refer [os-hierarchy]]
+   [pallet.kb :refer [os-hierarchy]]
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
    [pallet.exception :refer [compiler-exception]]
@@ -85,7 +85,7 @@ refers to a software package version of some sort, on the specified `os` and
    '[[name [os os-version version & args :as dispatch] & {:keys [hierarchy]}]]}
   [name & args]
   (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
-        hierarchy (:hierarchy options 'pallet.compute/os-hierarchy)
+        hierarchy (:hierarchy options `os-hierarchy)
         attr (dissoc (meta name) [:file :line :ns])]
     `(defmulti-every ~name
        ~@(if attr [attr])

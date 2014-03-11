@@ -1,7 +1,7 @@
 (ns pallet.version-dispatch-test
   (:require
    [clojure.test :refer :all]
-   [pallet.compute :refer [os-hierarchy]]
+   [pallet.kb :refer [os-hierarchy]]
    [pallet.plan :refer [defmethod-plan]]
    [pallet.test-utils]
    [pallet.version-dispatch :refer :all]))

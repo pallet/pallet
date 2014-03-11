@@ -1,7 +1,7 @@
 (ns pallet.target-info
   "Functions that return information on the current target."
   (:require
-   [pallet.compute :refer [packager-for-os]]
+   [pallet.kb :refer [packager-for-os]]
    [pallet.session :as session]
    [pallet.target :as target]
    [pallet.user :refer [user?]]))

@@ -4,12 +4,6 @@
    [pallet.common.logging.logutils :refer [suppress-logging]]
    [pallet.compute :refer :all]))
 
-(deftest packager-test
-  (is (= :apt (packager-for-os :ubuntu nil)))
-  (is (= :yum (packager-for-os :centos nil)))
-  (is (= :portage (packager-for-os :gentoo nil)))
-  (is (= :brew (packager-for-os :os-x nil))))
-
 ;; (defmulti-os testos [session])
 ;; (defmethod testos :linux [session] :linux)
 ;; (defmethod testos :debian [session] :debian)

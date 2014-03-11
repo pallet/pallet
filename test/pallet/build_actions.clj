@@ -3,13 +3,13 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.compute :as compute]
    [pallet.context :as context :refer [with-phase-context]]
    [pallet.core.executor.echo :refer [echo-executor]]
    [pallet.core.executor.plan :refer [plan plan-executor]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
+   [pallet.kb :refer [packager-for-os]]
    [pallet.phase :as phase]
    [pallet.plan :refer [execute-target-plan plan-fn script-template-for-target]]
    [pallet.script :as script :refer [with-script-context]]
@@ -74,7 +74,7 @@
                      :os-version (or (-> session :target :override :os-version)
                                      "10.04")
                      :packager (or (-> session :target :override :packager)
-                                   (compute/packager-for-os
+                                   (packager-for-os
                                     (or (-> session
                                             :target :override :os-family)
                                         :ubuntu)

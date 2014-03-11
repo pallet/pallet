@@ -2,15 +2,11 @@
   "Abstraction of the compute interface"
   (:require
    [clojure.core.async :as async :refer [<!! <! >! chan]]
-   [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.compute.protocols :as impl]
    [pallet.compute.implementation :as implementation]
    [pallet.core.protocols :as core-impl]
-   [pallet.core.version-dispatch :refer [version-map]]
-   [pallet.utils :refer [maybe-assoc]]
-   [pallet.utils.async :refer [deref-rex go-try]]
-   [pallet.versions :refer [as-version-vector]]
-   [schema.core :as schema :refer [check required-key optional-key validate]]))
+   [pallet.utils.async :refer [go-try]]
+   [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; ## Schema types
 
@@ -256,70 +252,3 @@ Provider specific options may also be passed."
   [{:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
-
-
-;;; TODO move these into a knowledge base
-
-;;; Hierarchies
-
-;; TODO fix the no-check when derive has correct annotations
-(def os-hierarchy
-  (-> (make-hierarchy)
-      (derive :linux :os)
-
-      ;; base distibutions
-      (derive :rh-base :linux)
-      (derive :debian-base :linux)
-      (derive :arch-base :linux)
-      (derive :suse-base :linux)
-      (derive :bsd-base :linux)
-      (derive :gentoo-base :linux)
-
-      ;; distibutions
-      (derive :centos :rh-base)
-      (derive :rhel :rh-base)
-      (derive :amzn-linux :rh-base)
-      (derive :fedora :rh-base)
-
-      (derive :debian :debian-base)
-      (derive :ubuntu :debian-base)
-      (derive :jeos :debian-base)
-
-      (derive :suse :suse-base)
-      (derive :arch :arch-base)
-      (derive :gentoo :gentoo-base)
-      (derive :darwin :bsd-base)
-      (derive :os-x :bsd-base)))
-
-;;; target mapping
-(def packager-map
-  (version-map os-hierarchy :os :os-version
-               {{:os :debian-base} :apt
-                {:os :rh-base} :yum
-                {:os :arch-base} :pacman
-                {:os :gentoo-base} :portage
-                {:os :suse-base} :zypper
-                {:os :os-x} :brew
-                {:os :darwin} :brew}))
-
-(defn packager-for-os
-  "Package manager"
-  [os-family os-version]
-  {:pre [(keyword? os-family)]}
-  (or
-   (get packager-map (maybe-assoc
-                      {:os os-family}
-                      :os-version (and os-version
-                                       (as-version-vector os-version))))
-   (throw
-    (ex-info
-     (format "Unknown packager for %s %s" os-family os-version)
-     {:type :unknown-packager}))))
-
-(defn admin-group
-  "Default admin group for host"
-  [os-family os-version]
-  (case os-family
-    :centos "wheel"
-    :rhel "wheel"
-    "adm"))
