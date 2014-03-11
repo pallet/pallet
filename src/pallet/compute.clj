@@ -2,6 +2,7 @@
   "Abstraction of the compute interface"
   (:require
    [clojure.core.async :as async :refer [<!! <! >! chan]]
+   [clojure.set :refer [intersection]]
    [pallet.compute.protocols :as impl]
    [pallet.compute.implementation :as implementation]
    [pallet.core.protocols :as core-impl]
@@ -66,6 +67,12 @@
    (optional-key :qos) qos-spec-schema
    (optional-key :provider) {schema/Keyword schema/Any}
    schema/Keyword schema/Any})
+
+(def node-spec-meta-schema
+  {:node-spec node-spec-schema
+   (optional-key :selectors) #{schema/Keyword}
+   (optional-key :group-suffix) String
+   (optional-key :name) String})
 
 (defn check-node-spec
   [m]
@@ -252,3 +259,18 @@ Provider specific options may also be passed."
   [{:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
+
+;;; # Node Spec Meta Maps
+
+;;; Provides a facility to filter node-spec-meta maps.
+
+;;; A node-spec-meta is a map with a :node-spec key, containing a
+;;; node-spec.  It can also have a :selectors key with a set of
+;;; keywords, a group-suffix key with a suffix string for node names,
+;;; and a :name key with a string value.
+(defn matches-selectors?
+  "Predicate for matching any of a set of keyword selectors with a
+  node-spec meta map."
+  [selectors node-spec-meta]
+  {:pre [(set? selectors) (validate node-spec-meta-schema node-spec-meta)]}
+  (seq (intersection selectors (:selectors node-spec-meta))))

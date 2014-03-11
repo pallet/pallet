@@ -4,18 +4,6 @@
    [pallet.common.logging.logutils :refer [suppress-logging]]
    [pallet.compute :refer :all]))
 
-;; (defmulti-os testos [session])
-;; (defmethod testos :linux [session] :linux)
-;; (defmethod testos :debian [session] :debian)
-;; (defmethod testos :rh-base [session] :rh-base)
-
-;; (deftest defmulti-os-test
-;;   (is (= :linux (testos {:server {:image {:os-family :arch}}})))
-;;   (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
-;;   (is (= :debian (testos {:server {:image {:os-family :debian}}})))
-;;   (is (thrown? clojure.lang.ExceptionInfo
-;;                (testos {:server {:image {:os-family :unspecified}}}))))
-
 (deftest schemas-are-loose-test
   (let [input  {:network {:security-group "default"}}
         output (check-node-spec input)]
@@ -57,3 +45,9 @@
          (node-spec {:hardware {:hardware-model "xxxx"}})))
   (testing "type"
     (is (= :pallet.compute/node-spec (type (node-spec {:hardware {}}))))))
+
+(deftest matches-selectors?-test
+  (is (matches-selectors?
+       #{:x :y} {:node-spec {:image {:image-id "xx"}} :selectors #{:x}}))
+  (is (not (matches-selectors?
+            #{:x :y} {:node-spec {:image {:image-id "xx"}} :selectors #{:z}}))))
