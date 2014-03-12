@@ -1,5 +1,4 @@
-{:dev {:dependencies [[ch.qos.logback/logback-classic "1.0.9"]
-                      [org.clojure/test.check "0.5.7"]]
+{:dev {:dependencies [[ch.qos.logback/logback-classic "1.0.9"]]
        ;; We would like to create aliases in the dev profile, but this
        ;; causes a stack overflow in lein 2.0.0
        ;; https://github.com/technomancy/leiningen/pull/993
