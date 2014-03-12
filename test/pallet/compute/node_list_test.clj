@@ -30,21 +30,21 @@
 (deftest service-test
   (is (instance?
        pallet.compute.protocols.ComputeService
-       (compute/instantiate-provider :node-list :node-list [])))
+       (compute/instantiate-provider :node-list {:node-list []})))
   (is (instance?
        pallet.compute.node_list.NodeList
-       (compute/instantiate-provider :node-list :node-list []))))
+       (compute/instantiate-provider :node-list {:node-list []}))))
 
 (deftest nodes-test
   (let [node {:id "n" :hostname "t"  :primary-ip "1.2.3.4" :os-family :ubuntu}
-        node-list (compute/instantiate-provider :node-list :node-list [node])]
+        node-list (compute/instantiate-provider :node-list {:node-list [node]})]
     (is (= [(assoc node :compute-service node-list)]
            (sync (compute/nodes node-list))))
     (is (node/validate-node (first (sync (compute/nodes node-list)))))))
 
 (deftest tags-test
   (let [node {:id "n" :hostname "t" :primary-ip "1.2.3.4" :os-family :ubuntu}
-        node-list (compute/instantiate-provider :node-list :node-list [node])
+        node-list (compute/instantiate-provider :node-list {:node-list [node]})
         node (first (sync (compute/nodes node-list)))]
     (is (= node-list (node/compute-service node)))
     (is (nil? (node/tag node "some-tag")))
@@ -56,7 +56,7 @@
 
 (deftest close-test
   (is (nil? (compute/close
-             (compute/instantiate-provider :node-list :node-list [])))))
+             (compute/instantiate-provider :node-list {:node-list []})))))
 
 
 (deftest node-test

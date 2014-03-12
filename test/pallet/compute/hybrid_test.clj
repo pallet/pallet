@@ -19,10 +19,10 @@
 (deftest service-test
   (is (instance?
        pallet.compute.protocols.ComputeService
-       (compute/instantiate-provider :hybrid)))
+       (compute/instantiate-provider :hybrid {})))
   (is (instance?
        pallet.compute.hybrid.HybridService
-       (compute/instantiate-provider :hybrid))))
+       (compute/instantiate-provider :hybrid {}))))
 
 ;; (deftest nodes-test
 ;;   (let [node-1 (node-list/make-node "n1" "t" "1.2.3.4" :ubuntu)
@@ -55,7 +55,7 @@
   )
 
 (deftest close-test
-  (is (= [] (compute/close (compute/instantiate-provider :hybrid)))))
+  (is (= [] (compute/close (compute/instantiate-provider :hybrid {})))))
 
 ;; (deftest start-node-test
 ;;   (jclouds-test-utils/purge-compute-service)

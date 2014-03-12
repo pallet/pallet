@@ -103,9 +103,9 @@ arguments are keyword value pairs.
 
 Provider specific options may also be passed."
   [provider-name
-   & {:keys [identity credential extensions node-list endpoint environment
-             sub-services]
-      :as options}]
+   {:keys [identity credential extensions node-list endpoint environment
+           sub-services]
+    :as options}]
   (implementation/load-providers)
   (try
     (implementation/service provider-name options)
