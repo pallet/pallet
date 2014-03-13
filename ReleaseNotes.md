@@ -1,5 +1,34 @@
 Unstable development branch
 
+# 0.8.0-RC.8
+
+- Add ContentFiles, remove user-file-path
+  Decomplects the path used for interim content in remote-file, from the
+  file-uploader.
+
+- Add setup-node action
+  The setup-node action is used to setup the state-root directory
+  (/var/lib/pallet by default).  It must be run with sufficient privileges
+  to create the state-root directory.  You need to include this action if
+  working :no-sudo, in order for the node state to function correctly.
+
+- Respect *script-location-info* at runtime
+  In exec-check-script, evaluate *script-location-info* at runtime rather
+  than compile time.
+
+- Fix effective username for :script-prefix :no-sudo
+
+- Fix live-test
+
+- Allow override of node os-family and os-version
+
+- Fix silent failures of chown in state-root
+  Failures in chown when reflecting the permissions of the file system tree
+  into state-root were not being reported.
+
+- Update to stevedore 0.8.0-beta.6
+  Fixes the `group` implementation
+
 # 0.8.0-RC.7
 
 - Don't slurp files to calculate md5
