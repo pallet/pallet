@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.action :refer [action-options implement-action]]
    [pallet.action-plan :as action-plan]
    [pallet.actions
@@ -13,22 +14,23 @@
             wait-for-file]]
    [pallet.actions-impl
     :refer [copy-filename md5-filename new-filename upload-filename
-            remote-file-action]]
+            remote-file-action setup-node-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.core.file-upload
-    :refer [upload-file upload-file-path user-file-path]]
-   [pallet.core.session :refer [effective-username]]
+   [pallet.core.file-upload :as file-upload
+    :refer [upload-file upload-file-path]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit mkdir
             path-group path-mode path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
+   [pallet.ssh.content-files :refer [content-path]]
+   [pallet.ssh.content-files.user-content-files :refer [user-content-files]]
    [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.ssh.node-state
-    :refer [new-file-content record-checksum verify-checksum]]
+    :refer [new-file-content record-checksum setup-node-script verify-checksum]]
    [pallet.ssh.node-state.state-root
-    :refer [state-root-backup state-root-checksum]]
+    :refer [state-root-backup state-root-checksum state-root-setup]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment script]]
    [pallet.template :as templates]
@@ -37,6 +39,8 @@
 (def default-file-uploader (sftp-upload {}))
 (def default-checksum (state-root-checksum {}))
 (def default-backup (state-root-backup {}))
+(def default-node-setup (state-root-setup {}))
+(def default-content-files (user-content-files {}))
 
 (defn file-uploader
   [action-options]
@@ -109,11 +113,12 @@
           uploader (file-uploader action-options)
           file-checksum (or (:file-checksum action-options) default-checksum)
           file-backup (or (:file-backup action-options) default-backup)
+          content-files (or (:content-files action-options)
+                            default-content-files)
 
           new-path (if local-file
                      (upload-file-path uploader session path action-options)
-                     (user-file-path uploader session path action-options
-                                     (effective-username session)))
+                     (content-path content-files session action-options path))
           md5-path (str new-path ".md5")
 
           proxy (get-for session [:proxy] nil)
@@ -257,4 +262,13 @@
                      (str "Waiting for " path " to be removed")
                      (str "Failed waiting for " path " to be removed")])]
       (wait-while test-expr standoff max-retries waiting-msg failed-msg))]
+   session])
+
+(implement-action setup-node-action :direct
+  {:action-type :script :location :target}
+  [session usernames]
+  [[{:language :bash}
+    (setup-node-script
+     (or (:node-setup action-options) default-node-setup)
+     session usernames)]
    session])

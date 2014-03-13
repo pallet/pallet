@@ -56,9 +56,9 @@
     `(exec-script*
       (delayed [_#]
                (checked-script
-                ~(if *script-location-info*
-                   `(str ~script-name " (" ~file ":" ~line ")")
-                   script-name)
+                (str ~script-name
+                     (if *script-location-info*
+                       ~(str " (" file ":" line ")")))
                 ~@script)))))
 
 ;;; # Wrap arbitrary code
@@ -362,6 +362,14 @@ value is itself an action return value."
 (defmacro check-remote-directory-arguments
   [m]
   (check-spec m `remote-directory-arguments &form))
+
+(defn setup-node
+  "Action to setup the node.  Use this if file transfers fail due to
+  e.g state-root not existing."
+  []
+  (with-action-options {:script-env-fwd [:TMP :TMPDIR :TEMP]
+                        :script-env {:XX (stevedore/fragment @TEMPDIR)}}
+    (setup-node-action [(:username (admin-user))])))
 
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
@@ -679,6 +687,7 @@ only specified files or directories, use the :extract-files option.
     - :disable [repo|(seq repo)]  disable specific repository
     - :priority n                 priority (0-100, default 50)
     - :disable-service-start      disable service startup (default false)
+    - :allow-unsigned             install package even if unsigned
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."

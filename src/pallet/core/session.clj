@@ -106,18 +106,18 @@
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  (or (node/os-family (target-node session))
-      (-> session :server :image :os-family)
+  (or (-> session :server :image :os-family)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
-          :os-family)))
+          :os-family)
+      (node/os-family (target-node session))))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  (or (node/os-version (target-node session))
-      (-> session :server :image :os-version)
+  (or (-> session :server :image :os-version)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
-          :os-version)))
+          :os-version)
+      (node/os-version (target-node session))))
 
 (defn group-name
   "Group name of the target-node."
@@ -219,17 +219,16 @@
    (node/os-family (target-node session))
    (node/os-version (target-node session))))
 
-(defn effective-username
+(defn effective-user
   "Return the effective username."
   [session]
   {:post [%]}
-  (clojure.tools.logging/debugf "effective-username %s %s"
-                                (:action session) (:user session))
-  (or
-   (-> session :action :sudo-user)
-   (or (-> session :user :sudo-user)
-       (if-not (-> session :user :no-sudo) "root"))
-   (-> session :user :username)))
+  (let [{:keys [script-prefix] :as action-options} (:action session)
+        action-user (select-keys action-options [:sudo-user :no-sudo])
+        action-user (if (= script-prefix :no-sudo)
+                      (assoc action-user :no-sudo true)
+                      action-user)]
+    (merge (:user session) action-user)))
 
 (defn is-64bit?
   "Predicate for a 64 bit target"

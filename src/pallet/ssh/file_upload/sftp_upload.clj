@@ -10,10 +10,12 @@
    [pallet.script.lib
     :refer [chgrp chmod chown dirname env exit file mkdir path-group
             path-owner user-home]]
+   [pallet.script-builder :refer [sudo-cmd-for]]
    [pallet.ssh.execute :refer [with-connection]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
-   [pallet.core.session :refer [admin-user]]
+   [pallet.core.session :refer [effective-user]]
+   [pallet.core.user :refer [effective-username]]
    [pallet.stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.utils :refer [base64-md5]])
@@ -60,14 +62,17 @@
   (debugf "sftp-ensure-dir %s:%s"
           (:server (transport/endpoint connection)) target-path)
   (let [dir (fragment @(dirname ~target-path))
+        script (fragment
+                (chain-and
+                 (mkdir ~dir :path true)
+                 (chmod "0700" ~dir))
+                (exit "$?"))
         {:keys [exit] :as rv} (do
                                 (debugf "Transfer: ensure dir %s" dir)
+                                (debugf "Transfer: script %s" script)
                                 (transport/exec
                                  connection
-                                 {:in (fragment
-                                       (mkdir ~dir :path true)
-                                       (chmod "0700" ~dir)
-                                       (exit "$?"))}
+                                 {:in script}
                                  {}))]
     (when-not (zero? exit)
       (throw (ex-info
@@ -104,8 +109,6 @@
   FileUpload
   (upload-file-path [_ session target-path action-options]
     (target upload-root (-> session :user :username) target-path))
-  (user-file-path [_ session target-path action-options username]
-    (target upload-root username target-path))
   (upload-file
     [_ session local-path target-path action-options]
     (let [target (target upload-root (-> session :user :username) target-path)

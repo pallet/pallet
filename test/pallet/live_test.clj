@@ -231,10 +231,10 @@
              (service-state service counts)
              {} (environment service) phases {}))]
     @op
-    (when (or (not (complete? op)) (phase-errors @op))
+    (when (or (not (complete? op)) (phase-errors op))
       (let [e (or
                (:exception @op)
-               (some #(some (comp :cause :error) %) (phase-errors @op)))]
+               (some #(some (comp :cause :error) %) (phase-errors op)))]
         (if e
           (debugf e "live-test build-nodes failed: %s" @op)
           (debugf "live-test build-nodes failed: %s" @op))

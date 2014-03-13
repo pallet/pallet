@@ -19,6 +19,11 @@
   [ns session path]
   (impl/record-checksum ns session path))
 
+(defn setup-node-script
+  "Script to setup a node."
+  [ns session usernames]
+  (impl/setup-node-script ns session usernames))
+
 (defmulti file-backup
   "Instantiate a file-backup provider based on keyword and option map."
   (fn [kw options] kw))

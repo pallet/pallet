@@ -63,6 +63,13 @@ to deal with local file transfer."
               recursive true}
          :as options}])
 
+
+(defaction setup-node-action
+  "Action to setup the node.  Use this if file transfers fail due to
+  e.g state-root not existing."
+  [usernames])
+
+
 (defn init-script-path
   "Path to the specified initd script"
   [service-name]
