@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.task.down documentation</title>
+    <title>pallet.ssh.content-files documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,34 +42,23 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task.down.html#var-down">down</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.content-files.html#var-content-path">content-path</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.task.down documentation</h2>
-        <div class="doc"><p>Remove project nodes.</p>
+        <h2 class="namespace-title">pallet.ssh.content-files documentation</h2>
+        <div class="doc"><p>Location of intermediate content files.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-down" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task/down.clj#L27">down</a></h3>
+            <h3><a id="var-content-path" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/content_files.clj#L6">content-path</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[{:keys [compute project], :as request} &amp; args]</div>
+            <div class="usage">[cp session action-options path]</div>
             
             
-            <div class="doc"><p>Bring down project nodes.</p>
-
-<p>If you have variants defined, you can use <code>-s</code> to select variants.</p>
-
-<p>Usage:</p>
-
-<p> Switches                 Default  Desc <br />
- --------                 -------  ---- <br />
- -s, --selectors          default  A comma separated list of selectors <br />
- -g, --groups                      A comma separated list of groups <br />
- -r, --roles                       A comma separated list of group roles 
- -q, --no-quiet, --quiet  false    No output on successful completion    </p>
+            <div class="doc"><p>Return a content path for intermediate content files.</p>
 </div>
           </div>
         </div>
