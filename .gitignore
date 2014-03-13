@@ -13,3 +13,4 @@ pom.xml.asc
 .lein-plugins
 .lein-repl-history
 .ritz-exception-filters
+.nrepl-port
