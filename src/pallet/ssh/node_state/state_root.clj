@@ -203,7 +203,8 @@ permissions. Note this is not the final directory."
                  tmp (fragment
                       @(chain-or
                         ((sudo :no-prompt true :user ~username)
-                         "/bin/bash" -l -c (quoted echo (str "'" (tmp-dir) "'")))
+                         "/bin/bash" -l -c
+                         (quoted echo (str "'" (tmp-dir) "'")))
                         (println (file (tmp-dir) ~username))))
                  tmp-dir (state-path session state-root tmp)]]
        (fragment
@@ -214,10 +215,12 @@ permissions. Note this is not the final directory."
          (chmod "0700" @dir)
          (chown ~username @dir)
          (set! dir ~tmp-dir)
+         (set! thetmp ~tmp)
          (println "Creating user tmp " @dir)
          (mkdir @dir :path true)
-         (chmod "0700" @dir)
-         (chown ~username @dir)))))))
+         (chmod @(path-mode @thetmp) @dir)
+         (chgrp @(path-group @thetmp) @dir)
+         (chown @(path-owner @thetmp) @dir)))))))
 
 (defn state-root-backup
   "Return a state-root backup instance that can keep backups."
