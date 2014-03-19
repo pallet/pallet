@@ -14,7 +14,7 @@
    [pallet.actions.direct.remote-file
     :refer [default-content-files file-uploader]]
    [pallet.core.file-upload :refer [upload-file-path]]
-   [pallet.script.lib :as lib :refer [user-default-group]]
+   [pallet.script.lib :as lib :refer [dirname user-default-group]]
    [pallet.ssh.content-files :refer [content-path]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))
@@ -32,13 +32,16 @@
            overwrite-changes]}
    upload-path content-files action-options]
   (cond
-   url (let [tarpath (content-path content-files session action-options path)]
-         [(->
-           (remote-file* session tarpath
-                         {:url url :md5 md5 :md5-url md5-url
-                          :install-new-files install-new-files
-                          :overwrite-changes overwrite-changes})
-           first second)
+   url (let [filename (.getFile (java.net.URL. url))
+             tarpath (content-path content-files session action-options
+                                   (str path filename))]
+         [(stevedore/chain-commands
+           (-> (directory* session (fragment @(dirname ~tarpath))) first second)
+           (-> (remote-file* session tarpath
+                             {:url url :md5 md5 :md5-url md5-url
+                              :install-new-files install-new-files
+                              :overwrite-changes overwrite-changes})
+               first second))
           tarpath])
    local-file [""
                upload-path
