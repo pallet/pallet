@@ -1,28 +1,37 @@
 (ns pallet.crate.package.debian-backports-test
   (:require
    [clojure.test :refer :all]
-   [pallet.actions :refer [package-source]]
+   [pallet.action :refer [with-action-options]]
+   [pallet.actions :refer [package package-source]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   [pallet.test-utils :refer [with-no-source-line-comments]]))
 
-(use-fixtures :once (logging-threshold-fixture))
+(use-fixtures :once
+  (logging-threshold-fixture)
+  with-no-source-line-comments)
 
 (deftest debian-backports-test
   (is
-   (script-no-comment=
+   (=
     (first
      (build-actions
          {:server {:image {:os-family :debian}}
           :phase-context "add-debian-backports"}
+       (with-action-options {:always-before ::backports}
+         (package "lsb-release"))
        (package-source
         "debian-backports"
-        :aptitude {:url "http://backports.debian.org/debian-backports"
+        :aptitude {:url (str "http://ftp.us.debian.org/debian"
+                             (stevedore/fragment
+                              @(if (= (lib/os-version-name) "squeeze")
+                                 ("echo" -n "-backports"))))
                    :release (str
-                             (stevedore/script (~lib/os-version-name))
-                             "-backports")
+                             (stevedore/fragment
+                              (~lib/os-version-name)) "-backports")
                    :scopes ["main"]})))
     (first
      (build-actions
