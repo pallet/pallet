@@ -228,6 +228,7 @@
                        (group-spec "local")
                        :phase (plan-fn
                                (remote-file (.getPath tmp) :content "xxx"))
+                       :environment {:action-options {:script-trace true}}
                        :compute compute
                        :user (local-test-user)
                        :async true)

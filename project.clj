@@ -1,4 +1,4 @@
-(defproject com.palletops/pallet "0.8.0-RC.8"
+(defproject com.palletops/pallet "0.8.0-RC.9"
   :description
   "DevOps for the JVM.
 
@@ -23,7 +23,9 @@ unprecedented level of customization."
                  [com.palletops/pallet-common "0.4.0"]
                  [com.palletops/pallet-repl "0.8.0-beta.2"
                   :exclusions [com.palletops/pallet]]
-                 [com.palletops/script-exec "0.4.0"]
+                 [com.palletops/ssh-transport "0.5.1"]
+                 [com.palletops/script-exec "0.4.0"
+                  :exclusions [com.palletops/ssh-transport]]
                  [com.palletops/stevedore "0.8.0-beta.6"]
                  [clj-ssh "0.5.7"]
                  [enlive "1.0.1"

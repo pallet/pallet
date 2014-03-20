@@ -2,7 +2,7 @@
   (:require
    [pallet.core.session :refer [effective-user]]
    [pallet.core.user :refer [effective-username]]
-   [pallet.script.lib :refer [file tmp-dir]]
+   [pallet.script.lib :refer [basename file tmp-dir]]
    [pallet.ssh.content-files.protocols :refer [ContentFiles]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [base64-md5]]))
@@ -13,7 +13,8 @@
     (fragment
      (file ~(content-root)
            ~(effective-username (effective-user session))
-           ~(base64-md5 path)))))
+           ~(base64-md5 path)
+           @(basename ~path)))))
 
 (defn user-content-files
   [{:keys [content-root]}]

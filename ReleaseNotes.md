@@ -1,3 +1,31 @@
+## 0.8.0-RC.9
+
+- Update to lein-pallet-release 0.1.3
+
+- Update to ssh-transport 0.5.1
+
+- Enable lein-pallet-release
+
+- Print session when error in pallet up, summary if success.
+
+- Fix remote-directory with a url and md5
+  Remote-directory with a url and md5 was failing due to the filename of the 
+  intermediate directory not matching the original download filename.
+
+- Make the :user config optional for nohup crate
+  When using the nohup service crate, the :user option is now optional.
+
+  Fixes #310
+
+- Fix: After eval'ing :action-options into the wrong env map key
+
+- Fix test for debian-backports
+
+- Fix debian backports.
+
+- Fix service-script
+  * Removing invalid argument :service-impl when calling remote-file
+
 Unstable development branch
 
 # 0.8.0-RC.8

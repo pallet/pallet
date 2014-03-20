@@ -33,13 +33,15 @@
        (binding [pallet.action-plan/*defining-context* nil]
          (with-session {:environment {:user *admin-user*}
                         :user *admin-user*}
-           (let [path (content-path default-content-files (session) {} "/path")
+           (let [path (content-path
+                       default-content-files (session) {} "/path/a/file.tgz")
                  md5-path (str path ".md5")]
              (stevedore/do-script
               (stevedore/checked-commands
                "remote-directory"
                (-> (directory* {} "/path" :owner "fred" :recursive false)
                    first second)
+               (-> (directory* {} (fragment @(lib/dirname ~path))) first second)
                (-> (remote-file*
                     (session) path {:url "http://site.com/a/file.tgz" :md5 nil})
                    first second)
@@ -69,13 +71,15 @@
        (with-session {:environment {:user *admin-user*}
                       :user *admin-user*}
          (binding [pallet.action-plan/*defining-context* nil]
-           (let [path (content-path default-content-files (session) {} "/path")
+           (let [path (content-path
+                       default-content-files (session) {} "/path/a/file.tgz")
                  md5-path (str path ".md5")]
              (stevedore/do-script
               (stevedore/checked-commands
                "remote-directory"
                (-> (directory* {} "/path" :owner "fred" :recursive false)
                    first second)
+               (-> (directory* {} (fragment @(lib/dirname ~path))) first second)
                (-> (remote-file*
                     (session) path {:url "http://site.com/a/file.tgz" :md5 nil})
                    first second)
@@ -103,13 +107,15 @@
        (with-session {:environment {:user *admin-user*}
                       :user *admin-user*}
          (binding [pallet.action-plan/*defining-context* nil]
-           (let [path (content-path default-content-files (session) {} "/path")
+           (let [path (content-path
+                       default-content-files (session) {} "/path/a/file.tgz")
                  md5-path (str path ".md5")]
              (stevedore/do-script
               (stevedore/checked-commands
                "remote-directory"
                (-> (directory* {} "/path" :owner "fred" :recursive false)
                    first second)
+               (-> (directory* {} (fragment @(lib/dirname ~path))) first second)
                (-> (remote-file*
                     (session) path {:url "http://site.com/a/file.tgz" :md5 nil})
                    first second)
