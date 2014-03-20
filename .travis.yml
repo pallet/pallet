@@ -1,8 +1,13 @@
 language: clojure
 lein: lein2
 before_script:
-  - ssh-keygen -N "" -f ~/.ssh/id_rsa
-  - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+- ssh-keygen -N "" -f ~/.ssh/id_rsa
+- cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 script: lein2 test
+after_success:
+- lein2 pallet-release push
 notifications:
-  irc: "irc.freenode.org#pallet"
+  irc: irc.freenode.org#pallet
+env:
+  global:
+    secure: R300YJ3DfX0K1sQNor9p7X/rKw/nrEFH31XaziH9cEeLKpL96FN/rFKHC4wLKEqvX+awAMFptsrXwYjvH4NSZ9eE6JnLYeRomFdGmFf56vEZdhRZbTbeacfgseQ+z6OpwEm3xQamQYaJK57V8BTC+p1AFUhJKBzlywvwU3O4RFQ=
