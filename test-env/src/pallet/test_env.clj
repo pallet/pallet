@@ -84,13 +84,14 @@ over a sequence of node-specs.  The node-spec is available in tests as
 
 (defn format-tests
  "Convert test results into a format for output."
- [results]
+ [results untested]
  (pr-str {:results (process-results results)
-          :date (unparse (formatters :basic-date-time) (now))}))
+          :date (unparse (formatters :basic-date-time) (now))
+          :untested (map #(select-keys % [:selectors :name]) untested)}))
 
 (defn output-results
-  [results output-file]
-  (spit output-file (format-tests results)))
+  [results untested output-file]
+  (spit output-file (format-tests results untested)))
 
 ;;; # Test reporter to add the value of the bound variables
 (defmulti report :type)
@@ -187,7 +188,6 @@ over a sequence of node-specs.  The node-spec is available in tests as
   [project-map]
   (:pallet/test-env project-map))
 
-
 (defn matching-node-specs [node-spec-metas test-specs]
   (map
    (fn [{:keys [selector expected] :as test-spec}]
@@ -203,6 +203,10 @@ over a sequence of node-specs.  The node-spec is available in tests as
                  {:count (count matched)})))
        (assoc (first matched) :expected expected :selector selector)))
    test-specs))
+
+(defn unmatched-node-specs
+  [node-spec-metas matched]
+  (remove (set (map #(dissoc % :expected :selector) matched)) node-spec-metas))
 
 ;;; ## Node Spec Meta Maps
 
@@ -237,10 +241,11 @@ over a sequence of node-specs.  The node-spec is available in tests as
           service (cond
                    (keyword? cs) (configure/compute-service cs)
                    (map? cs) (apply-map instantiate-provider
-                              (:provider cs) (dissoc cs :provider))
+                                        (:provider cs) (dissoc cs :provider))
                    :else cs)
           service-kw (:provider (service-properties service))
-          mns (matching-node-specs (:variants (service-kw node-spec-metas)) test-specs)
+          nsms (:variants (service-kw node-spec-metas))
+          mns (matching-node-specs nsms test-specs)
           selectors (selectors config)
           nsm (cond->> mns
                        (seq selectors) (filter
@@ -263,7 +268,9 @@ over a sequence of node-specs.  The node-spec is available in tests as
              :reporter report}
             (dissoc options :project-map)))
           (cond->           ; only write output if not using selectors
-           (not (seq selectors)) (output-results output-file))))))
+           (not (seq selectors)) (output-results
+                                  (unmatched-node-specs nsms mns)
+                                  output-file))))))
 
 (defn test-env*
   [node-spec-metas project-map options]
