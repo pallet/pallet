@@ -82,12 +82,20 @@ over a sequence of node-specs.  The node-spec is available in tests as
         ]
     pass-fail))
 
+(defn longest-kw
+  "Return the kw with the longest name"
+  [kws]
+  (keyword
+   (reduce
+    (fn [n v] (if (< (count n) (count v)) v n))
+    (name (first kws)) (map name (rest kws)))))
+
 (defn format-tests
  "Convert test results into a format for output."
  [results untested]
  (pr-str {:results (process-results results)
           :date (unparse (formatters :basic-date-time) (now))
-          :untested (map #(select-keys % [:selectors :name]) untested)}))
+          :untested (map (comp longest-kw :selectors) untested)}))
 
 (defn output-results
   [results untested output-file]
