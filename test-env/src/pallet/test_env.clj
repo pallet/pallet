@@ -136,16 +136,21 @@ over a sequence of node-specs.  The node-spec is available in tests as
   (some
    (fn [{:keys [expected? feature] :as exp}]
      {:pre [feature expected?]}
+     (when (and (keyword? expected?) (not (#{:not-supported} expected?)))
+       (throw (ex-info (str "Unknown expected? keyword, " expected?))))
      (let [f (if (= expected? :not-supported) not-supported? expected?)]
        (and (= feature (:feature exp))
-            (f result))))
+            (f result)
+            (or (and (keyword? expected?) expected?)
+                true))))
    expected-errors))
 
 (defmethod report :fail [m]
   (as-> (add-vars m) m
         (cond-> m
                 (expected? m) (assoc :type :pass
-                                     :result-type :expected-fail))
+                                     :result-type
+                                     (expected? m)))
         (remove-expected m)
         (multi-test/report m)))
 
@@ -153,7 +158,7 @@ over a sequence of node-specs.  The node-spec is available in tests as
   (as-> (add-vars m) m
         (cond-> m
          (expected? m) (assoc :type :pass
-                              :result-type :expected-error))
+                              :result-type (expected? m)))
         (remove-expected m)
         (multi-test/report m)))
 
