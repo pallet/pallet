@@ -250,7 +250,6 @@ over a sequence of node-specs.  The node-spec is available in tests as
   (assert (map? project-map) "project-map not specified as a map")
   (let [config (and project-map (config-from-project project-map))
         test-specs (:test-specs config)]
-    (assert (seq test-specs) "No :test-specs specified in :pallet/test")
     (assert (every? :selector test-specs)
             "Every test-spec must have a selector")
     (let [cs (compute-service config)
@@ -259,8 +258,8 @@ over a sequence of node-specs.  The node-spec is available in tests as
                    (map? cs) (instantiate-provider
                               (:provider cs) (dissoc cs :provider))
                    :else cs)
-          service-kw (:provider (service-properties service))
-          nsms (service-kw node-spec-metas)
+          service-kw (if service (:provider (service-properties service)))
+          nsms (if service (service-kw node-spec-metas))
           mns (matching-node-specs nsms test-specs)
           selectors (selectors config)
           nsm (cond->> mns
