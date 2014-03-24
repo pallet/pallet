@@ -147,6 +147,15 @@ over a sequence of node-specs.  The node-spec is available in tests as
                 true))))
    expected-errors))
 
+(defn print-env [m]
+  (when-not (= :pass (:type m))
+    (test/with-test-out
+      (println
+       (:provider (service-properties *compute-service*))
+       " "
+       (longest-kw (:selectors *node-spec-meta*)))))
+  m)
+
 (defmethod report :fail [m]
   (as-> (add-vars m) m
         (cond-> m
@@ -154,6 +163,7 @@ over a sequence of node-specs.  The node-spec is available in tests as
                                      :result-type
                                      (expected? m)))
         (remove-expected m)
+        (print-env m)
         (multi-test/report m)))
 
 (defmethod report :error [m]
@@ -162,6 +172,7 @@ over a sequence of node-specs.  The node-spec is available in tests as
          (expected? m) (assoc :type :pass
                               :result-type (expected? m)))
         (remove-expected m)
+        (print-env m)
         (multi-test/report m)))
 
 (defmethod report :summary [m]
