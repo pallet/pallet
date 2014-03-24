@@ -69,8 +69,7 @@ over a sequence of node-specs.  The node-spec is available in tests as
                          (cond-> res
                                  (isa? types-hierarchy (:type m) (:type res))
                                  (->
-                                  (assoc :type (:type m)
-                                         :image-name (:image-name m))
+                                  (assoc :type (:type m))
                                   (cond->
                                    result-type (assoc :result-type
                                                  result-type)))))
@@ -105,7 +104,6 @@ over a sequence of node-specs.  The node-spec is available in tests as
           :service (:provider (service-properties *compute-service*))
           :expected-errors (:expected *node-spec-meta*)
           :selector (:selector *node-spec-meta*)
-          :image-name (:name *node-spec-meta*)
           :feature (concat [(-> m :var meta :name str)] (:contexts m)))))
 
 (defn- remove-expected [m]
