@@ -15,7 +15,6 @@
    [pallet.script :as script :refer [with-script-context]]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
-   [pallet.session.action-plan :refer [target-path]]
    [pallet.stevedore :refer [with-script-language]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.user :refer [*admin-user*]]
