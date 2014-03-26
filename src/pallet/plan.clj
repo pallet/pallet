@@ -5,7 +5,7 @@
    [clojure.tools.logging :refer [debugf tracef]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [clojure.string :as string]
-   [pallet.context :refer [with-phase-context]]
+   [com.palletops.log-config.timbre :refer [with-context-update]]
    [pallet.core.executor :as executor]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -275,25 +275,12 @@ The result is also written to the recorder in the session."
 ;;; The phase context is used in actions and crate functions. The
 ;;; phase context automatically sets up a context, which is available
 ;;; (for logging, etc) at phase execution time.
+
 (defmacro plan-context
   "Defines a block with a context that is automatically added."
-  {:indent 2}
-  [context-name event & args]
-  (let [line (-> &form meta :line)]
-    `(let [event# ~event]
-       (assert (or (nil? event#) (map? event#))
-               "plan-context second arg must be a map")
-       (with-phase-context
-           (merge {:kw ~(list 'quote context-name)
-                   :msg ~(if (symbol? context-name)
-                           (name context-name)
-                           context-name)
-                   :ns ~(list 'quote (ns-name *ns*))
-                   :line ~line
-                   :log-level :trace}
-                  event#)
-           ~@args))))
-
+  [context-name & body]
+  `(with-context-update [[:plan] (fnil conj []) ~context-name]
+     ~@body))
 
 (defmacro plan-fn
   "Create a plan function from a sequence of plan function invocations.
@@ -322,7 +309,7 @@ The result is also written to the recorder in the session."
                    " but no arguments found.")
               {:type :plan-fn-definition-args-missing})))
     (if n
-      `(fn ~n ~args (plan-context ~(gensym (name n)) {} ~@body))
+      `(fn ~n ~args (plan-context ~(gensym (name n)) ~@body))
       `(fn ~args ~@body))))
 
 
@@ -362,11 +349,7 @@ The result is also written to the recorder in the session."
                       body
                       [(let [locals (gensym "locals")]
                          `(let [~locals (local-env)]
-                            (plan-context
-                                ~(symbol (str (name sym) "-cfn"))
-                                {:msg ~(str sym)
-                                 :kw ~(keyword sym)
-                                 :locals ~locals}
+                            (plan-context '~(symbol (str (name sym)))
                               ~@body)))]))))]
     (let [[sym rest] (name-with-attributes sym body)
           sym (vary-meta sym assoc :pallet/plan-fn true)]
@@ -447,8 +430,6 @@ The result is also written to the recorder in the session."
       ~(with-meta
          `(fn [~@args]
             (plan-context
-                ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
-                {:msg ~(name multifn) :kw ~(keyword (name multifn))
-                 :dispatch-val ~dispatch-val}
+                '~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
               ~@body))
          (meta &form)))))

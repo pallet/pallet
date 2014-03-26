@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [loop-until retry-until]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.stevedore :refer [script]]
    [pallet.test-utils :refer [no-location-info with-no-source-line-comments]]))
 

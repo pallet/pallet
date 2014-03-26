@@ -7,7 +7,6 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.action :refer [declare-action implement-action]]
    [pallet.actions.impl :as actions-impl]
-   [pallet.common.context :refer [throw-map]]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
    [pallet.core.node :as node]

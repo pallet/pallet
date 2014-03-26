@@ -3,8 +3,8 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [com.palletops.log-config.timbre :refer [context]]
    [pallet.common.context :refer [throw-map]]
-   [pallet.context :as context]
    [pallet.session :refer [user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
@@ -52,7 +52,7 @@
   actions."
   {:no-doc true}
   []
-  (when-let [ctxt (seq (context/phase-contexts))]
+  (when-let [ctxt (seq (:plan (context)))]
     (str (string/join ": " ctxt) ": ")))
 
 (defmacro checked-script

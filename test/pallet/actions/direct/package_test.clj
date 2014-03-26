@@ -13,7 +13,7 @@
    [pallet.build-actions
     :refer [build-actions build-script build-session centos-session
             ubuntu-session]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.group :refer [group-spec]]
    [pallet.plan :refer [plan-context]]
    [pallet.local.execute :as local]

@@ -6,7 +6,7 @@
    [pallet.actions.impl :refer [checked-commands*]]
    [pallet.build-actions
     :refer [build-actions build-plan build-script target-session]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.crate.environment :refer [system-environment
                                      system-environment-file]]
@@ -49,7 +49,7 @@
   (is
    (=
     (build-plan [session {}]
-      (plan-context "system-environment" {}
+      (plan-context 'system-environment
         (with-action-options session {:new-login-after-action true}
           (exec-script*
            session
@@ -81,7 +81,7 @@
   (is
    (=
     (build-plan [session {}]
-      (plan-context "system-environment" {}
+      (plan-context 'system-environment
         (with-action-options session {:new-login-after-action true}
           (exec-script*
            session

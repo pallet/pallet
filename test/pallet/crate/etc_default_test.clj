@@ -4,7 +4,7 @@
    [pallet.actions :refer [remote-file]]
    [pallet.actions.direct.remote-file :refer [remote-file*]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.etc-default :as default]
    [pallet.plan :refer [plan-context]]
    [pallet.test-utils
@@ -18,7 +18,7 @@
 (deftest default-test
   (is (=
        (build-plan [session {}]
-         (plan-context write {}
+         (plan-context 'write
            (remote-file
             session
             "/etc/default/tomcat6"
@@ -35,7 +35,7 @@
            "JSP_COMPILER" "javac"))))
   (is (=
        (build-plan [session {}]
-         (plan-context write {}
+         (plan-context 'write
            (remote-file
             session
             "/etc/tomcat/tomcat6"

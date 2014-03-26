@@ -7,7 +7,7 @@
    [pallet.actions :refer [exec-script*]]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions.test-actions :as test-actions :refer [fail]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan :refer [plan-executor]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]

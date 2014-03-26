@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [sync])
   (:require
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.core.node :as node]

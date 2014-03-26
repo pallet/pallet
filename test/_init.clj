@@ -6,6 +6,7 @@
    [pallet.actions :refer [directory exec-checked-script]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.group :refer [group-spec lift phase-errors throw-phase-errors]]
+   [pallet.log :refer [default-log-config]]
    [pallet.plan :refer [plan-fn]]
    [pallet.script.lib
     :refer [chgrp chmod chown file mkdir path-group path-mode path-owner
@@ -16,6 +17,8 @@
    [pallet.test-utils :refer [make-localhost-compute]]))
 
 (use-fixtures :once (logging-threshold-fixture))
+
+(default-log-config)
 
 (deftest initialise
   (testing "Initialise the /var/lib/pallet tree"

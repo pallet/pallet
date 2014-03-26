@@ -1,13 +1,13 @@
 (ns pallet.core.script-builder-test
   (:require
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :as logutils]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.script :as script]
    [pallet.core.script-builder :refer [build-code prolog sudo-cmd-for]]
    [pallet.test-utils :as test-utils]
    [pallet.test-utils :refer [remove-source-line-comments]]))
 
-(use-fixtures :once (logutils/logging-threshold-fixture))
+(use-fixtures :once (logging-threshold-fixture))
 
 (use-fixtures
  :each

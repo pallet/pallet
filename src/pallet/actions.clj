@@ -10,7 +10,6 @@
     :refer [action-options with-action-options]]
    [pallet.actions.decl :as decl]
    [pallet.actions.impl :refer :all]
-   [pallet.context :as context]
    [pallet.core.file-upload :refer :all]
    [pallet.environment :refer [get-environment]]
    [pallet.plan :refer [defplan plan-context]]
@@ -411,7 +410,7 @@ Content can also be copied from a blobstore.
    calling f."
   [session f path & args]
   (let [local-path (tmpfile)]
-    (plan-context with-remote-file-fn {:local-path local-path}
+    (plan-context 'with-remote-file
       (decl/transfer-file-to-local session path local-path)
       (apply f local-path args)
       (.delete (io/file local-path)))))
@@ -708,7 +707,7 @@ The :id key must contain a recognised repository."
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   [session from to & {:keys [owner group mode port] :as options}]
-  (plan-context rsync-directory-fn {:name :rsync-directory}
+  (plan-context 'rsync-directory-fn
     ;; would like to ensure rsync is installed, but this requires
     ;; root permissions, and doesn't work when this is run without
     ;; root permision
@@ -719,7 +718,7 @@ The :id key must contain a recognised repository."
 (defn rsync-to-local-directory
   "Rsync from a local directory to a remote directory."
   [session from to & {:keys [owner group mode port] :as options}]
-  (plan-context rsync-directory-fn {:name :rsync-directory}
+  (plan-context 'rsync-directory-fn
     (rsync-to-local session from to options)))
 
 ;;; # Users and Groups
@@ -814,7 +813,7 @@ Deprecated in favour of pallet.crate.service/service."
   [session service-name & body]
   `(let [session# session
          service# ~service-name]
-     (plan-context with-restart {:service service#}
+     (plan-context 'with-restart
        (service session#  service# :action :stop)
        ~@body
        (service session# service# :action :start))))
@@ -826,7 +825,7 @@ Deprecated in favour of pallet.crate.service/service."
                           force service-impl]
                    :or {action :create service-impl :initd}
                    :as options}]
-  (plan-context init-script {}
+  (plan-context 'service-script
     (apply-map
      pallet.actions/remote-file
      session

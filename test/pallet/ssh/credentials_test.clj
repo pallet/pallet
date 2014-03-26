@@ -1,7 +1,6 @@
 (ns pallet.ssh.credentials-test
   (:require
    [clojure.test :refer [deftest is testing]]
-   [pallet.common.logging.logutils :refer [with-log-to-string]]
    [pallet.ssh.credentials :refer [ensure-ssh-credential
                                    generate-keypair-files
                                    ssh-credential-status]]
@@ -40,21 +39,21 @@
       (let [user (make-user "fred" {:public-key-path (.getPath pub)
                                     :private-key-path (.getPath priv)})]
         (testing "invalid key"
-          (with-log-to-string []
+          (with-out-str []
             (is (thrown? Exception (ensure-ssh-credential user {})))))
         (generate-keypair-files user {})
         (testing "Valid key"
           (is (nil? (ensure-ssh-credential user {}))))
         (testing "Missing private key"
           (suppress-output
-           (with-log-to-string []
+           (with-out-str []
              (is (thrown? Exception
                           (ensure-ssh-credential
                            (assoc user :private-key-path "invalid-path!@")
                            {}))))))
         (testing "Missing public key"
           (suppress-output
-           (with-log-to-string []
+           (with-out-str []
              (is (thrown? Exception
                           (ensure-ssh-credential
                            (assoc user :public-key-path "invalid-path!@")

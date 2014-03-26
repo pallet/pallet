@@ -19,8 +19,7 @@
    [pallet.actions.direct.remote-file
     :refer [default-checksum default-backup default-file-uploader]]
    [pallet.build-actions :as build-actions :refer [build-script]]
-   [pallet.common.logging.logutils
-    :refer [logging-threshold-fixture with-log-to-string]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
    [pallet.core.file-upload :refer [upload-file-path]]
    [pallet.core.file-upload.rsync-upload :refer [rsync-upload]]

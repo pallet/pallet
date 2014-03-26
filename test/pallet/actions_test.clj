@@ -4,8 +4,7 @@
    [pallet.actions :refer :all]
    [pallet.actions.impl :refer [*script-location-info*]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils
-    :refer [logging-threshold-fixture with-log-to-string]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.plan :refer [plan-context plan-fn]]
    [pallet.group :refer [group-spec lift]]
    [pallet.script.lib :refer [ls]]
@@ -135,7 +134,7 @@
              (build-plan [session {}]
                (exec-checked-script session "context: check" (~ls "file1")))
              (build-plan [session {}]
-               (plan-context context {}
+               (plan-context 'context
                  (exec-checked-script session "check" (~ls "file1"))))))))))
 
 
@@ -147,7 +146,7 @@
            (remote-file session
                         "file1" {:local-file "/some/non-existing/file"})))))
   (testing "no content specified"
-    (with-log-to-string []
+    (with-out-str
       (is (thrown-cause-with-msg?
            Exception #".*does not match schema.*"
            (->

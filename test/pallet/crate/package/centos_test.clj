@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [package package-source]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.package.centos :refer [add-repository]]
    [pallet.plan :refer [plan-context]]))
 
@@ -15,7 +15,7 @@
   (is
    (=
     (build-plan [session session]
-      (plan-context add-repository {}
+      (plan-context 'add-repository
         (package session "yum-priorities")
         (package-source
          session
@@ -29,7 +29,7 @@
   (is
    (=
     (build-plan [session session]
-      (plan-context add-repository {}
+      (plan-context 'add-repository
         (package session "yum-priorities")
         (package-source
          session

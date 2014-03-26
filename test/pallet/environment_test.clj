@@ -2,7 +2,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :as logutils]
+   [com.palletops.log-config.timbre :as logutils]
    [pallet.environment :as environment]
    [pallet.user :refer [user?]]))
 

@@ -1,17 +1,13 @@
 (ns pallet.compute.hybrid-test
   (:require
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :as logutils]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.hybrid :as hybrid]
    [pallet.compute.node-list :as node-list]
    [pallet.core.protocols :as impl]))
 
-;; TODO FIX
-(use-fixtures :once (logutils/logging-threshold-fixture))
-
-(use-fixtures
- :once (logutils/logging-threshold-fixture))
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest supported-providers-test
   (is (hybrid/supported-providers)))

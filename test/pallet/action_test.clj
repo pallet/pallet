@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.action :refer :all]
    [pallet.action-options :refer [with-action-options]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.executor.plan :as plan]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.session :as session]

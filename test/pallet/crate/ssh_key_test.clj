@@ -2,10 +2,10 @@
   (:require
    [clojure.test :refer :all]
    [clojure.tools.logging :as logging]
+   [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions :refer [directory exec-checked-script file remote-file user]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.context :as context]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.ssh-key :refer :all]
    [pallet.group :refer [group-spec lift phase-errors]]
    [pallet.plan :refer [plan-context plan-fn]]
@@ -33,8 +33,7 @@
   (assoc *admin-user* :username (test-username) :no-sudo true))
 
 (deftest authorize-key-test
-  (is (= (context/with-phase-context
-           {:kw :authorize-key :msg "authorize-key"}
+  (is (= (with-context {:plan ["authorize-key"]}
            (build-plan [session {}]
              (directory
               session
@@ -61,8 +60,7 @@
 
 (deftest install-key-test
   (is (=
-       (context/with-phase-context
-         {:kw :install-key :msg "install-key"}
+       (with-context {:plan ["install-key"]}
          (build-plan [session {}]
            (directory
             session "$(getent passwd fred | cut -d: -f6)/.ssh/"
@@ -78,8 +76,7 @@
        (build-plan [session {}]
          (install-key session "fred" "id" "private" "public"))))
   (is (=
-       (context/with-phase-context
-         {:kw :install-key :msg "install-key"}
+       (with-context {:plan ["install-key"]}
          (build-plan [session {}]
            (directory
             session
@@ -99,7 +96,7 @@
 (deftest generate-key-test
   (is (=
        (build-plan [session {}]
-         (plan-context generate-key {}
+         (plan-context 'generate-key
            (directory
             session
             "$(getent passwd fred | cut -d: -f6)/.ssh"
@@ -125,8 +122,7 @@
          (generate-key session "fred"))))
 
   (is (=
-       (pallet.context/with-phase-context
-         {:kw :generate-key :msg "generate-key"}
+       (with-context {:plan ["generate-key"]}
          (build-plan [session {}]
            (directory
             session
@@ -153,8 +149,7 @@
          (generate-key session "fred" :type "dsa"))))
 
   (is (=
-       (pallet.context/with-phase-context
-         {:kw :generate-key :msg "generate-key"}
+       (with-context {:plan ["generate-key"]}
          (build-plan [session {}]
            (directory
             session
@@ -182,7 +177,7 @@
 
   (is (=
        (build-plan [session {}]
-         (plan-context generate-key {}
+         (plan-context 'generate-key
            (exec-checked-script
             session
             "ssh-keygen"
@@ -204,8 +199,7 @@
 
 (deftest authorize-key-for-localhost-test
   (is (=
-       (pallet.context/with-phase-context
-         {:kw :generate-key :msg "authorize-key-for-localhost"}
+       (with-context {:plan ["authorize-key-for-localhost"]}
          (build-plan [session {}]
            (directory
             session
@@ -230,8 +224,7 @@
          (authorize-key-for-localhost session "fred" "id_dsa.pub"))))
 
   (is (=
-       (pallet.context/with-phase-context
-         {:kw :generate-key :msg "authorize-key-for-localhost"}
+       (with-context {:plan ["authorize-key-for-localhost"]}
          (build-plan [session {}]
            (directory
             session

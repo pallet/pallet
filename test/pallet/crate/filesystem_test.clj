@@ -4,7 +4,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [directory exec-checked-script]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.filesystem :as filesystem]
    [pallet.plan :refer [plan-context]]
    [pallet.test-utils
@@ -18,7 +18,7 @@
 (deftest make-xfs-filesytem-test
   (is (=
        (build-plan [session {}]
-         (plan-context make-xfs-filesytem {}
+         (plan-context 'make-xfs-filesytem
            (exec-checked-script
             session
             "Format /dev/a as XFS"
@@ -29,7 +29,7 @@
 (deftest mount-test
   (is (=
        (build-plan [session {}]
-         (plan-context mount {}
+         (plan-context 'mount
            (directory session "/mnt/a")
            (exec-checked-script
             session
@@ -40,7 +40,7 @@
          (filesystem/mount session "/dev/a" "/mnt/a"))))
   (is (=
        (build-plan [session {}]
-         (plan-context mount {}
+         (plan-context 'mount
            (directory session "/mnt/a")
            (exec-checked-script
             session

@@ -1,7 +1,7 @@
 (ns pallet.core.script-state-test
   (:require
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.script-state :refer :all]))
 

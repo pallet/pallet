@@ -3,7 +3,7 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.context :as context :refer [with-phase-context]]
+   [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.core.executor.echo :refer [echo-executor]]
    [pallet.core.executor.plan :refer [plan plan-executor]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
@@ -109,7 +109,7 @@
   (let [session (build-session session)
         f (if-let [phase-context (:phase-context session)]
             (fn []
-              (with-phase-context {:msg phase-context}
+              (with-context {:plan phase-context}
                 (f)))
             f)]
     (produce-phases session f)))

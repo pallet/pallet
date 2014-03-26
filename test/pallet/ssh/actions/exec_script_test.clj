@@ -4,7 +4,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script exec-checked-script]]
    [pallet.action-options :refer [with-action-options]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.executor.ssh :refer [ssh-executor]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]

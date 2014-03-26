@@ -5,7 +5,7 @@
    [clojure.stacktrace :refer [root-cause]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute.protocols :as impl]
    [pallet.core.executor.plan :refer [plan-executor]]
    [pallet.core.nodes :refer [localhost]]

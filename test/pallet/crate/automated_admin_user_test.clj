@@ -1,12 +1,12 @@
 (ns pallet.crate.automated-admin-user-test
   (:require
    [clojure.test :refer :all]
+   [clojure.tools.logging :as logging]
+   [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions :refer [exec-checked-script user]]
    [pallet.build-actions :as build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute :refer [node-spec]]
-   [pallet.context :as context]
-   [pallet.context :as logging]
    [pallet.crate.automated-admin-user :as automated-admin-user
     :refer [create-admin-user]]
    [pallet.crate.ssh-key :as ssh-key]
@@ -32,8 +32,7 @@
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
             {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-           (context/with-phase-context
-             {:kw :authorize-user-key :msg "authorize-user-key"}
+           (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key
               session
               "fred" (slurp (default-public-key-path))))
@@ -55,8 +54,7 @@
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
             {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-           (context/with-phase-context
-             {:kw :authorize-user-key :msg "authorize-user-key"}
+           (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key
               session
               "fred" (slurp (default-public-key-path))))
@@ -78,8 +76,7 @@
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
             {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-           (context/with-phase-context
-             {:kw :authorize-user-key :msg "authorize-user-key"}
+           (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key session "fred" "abc"))
            (sudoers/configure session {}))
          (build-plan [session {}]
@@ -100,8 +97,7 @@
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
               {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (context/with-phase-context
-               {:kw :authorize-user-key :msg "authorize-user-key"}
+             (with-context {:plan ["authorize-user-key"]}
                (ssh-key/authorize-key
                 session
                 user-name
@@ -134,8 +130,7 @@
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
               {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (context/with-phase-context
-               {:kw :authorize-user-key :msg "authorize-user-key"}
+             (with-context {:plan ["authorize-user-key"]}
                (ssh-key/authorize-key
                 session
                 user-name
@@ -161,9 +156,7 @@
                              (create-admin-user session)
                              (automated-admin-user/configure session {}))
                 :verify (plan-fn [session]
-                          (context/with-phase-context
-                            {:kw :automated-admin-user
-                             :msg "Check Automated admin user"}
+                          (with-context {:plan ["Check Automated admin user"]}
                             (exec-checked-script
                              session
                              "is functional"

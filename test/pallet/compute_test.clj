@@ -1,7 +1,7 @@
 (ns pallet.compute-test
   (:require
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :refer [suppress-logging]]
+   [com.palletops.log-config.timbre :refer [suppress-logging]]
    [pallet.compute :refer :all]))
 
 (deftest schemas-are-loose-test

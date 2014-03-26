@@ -3,8 +3,7 @@
    [clojure.string :refer [trim]]
    [clojure.test :refer :all]
    [clojure.tools.logging :refer [debugf]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture
-                                           with-log-to-string]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.ssh.execute
     :refer [get-connection ssh-script-on-target with-connection]]

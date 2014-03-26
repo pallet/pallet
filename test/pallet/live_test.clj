@@ -18,7 +18,7 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.common.logging.logutils :as logutils]
+   [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.compute :as compute]
    [pallet.core.node :as node]
    [pallet.group :refer [converge phase-errors service-state]]
@@ -284,8 +284,7 @@
            (when *cleanup-nodes*
              (destroy-nodes ~'compute (keys ~'node-types))))))))
 
-(defmacro ^{:requires [#'logutils/with-context]}
-  test-for
+(defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
   [[& bindings] & body]
   (let [v (first bindings)]
@@ -293,12 +292,12 @@
        (if *parallel*
          (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
          (doseq [~@bindings]
-           (logutils/with-context
-             [:os (format
+           (with-context
+             {:os (format
                    "%s-%s-%s"
                    (name (:os-family ~v))
                    (name (:os-version-matches ~v "unspecified"))
                    (if (:os-64-bit ~v) "64" "32"))
               :os-family (:os-family ~v)
-              :os-version (:os-version-matches ~v "unspecified")]
+              :os-version (:os-version-matches ~v "unspecified")}
              ~@body))))))

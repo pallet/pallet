@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions.direct.service :refer [service-impl]]
    [pallet.actions.impl :refer [service-script-path]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.script :refer [with-script-context]]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils

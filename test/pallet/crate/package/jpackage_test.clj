@@ -2,7 +2,7 @@
   (:require
    [clojure.test :refer :all]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.package.jpackage
     :refer [add-jpackage jpackage-utils package-manager-update-jpackage]]
    [pallet.test-utils :refer [make-node]]))

@@ -3,7 +3,7 @@
    [clojure.java.io :as io]
    [clojure.test :refer :all]
    [pallet.actions :refer [rsync rsync-directory]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.group :refer [group-spec lift phase-errors]]
    [pallet.plan :refer [plan-fn]]
    [pallet.stevedore :as stevedore :refer [fragment]]

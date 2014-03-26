@@ -2,7 +2,7 @@
   (:require
    [clojure.test :refer :all]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.package.epel :refer [add-epel]]))
 
 (use-fixtures :once (logging-threshold-fixture))

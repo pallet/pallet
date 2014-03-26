@@ -26,6 +26,9 @@ The session is a map with well defined keys:
 - `:environment`
   : the effective environment
 
+- `:event-fn`
+  : the event notification function
+
 - `:extension`
   : an extension map for abstractions build on pallet core, and
   requiring execution state.  Un-namespaced keywords as keys are
@@ -57,7 +60,8 @@ The session is a map with well defined keys:
    (optional-key :user) schema/Any
    (optional-key :environment) schema/Any
    (optional-key :extension) {schema/Keyword schema/Any}
-   (optional-key :record-all) {schema/Keyword schema/Bool}})
+   (optional-key :record-all) {schema/Keyword schema/Bool}
+   (optional-key :event-fn) schema/Any})
 
 (def base-session
   {:execution-state execution-state
@@ -93,7 +97,8 @@ The session is a map with well defined keys:
    {:type ::session
     :execution-state (select-keys
                       args
-                      [:environment :executor :recorder :action-options :user])}
+                      [:environment :executor :recorder :action-options :user
+                       :event-fn])}
    (if plan-state
      {:plan-state plan-state})))
 
@@ -145,6 +150,11 @@ The session is a map with well defined keys:
   "Update the environment map."
   [session f args]
   (apply update-in session [:execution-state :environment] f args))
+
+(defn event-fn
+  "Get the event-fn."
+  [session]
+  (-> session :execution-state :event-fn))
 
 (defn ^:internal extension
   "Get the extension data for the specified keyword."

@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [package package-source]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.plan :refer [plan-context]]
    [pallet.script.lib :as lib]
@@ -17,7 +17,7 @@
   (is
    (=
     (build-plan [session session]
-      (plan-context add-debian-backports {}
+      (plan-context 'add-debian-backports
         (package session "lsb-release")
         (package-source
          session

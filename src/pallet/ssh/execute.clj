@@ -4,9 +4,9 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
+   [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions.impl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
-   [pallet.common.logging.logutils :as logutils]
    [pallet.core.node :as node]
    [pallet.core.script-builder :as script-builder]
    [pallet.execute :as execute
@@ -118,7 +118,7 @@
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
   (let [endpoint (endpoint node)]
-    (logutils/with-context [:target (:server endpoint)]
+    (with-context {:target (:server endpoint)}
       (logging/infof
        "%s %s %s %s"
        (:server endpoint) (:port endpoint)

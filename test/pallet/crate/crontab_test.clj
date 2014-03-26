@@ -4,7 +4,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-checked-script remote-file remote-file-content]]
    [pallet.build-actions :refer [build-plan]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.crate.automated-admin-user :refer [with-automated-admin-user]]
    [pallet.crate.crontab :as crontab
     :refer [system-crontabs
@@ -33,8 +33,8 @@
           session
           "$(getent passwd fred | cut -d: -f6)/crontab.in"
           {:content "contents" :owner "fred" :mode "0600"})
-         (plan-context "user-crontabs" {}
-           (plan-context "create-user-crontab" {}
+         (plan-context 'user-crontabs
+           (plan-context 'create-user-crontab
              (exec-checked-script
               session
               "Load crontab"
