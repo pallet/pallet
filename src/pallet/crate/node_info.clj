@@ -2,7 +2,7 @@
   "Detection of node information, e.g to determine os and version"
   (:require
    [clojure.string :as string :refer [blank? lower-case]]
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.actions :refer [exec-script]]
    [pallet.core.node :refer [node-values-schema]]
    [pallet.middleware :refer [execute-on-filtered]]

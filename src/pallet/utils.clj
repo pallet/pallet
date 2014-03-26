@@ -4,7 +4,7 @@
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.common.deprecate :refer [deprecated]])
   (:import
    (java.security MessageDigest NoSuchAlgorithmException)
@@ -246,7 +246,7 @@ value to assoc. The assoc only occurs if the value is non-nil."
   "Log a multiline string in multiple log lines"
   [level-kw fmt string]
   `(let [fmt# ~fmt]
-     (when (logging/enabled? ~level-kw)
+     (when (logging/logging-enabled? ~level-kw)
        (doseq [l# (string/split-lines ~string)]
          (logging/log ~level-kw (format fmt# l#))))))
 

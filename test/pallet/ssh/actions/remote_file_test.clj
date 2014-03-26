@@ -5,7 +5,7 @@
    [clojure.stacktrace :refer [print-cause-trace print-stack-trace root-cause]]
    [clojure.string :as string]
    [clojure.test :refer :all]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.action :as action]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions

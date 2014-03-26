@@ -3,7 +3,7 @@
   (:refer-clojure :exclude [proxy])
   (:require
    [clojure.stacktrace :refer [print-cause-trace]]
-   [clojure.tools.logging :refer [trace]]
+   [taoensso.timbre :refer [trace]]
    [pallet.compute.protocols :as impl]
    [pallet.user :refer [user-schema]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))

@@ -1,6 +1,6 @@
 (ns pallet.crate.automated-admin-user
   (:require
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.actions :refer [package-manager user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]

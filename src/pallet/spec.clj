@@ -4,7 +4,7 @@
 A server-spec can specify phases that provide facets of a particular
 service."
   (:require
-   [clojure.tools.logging :as logging :refer [debugf tracef]]
+   [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :refer [phases-with-meta]]

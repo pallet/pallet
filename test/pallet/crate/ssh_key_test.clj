@@ -1,7 +1,7 @@
 (ns pallet.crate.ssh-key-test
   (:require
    [clojure.test :refer :all]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions :refer [directory exec-checked-script file remote-file user]]
    [pallet.build-actions :refer [build-plan]]

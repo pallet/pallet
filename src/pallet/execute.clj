@@ -3,7 +3,7 @@
   (:require
    [clojure.set :refer [union]]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.core.plan-state :refer [get-settings update-settings]]
    [pallet.session :refer [target]]
    [pallet.target :as target]

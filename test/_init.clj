@@ -4,7 +4,7 @@
    [clojure.test :refer :all]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [directory exec-checked-script]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.group :refer [group-spec lift phase-errors throw-phase-errors]]
    [pallet.log :refer [default-log-config]]
    [pallet.plan :refer [plan-fn]]

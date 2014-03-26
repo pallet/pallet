@@ -1,7 +1,7 @@
 (ns pallet.core.file-upload.rsync-upload
   "Implementation of file upload using rsync."
   (:require
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.actions.direct.rsync
     :refer [default-options rsync-command]]
    [pallet.core.file-upload :refer [file-uploader]]

@@ -3,7 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.compute.jvm :as jvm]
    [pallet.core.script-builder :as script-builder]
    [pallet.execute :as execute

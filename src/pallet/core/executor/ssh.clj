@@ -1,7 +1,7 @@
 (ns pallet.core.executor.ssh
   "An action executor over ssh"
   (:require
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.action :refer [implementation]]
    [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]

@@ -3,7 +3,7 @@
   (:require
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.actions
     :refer [exec-checked-script exec-script remote-file sed]]
    [pallet.kb :refer [os-hierarchy]]

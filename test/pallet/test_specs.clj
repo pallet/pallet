@@ -4,7 +4,7 @@
   ;; (:require
   ;;  [clojure.java.io :refer [file]]
   ;;  [clojure.string :refer [blank?]]
-  ;;  [clojure.tools.logging :refer [debugf infof]]
+  ;;  [taoensso.timbre :refer [debugf infof]]
   ;;  [pallet.actions
   ;;   :refer [directory
   ;;           exec-checked-script

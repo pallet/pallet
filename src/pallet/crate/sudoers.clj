@@ -1,7 +1,7 @@
 (ns pallet.crate.sudoers
   (:require
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.actions :refer [package remote-file]]
    [pallet.crate-install :as crate-install]
    [pallet.group :as group]

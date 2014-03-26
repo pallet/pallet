@@ -4,7 +4,7 @@
    [clojure.stacktrace :refer [root-cause]]
    [clojure.string :as string]
    [clojure.test :refer :all]
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.action :refer [declare-action implement-action]]
    [pallet.actions.impl :as actions-impl]
    [pallet.common.deprecate :as deprecate]

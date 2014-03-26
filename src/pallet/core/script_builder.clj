@@ -2,7 +2,7 @@
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [clojure.string :as string]
    [clojure.string :refer [split]]
    [pallet.script :refer [with-script-context *script-context*]]

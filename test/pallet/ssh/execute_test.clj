@@ -2,7 +2,7 @@
   (:require
    [clojure.string :refer [trim]]
    [clojure.test :refer :all]
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.ssh.execute

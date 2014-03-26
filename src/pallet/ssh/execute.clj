@@ -3,7 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions.impl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]

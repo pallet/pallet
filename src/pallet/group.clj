@@ -11,7 +11,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [clojure.core.async :as async :refer [<! <!! alts!! chan close! timeout]]
    [clojure.set :refer [union]]
    [clojure.string :as string :refer [blank?]]
-   [clojure.tools.logging :as logging :refer [debugf tracef]]
+   [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.blobstore :refer [blobstore?]]
    [pallet.compute :as compute
     :refer [check-node-spec compute-service? node-spec

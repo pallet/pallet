@@ -1,12 +1,16 @@
 (ns pallet.ssh.credentials-test
   (:require
-   [clojure.test :refer [deftest is testing]]
+   [clojure.test :refer [deftest is testing use-fixtures]]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.ssh.credentials :refer [ensure-ssh-credential
                                    generate-keypair-files
                                    ssh-credential-status]]
    [pallet.test-utils :refer [suppress-output]]
    [pallet.user :refer [make-user]]
    [pallet.utils :refer [tmpfile with-temp-file]]))
+
+(use-fixtures :once
+  (logging-threshold-fixture :fatal))
 
 (deftest ssh-credential-status-test
   (with-temp-file [pub "pub"]

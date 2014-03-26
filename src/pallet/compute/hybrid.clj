@@ -2,7 +2,7 @@
   "Hybrid provider service implementation."
   (:require
    [clojure.core.async :as async :refer [chan]]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.protocols :as impl :refer [node-tag]]

@@ -5,7 +5,7 @@
    [clojure.core.async.impl.protocols :refer [Channel]]
    [clojure.core.async
     :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
-   [clojure.tools.logging :refer [debugf errorf]]
+   [taoensso.timbre :refer [debugf errorf]]
    [pallet.exception :refer [combine-exceptions]]))
 
 ;;; # Helpers for external protocols

@@ -4,7 +4,7 @@
 The :direct implementation of actions is designed to return script
 that will be executed on the remote target."
   (:require
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [pallet.action :refer [implementation]]))
 
 ;;; Require all implementations

@@ -2,7 +2,7 @@
   "Version handling for pallet"
   (:require
    [clojure.string :as string]
-   [clojure.tools.logging :refer [warnf]]))
+   [taoensso.timbre :refer [warnf]]))
 
 (defn read-version-number
   "Read a version number from a string, ignoring alphabetic chars."

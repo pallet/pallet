@@ -3,7 +3,7 @@
   (:require
    [clj-ssh.ssh :refer [generate-keypair keypair ssh-agent]]
    [clojure.java.io :refer [file]]
-   [clojure.tools.logging :refer [debugf error errorf warn]]))
+   [taoensso.timbre :refer [debugf error errorf warn]]))
 
 (defn ssh-credential-status
   "Given a user map, returns a keyword indicating the credentials' status.

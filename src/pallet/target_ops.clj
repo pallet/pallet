@@ -1,7 +1,7 @@
 (ns pallet.target-ops
   (:require
    [clojure.core.async :as async :refer [<! <!! >! chan]]
-   [clojure.tools.logging :as logging :refer [debugf tracef]]
+   [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
    [pallet.crate.node-info :as node-info]
    [pallet.exception :refer [combine-exceptions domain-error?]]

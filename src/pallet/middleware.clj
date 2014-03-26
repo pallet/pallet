@@ -1,7 +1,7 @@
 (ns pallet.middleware
   "Allow decorating how plan functions are executed."
   (:require
-   [clojure.tools.logging :as logging :refer [debugf]]
+   [taoensso.timbre :as logging :refer [debugf]]
    [pallet.plan :as plan :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]

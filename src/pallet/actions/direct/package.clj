@@ -6,7 +6,7 @@
    `package-source` is used to specify a non-standard source for packages."
   (:require
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [package-source-changed-flag]]
    [pallet.actions.decl :refer [add-rpm

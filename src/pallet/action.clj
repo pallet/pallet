@@ -4,7 +4,7 @@
    Actions can have multiple implementations, but by default most are
    implemented as script."
   (:require
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.action.impl
     :refer [action-implementation

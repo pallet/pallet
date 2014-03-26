@@ -2,7 +2,7 @@
   "Provides supervision via nohup.  Note that this is very limited, and not
   really recommended for production use."
   (:require
-   [clojure.tools.logging :refer [debugf warnf]]
+   [taoensso.timbre :refer [debugf warnf]]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions :refer [directory exec-checked-script remote-file]]

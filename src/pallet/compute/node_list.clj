@@ -17,7 +17,7 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.compute :as compute]
    [pallet.environment]
    [pallet.compute.implementation :as implementation]

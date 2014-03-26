@@ -5,7 +5,7 @@
   (:require
    [clojure.java.io :refer [input-stream]]
    [clojure.string :refer [blank?]]
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.common.filesystem :as filesystem]
    [pallet.script.lib
     :refer [chgrp chmod chown dirname env exit file mkdir path-group

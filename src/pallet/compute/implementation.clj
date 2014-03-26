@@ -2,7 +2,7 @@
   "Implementation details"
   (:require
    [chiba.plugin :refer [plugins]]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.compute.protocols :refer [ComputeService]]))
 
 (defmulti service

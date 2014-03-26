@@ -1,7 +1,7 @@
 (ns pallet.tag
   "Tagging of nodes."
   (:require
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [clojure.string :refer [blank?]]
    [pallet.core.node :refer [id image-user node? tag tag! taggable?]]))
 

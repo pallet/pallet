@@ -1,7 +1,7 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:require
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [pallet.actions :as actions]
    [pallet.actions
     :as actions

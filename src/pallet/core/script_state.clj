@@ -6,7 +6,7 @@ pattern. The executors are responsible for interpreting this text, and
 set the flags in the resulting node-value, and on the session under the
 target :flags key."
   (:require
-   [clojure.tools.logging :as logging]))
+   [taoensso.timbre :as logging]))
 
 
 (def ^{:doc "Regex used to match SETFLAG text in action output."

@@ -17,7 +17,7 @@
    and should specify one of the keys in `image-lists`."
   (:require
    [clojure.string :as string]
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.compute :as compute]
    [pallet.core.node :as node]

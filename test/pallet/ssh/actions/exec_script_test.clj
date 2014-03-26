@@ -2,9 +2,9 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer :all]
+   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.actions :refer [exec-script exec-checked-script]]
    [pallet.action-options :refer [with-action-options]]
-   [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.core.executor.ssh :refer [ssh-executor]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -24,7 +24,7 @@
   with-ubuntu-script-template
   with-bash-script-language
   with-no-source-line-comments
-  (logging-threshold-fixture))
+  (logging-threshold-fixture :error))
 
 (defn ssh-session
   "Return a session with a plan executor."

@@ -2,7 +2,7 @@
   "Test utilities for building actions"
   (:require
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.core.executor.echo :refer [echo-executor]]
    [pallet.core.executor.plan :refer [plan plan-executor]]

@@ -35,7 +35,7 @@
   ;; build a node list with a node with the characteristics above
   (let [op (mock-exec-plan action-plan-data pfn node
                            :settings-phase settings-phase)]
-    (clojure.tools.logging/debugf "explain-plan %s" op)
+    (taoensso.timbre/debugf "explain-plan %s" op)
     (mapcat :result (:results op))))
 
 ;; -------- SESSION -------------

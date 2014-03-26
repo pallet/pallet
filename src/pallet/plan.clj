@@ -2,7 +2,7 @@
   "API for execution of pallet plan functions."
   (:require
    [clojure.core.async :as async :refer [<!! chan]]
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [clojure.string :as string]
    [com.palletops.log-config.timbre :refer [with-context-update]]

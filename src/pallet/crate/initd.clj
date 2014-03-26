@@ -1,7 +1,7 @@
 (ns pallet.crate.initd
   "Provides service supervision via initd"
   (:require
-   [clojure.tools.logging :refer [debugf]]
+   [taoensso.timbre :refer [debugf]]
    [pallet.actions :refer [exec-checked-script remote-file]]
    [pallet.actions.direct.service :refer [service-impl]]
    [pallet.crate.service

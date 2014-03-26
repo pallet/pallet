@@ -7,7 +7,7 @@ that are pallet plan functions.
 
 Phase maps enable composition of operations across heterogenous nodes."
   (:require
-   [clojure.tools.logging :refer [debugf tracef]]
+   [taoensso.timbre :refer [debugf tracef]]
    [pallet.middleware :as middleware]))
 
 ;;; # Phase specification functions

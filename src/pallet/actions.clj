@@ -4,7 +4,7 @@
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :as string :refer [trim]]
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.action :refer [defaction]]
    [pallet.action-options
     :refer [action-options with-action-options]]

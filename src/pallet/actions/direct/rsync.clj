@@ -1,6 +1,6 @@
 (ns pallet.actions.direct.rsync
   (:require
-   [clojure.tools.logging :as logging]
+   [taoensso.timbre :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions.decl :refer [rsync rsync-to-local]]
    [pallet.script.lib :refer [sudo]]

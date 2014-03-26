@@ -1,7 +1,6 @@
 (ns pallet.utils-test
   (:require
    [clojure.test :refer :all]
-   [clojure.tools.logging :refer :all]
    [pallet.test-utils :refer :all]
    [pallet.utils :refer :all]))
 
