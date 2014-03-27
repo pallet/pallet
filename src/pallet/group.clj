@@ -235,13 +235,6 @@ Uses a TargetMap to describe a node with its group-spec info."
                        (service-properties
                         (node/compute-service node)))})))
 
-;; (ann group-name [Session -> GroupName])
-;; (defn group-name
-;;   "Group name of the target-node."
-;;   [session]
-;;   {:pre [(target-session? session)]}
-;;   (-> session :target :group-name))
-
 ;;; # Target Extension Functions
 
 (defn nodes-in-group
@@ -265,15 +258,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    (map (fn [t] (dissoc t :node)))
    ((fn [x] (distinct x)))))
 
-;; (defn groups-with-role
-;;   "All target groups with the specified role."
-;;   [session role]
-;;   (->>
-;;    @(:system-targets session)
-;;    (filter #((:roles % #{}) role))
-;;    (map #(dissoc % :node))
-;;    distinct))
-
 (defn nodes-with-role
   "All target nodes with the specified role."
   [session role]
@@ -294,12 +278,6 @@ Uses a TargetMap to describe a node with its group-spec info."
              (:roles node)))
    {}
    (targets session)))
-
-;; (defn target-group-name
-;;   "Return the group name for node, as recorded in the session-targets."
-;;   [session node]
-;;   (:group-name (session-target session node)))
-
 
 ;;; # Group Name Functions
 
@@ -583,10 +561,6 @@ the :destroy-server, :destroy-group, and :create-group phases."
         (>! ch [result (combine-exceptions [e-remove e-add])])))))
 
 ;;; ## Operations
-;;;
-
-;; (defmethod target-id-map :group [target]
-;;   (select-keys target [:group-name]))
 
 (defn- groups-with-phases
   "Adds the phases from phase-map into each group in the sequence `groups`."
