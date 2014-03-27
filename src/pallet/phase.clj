@@ -8,9 +8,18 @@ that are pallet plan functions.
 Phase maps enable composition of operations across heterogenous nodes."
   (:require
    [taoensso.timbre :refer [debugf tracef]]
-   [pallet.middleware :as middleware]))
+   [schema.core :as schema])
+  (:import
+   clojure.lang.IFn))
 
 ;;; # Phase specification functions
+
+(def phase-with-args-schema
+  [(schema/one schema/Keyword "phase-kw") schema/Any])
+
+(def phase-schema
+  (schema/either schema/Keyword IFn phase-with-args-schema))
+
 (defn phase-args [phase]
   (if (keyword? phase)
     nil

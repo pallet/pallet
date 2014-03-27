@@ -23,7 +23,8 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
-   [pallet.phase :as phase :refer [phases-with-meta process-phases]]
+   [pallet.phase :as phase
+    :refer [phases-with-meta process-phases phase-schema]]
    [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
@@ -46,13 +47,6 @@ Uses a TargetMap to describe a node with its group-spec info."
 ;;; # Domain Model
 
 ;;; ## Schemas
-
-;; TODO move these to pallet.phase
-(def phase-with-args-schema
-  [(schema/one schema/Keyword "phase-kw") schema/Any])
-
-(def phase-schema
-  (schema/either schema/Keyword IFn phase-with-args-schema))
 
 (def environment-strict-schema
   {(optional-key :user) user/user-schema
