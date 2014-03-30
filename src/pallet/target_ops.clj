@@ -8,7 +8,7 @@
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :as phase :refer [phases-with-meta]]
-   [pallet.plan :as plan :refer [execute-plan-fns errors plan-fn]]
+   [pallet.plan :as plan :refer [execute-plans errors plan-fn]]
    [pallet.session :as session
     :refer [base-session? extension plan-state set-extension target
             target-session? update-extension]]
@@ -29,15 +29,17 @@
   channel, ch."
   [session phase targets consider-targets ch]
   {:pre [(every? (some-fn target/node #(= :group (:target-type %))) targets)]}
-  (let [target-plans (map
-                      (juxt identity #(phase/target-phase (:phases %) phase))
-                      targets)]
+  (let [target-plans (->>
+                      targets
+                      (map
+                       (juxt identity #(phase/target-phase (:phases %) phase)))
+                      (filter second))]
     (go-try ch
       (let [session (set-targets ;; TODO move this higher
                      session
                      (filter target/node (concat targets consider-targets)))
             c (chan)
-            _ (execute-plan-fns session target-plans c)
+            _ (execute-plans session target-plans c)
             [results exception] (<! c)
             phase-name (phase/phase-kw phase)
             results (->> results (mapv #(assoc % :phase phase-name)))]

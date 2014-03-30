@@ -8,7 +8,7 @@ service."
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.phase :refer [phases-with-meta]]
-   [pallet.plan :refer [execute]]
+   [pallet.plan :refer [execute-plan*]]
    [pallet.session :as session
     :refer [extension set-extension update-extension]]
    [pallet.target :as target]
@@ -80,20 +80,20 @@ service."
 ;;; Metadata for some phases defined by server-specs.
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
-  {:middleware (-> execute
+  {:middleware (-> execute-plan*
                    middleware/image-user-middleware
                    (middleware/execute-on-unflagged :bootstrapped))})
 
 (def ^{:doc "Executes on bootstrapped nodes, with admin user credentials."}
   bootstrapped-meta
-  {:middleware (-> execute
+  {:middleware (-> execute-plan*
                    (middleware/execute-on-flagged :bootstrapped))})
 
 (def ^{:doc "The bootstrap phase is executed with the image credentials, and
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
   {:bootstrap {:middleware (->
-                            execute
+                            execute-plan*
                             middleware/image-user-middleware
                             (middleware/execute-one-shot-flag :bootstrapped))}})
 

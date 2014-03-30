@@ -95,21 +95,36 @@
       (debugf "No script context available: %s" target))
     context))
 
-(defn execute*
-  "Execute a plan function on a target.
+(defmulti execute-plan*
+  "Execute a plan function. Does not call any plan middleware.
 
-Ensures that the session target is set, and that the script
-environment is set up for the target.
+  By default we execute the plan-fn in a context where actions are
+  allowed.
 
-Returns a map with `:target`, `:return-value` and `:action-results`
-keys.
+  Suitable for use as a plan middleware handler function.  Should not
+  be called directly."
+  (fn [session target plan-fn]
+    {:pre [(map? target)]}
+    (:target-type target ::node)))
 
-The result is also written to the recorder in the session."
+;; Execute a plain plan function, with no node
+(defmethod execute-plan* :group
+  [session target plan-fn]
+  {:return-value (plan-fn session)})
+
+;; Ensures that the session target is set, and that the script
+;; environment is set up for the node.
+
+;; Returns a map with `:target`, `:return-value` and `:action-results`
+;; keys.
+
+;; The result is also written to the recorder in the session.
+(defmethod execute-plan* ::node
   [session target plan-fn]
   {:pre [(base-session? session)
          (map? target)
-         (or (nil? plan-fn) (fn? plan-fn))
-         (or (nil? (:node target)) (has-node? target))
+         (fn? plan-fn)
+         (has-node? target)
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
          (executor session)]
@@ -143,54 +158,42 @@ The result is also written to the recorder in the session."
                             (assoc result :target target)
                             e))))))))
 
-(defn execute
-  "Execute a plan function.  If there is a `target` with a `:node`,
-  then we execute the plan-fn using the core execute function,
-  otherwise we just call the plan function.
-  Suitable for use as a plan middleware handler function."
-  [session {:keys [node] :as target} plan-fn]
-  {:pre [(map? target)]}
-  (debugf "execute %s %s" target plan-fn)
-  (when plan-fn
-    (if node
-      (execute* session target plan-fn)
-      {:return-value (plan-fn session)})))
-
 (def ^:internal target-result-map
   (-> plan-result-map
       (dissoc :action-results)
       (assoc (optional-key :action-results) [action-result-map]
              :target {schema/Keyword schema/Any})))
 
-(defn execute-target-plan
+(defn execute-plan
   "Using the session, execute plan-fn on target. Uses any plan
   middleware defined on the plan-fn."
   [session target plan-fn]
-  {:pre [(or (nil? plan-fn) (fn? plan-fn))
+  {:pre [(fn? plan-fn)
          (map? target)]
    :post [(or (nil? %) (validate target-result-map %))]}
   (let [{:keys [middleware]} (meta plan-fn)
         result (if middleware
                  (middleware session target plan-fn)
-                 (execute session target plan-fn))]
+                 (execute-plan* session target plan-fn))]
     (if result
       (assoc result :target target))))
 
 ;;; ## Execute Plan Functions on Mulitple Targets
-(defn ^:internal execute-plan-fns*
+(defn execute-plans*
   "Using the executor in `session`, execute phase on all targets.
   The targets are executed in parallel, each in its own thread.  A
   single [result, exception] tuple will be written to the channel ch,
   where result is a sequence of results for each target, and exception
   is a composite exception of any thrown exceptions.
 
-  Does not call phase middleware.  Does call plan middleware."
+  Does not call phase middleware.  Does call plan middleware.  Suitable
+  as the handler for a phase-middleware."
   [session target-plans ch]
   (let [c (chan)]
     (->
      (map-thread (fn execute-plan-fns [[target plan-fn]]
                    (try
-                     [(execute-target-plan session target plan-fn)]
+                     [(execute-plan session target plan-fn)]
                      (catch Exception e
                        (let [data (ex-data e)]
                          (if (contains? data :action-results)
@@ -198,26 +201,26 @@ The result is also written to the recorder in the session."
                            [nil e])))))
                  target-plans)
      (concat-chans c))
-    (reduce-results c "execute-plan-fns* failed" ch)))
+    (reduce-results c "execute-plans* failed" ch)))
 
-(defn execute-plan-fns
+(defn execute-plans
   "Execute plan functions on targets.  Write a result tuple to the
   channel, ch.  Targets are grouped by phase-middleware, and phase
   middleware is called.  plans are executed in parallel.
   `target-plans` is a sequence of target, plan-fn tuples."
   [session target-plans ch]
-  (debugf "execute-plan-fns %s target-plans" (count target-plans))
+  (debugf "execute-plans %s target-plans" (count target-plans))
   (let [mw-targets (group-by (comp :phase-middleware meta second)
                              target-plans)
         c (chan)]
-    (debugf "execute-plan-fns %s distinct middleware" (count mw-targets))
+    (debugf "execute-plans %s distinct middleware" (count mw-targets))
     (concat-chans
      (for [[mw target-plans] mw-targets]
        (if mw
          (mw session target-plans c)
-         (execute-plan-fns* session target-plans c)))
+         (execute-plans* session target-plans c)))
      c)
-    (reduce-concat-results c "execute-plan-fns failed" ch)))
+    (reduce-concat-results c "execute-plans failed" ch)))
 
 ;;; # Exception reporting
 (def ^:internal adorned-plan-result-map

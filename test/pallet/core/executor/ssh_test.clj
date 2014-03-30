@@ -8,7 +8,7 @@
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.exception :refer [domain-info]]
-   [pallet.plan :refer :all]
+   [pallet.plan :refer [execute-plan]]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.user :as user]))
@@ -25,7 +25,7 @@
         plan (fn [session]
                (exec-script* session "ls")
                :rv)
-        result (execute session {:node (localhost)} plan)]
+        result (execute-plan session {:node (localhost)} plan)]
     (is (map? result))
     (is (= 1 (count (:action-results result))))
     (is (every? #(zero? (:exit %)) (:action-results result)))

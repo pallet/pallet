@@ -74,13 +74,13 @@
       (is (= [result] (results (recorder session)))
           "records the results in the session recorder"))))
 
-(deftest execute-test
-  (testing "execute"
+(deftest execute-plan*-test
+  (testing "execute-plan*"
     (let [session (plan-session)
           plan (fn [session]
                  (exec-script* session "ls")
                  :rv)
-          result (execute session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-target plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{:action 'pallet.actions.decl/exec-script*
@@ -89,24 +89,24 @@
              (:action-results result)))
       (is (= :rv (:return-value result)))
       (is (not (plan-errors result)))))
-  (testing "execute with record-all false"
+  (testing "execute-plan* with record-all false"
     (let [session (plan-session)
           plan (fn [session]
                  (with-action-options session {:record-all false}
                    (exec-script* session "ls"))
                  :rv)
-          result (execute session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-target plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{}] (:action-results result)) "no details in action-results")
       (is (= :rv (:return-value result)))
       (is (not (plan-errors result)))))
-  (testing "execute with fail action"
+  (testing "execute-plan* with fail action"
     (let [session (plan-session)
           plan (fn [session]
                  (fail session)
                  :rv)
-          result (execute session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-target plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{:action 'pallet.actions.test-actions/fail
@@ -116,7 +116,7 @@
              (:action-results result)))
       (is (not (contains? result :return-value)))
       (is (plan-errors result))))
-  (testing "execute with non-domain exception"
+  (testing "execute-plan* with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})
           plan (fn [session]
@@ -124,10 +124,10 @@
                  (throw e))]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo #"Exception in plan-fn"
-           (execute session ubuntu-target plan))
+           (execute-plan* session ubuntu-target plan))
           "non domain error should throw")
       (testing "throws an exception"
-        (let [execute-e (try (execute session ubuntu-target plan)
+        (let [execute-e (try (execute-plan* session ubuntu-target plan)
                              (catch clojure.lang.ExceptionInfo e
                                e))
               {:keys [action-results exception] :as result} (ex-data execute-e)]
@@ -140,13 +140,13 @@
           (is (:target result) "reporting the failed target")
           (is (not (contains? result :rv)) "doesn't record a return value")
           (is (plan-errors result))))))
-  (testing "execute with domain exception"
+  (testing "execute-plan* with domain exception"
     (let [session (plan-session)
           e (domain-info "some exception" {})
           plan (fn [session]
                  (exec-script* session "ls")
                  (throw e))
-          result (execute session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-target plan)]
       (is (map? result) "doesn't throw")
       (is (= 1 (count (:action-results result))))
       (is (= e (:exception result)) "reports the exception")
@@ -187,14 +187,14 @@
                                :packager :apt}
                     :node (node)})
 
-(deftest execute-plan-fns-test
-  (testing "execute-plan-fns"
+(deftest execute-plans-test
+  (testing "execute-plans"
     (let [session (plan-session)
           plan (fn [session]
                  (exec-script* session "ls")
                  :rv)
           target-plans [[ubuntu-target plan]]
-          result (sync (execute-plan-fns session target-plans))]
+          result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))
       (is (= :rv (:return-value (first result))))
@@ -202,31 +202,31 @@
       (is (not (errors result)))
       (is (not (error-exceptions result)))
       (is (nil? (throw-errors result)))))
-  (testing "execute-plan-fns with plan middleware"
+  (testing "execute-plans with plan middleware"
     (testing "to filter out a plan"
       (let [session (plan-session)
             plan
-            ^{:middleware (-> execute
+            ^{:middleware (-> execute-plan*
                               (execute-on-filtered (constantly false)))}
             (fn
               [session]
               (exec-script* session "ls")
               :rv)
             target-plans [[ubuntu-target plan]]
-            result (sync (execute-plan-fns session target-plans))]
+            result (sync (execute-plans session target-plans))]
         (is (not (seq result)))
         (is (not (errors result)))
         (is (not (error-exceptions result)))
         (is (nil? (throw-errors result)))))
     (testing "to include a filtered plan"
       (let [session (plan-session)
-            plan ^{:middleware (-> execute
+            plan ^{:middleware (-> execute-plan*
                                    (execute-on-filtered (constantly true)))}
             (fn [session]
               (exec-script* session "ls")
               :rv)
             target-plans [[ubuntu-target plan]]
-            result (sync (execute-plan-fns session target-plans))]
+            result (sync (execute-plans session target-plans))]
         (is (= 1 (count result)))
         (is (every? #(validate target-result-map %) result))
         (is (= :rv (:return-value (first result))))
@@ -234,7 +234,7 @@
         (is (not (errors result)))
         (is (not (error-exceptions result)))
         (is (nil? (throw-errors result))))))
-  (testing "execute-plan-fns with phase middleware"
+  (testing "execute-plans with phase middleware"
     (let [mw (fn [handler flag]
                (fn [session target-plans ch]
                  (if flag
@@ -244,26 +244,26 @@
       (testing "to filter out plans"
         (let [session (plan-session)
               plan
-              ^{:phase-middleware (-> execute-plan-fns* (mw false))}
+              ^{:phase-middleware (-> execute-plans* (mw false))}
               (fn
                 [session]
                 (exec-script* session "ls")
                 :rv)
               target-plans [[ubuntu-target plan]]
-              result (sync (execute-plan-fns session target-plans))]
+              result (sync (execute-plans session target-plans))]
           (is (not (seq result)))
           (is (not (errors result)))
           (is (not (error-exceptions result)))
           (is (nil? (throw-errors result)))))
       (testing "to include filtered plans"
         (let [session (plan-session)
-              plan ^{:phase-middleware (-> execute-plan-fns* (mw true))}
+              plan ^{:phase-middleware (-> execute-plans* (mw true))}
               (fn
                 [session]
                 (exec-script* session "ls")
                 :rv)
               target-plans [[ubuntu-target plan]]
-              result (sync (execute-plan-fns session target-plans))]
+              result (sync (execute-plans session target-plans))]
           (is (= 1 (count result)))
           (is (every? #(validate target-result-map %) result))
           (is (= :rv (:return-value (first result))))
@@ -271,7 +271,7 @@
           (is (not (errors result)))
           (is (not (error-exceptions result)))
           (is (nil? (throw-errors result)))))))
-  (testing "execute-plan-fns with non-domain exception"
+  (testing "execute-plans with non-domain exception"
     (let [session (plan-session)
           e (ex-info "some exception" {})
           plan (fn [session]
@@ -279,11 +279,11 @@
                  (throw e))
           target-plans [[ubuntu-target plan]]]
       (is (thrown-with-msg?
-           clojure.lang.ExceptionInfo #"execute-plan-fns failed"
-           (sync (execute-plan-fns session target-plans)))
+           clojure.lang.ExceptionInfo #"execute-plans failed"
+           (sync (execute-plans session target-plans)))
           "non domain error should throw")
       (testing "throws an exception"
-        (let [execute-e (try (sync (execute-plan-fns session target-plans))
+        (let [execute-e (try (sync (execute-plans session target-plans))
                              (catch clojure.lang.ExceptionInfo e
                                e))
               {:keys [exceptions results] :as result} (ex-data execute-e)]
@@ -298,14 +298,14 @@
           (is (errors results))
           (is (error-exceptions results))
           (is (thrown? clojure.lang.ExceptionInfo (throw-errors results)))))))
-  (testing "execute-plan-fns with domain exception"
+  (testing "execute-plans with domain exception"
     (let [session (plan-session)
           e (domain-info "some exception" {})
           plan (fn [session]
                  (exec-script* session "ls")
                  (throw e))
           target-plans [[ubuntu-target plan]]
-          result (sync (execute-plan-fns session target-plans))]
+          result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))
       (is (every? :exception result) "reports an exception")

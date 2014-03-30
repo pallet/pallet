@@ -8,7 +8,7 @@
    [pallet.core.executor.ssh :refer [ssh-executor]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.plan :refer [plan-errors execute plan-fn]]
+   [pallet.plan :refer [plan-errors execute-plan plan-fn]]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.stevedore :as stevedore :refer [fragment]]
@@ -40,7 +40,7 @@
           target {:node (localhost)}]
       (testing "simple exec"
         (let [{:keys [action-results return-value] :as result}
-              (execute
+              (execute-plan
                session
                target
                (plan-fn [session]
@@ -51,7 +51,7 @@
           (is (not (plan-errors result)))))
       (testing "non zero exit without error"
         (let [{:keys [return-value action-results] :as result}
-              (execute
+              (execute-plan
                session
                target
                (plan-fn [session]
@@ -64,7 +64,7 @@
           (is (not (plan-errors result)))))
       (testing "zero exit with error"
         (let [{:keys [action-results return-value] :as result}
-              (execute
+              (execute-plan
                session
                target
                (plan-fn [session]

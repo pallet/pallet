@@ -11,7 +11,7 @@
    [pallet.group :refer [group-spec]]
    [pallet.kb :refer [packager-for-os]]
    [pallet.phase :as phase]
-   [pallet.plan :refer [execute-target-plan plan-fn script-template-for-target]]
+   [pallet.plan :refer [execute-plan plan-fn script-template-for-target]]
    [pallet.script :as script :refer [with-script-context]]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
@@ -38,7 +38,7 @@
         (let [session (dissoc session :target)
               target (assoc-in target [:phases phase] f)
               {:keys [action-results] :as result-map}
-              (execute-target-plan
+              (execute-plan
                session target (phase/target-phase (:phases target) phase))]
           (logging/debugf "build-actions result-map %s" result-map)
           result-map)))))

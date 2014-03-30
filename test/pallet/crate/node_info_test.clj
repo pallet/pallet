@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
-   [pallet.plan :refer :all]
+   [pallet.plan :refer [execute-plan]]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
@@ -19,7 +19,7 @@
   (let [session (session/create {:executor (ssh/ssh-executor)
                                  :plan-state (in-memory-plan-state)
                                  :user user/*admin-user*})
-        result (execute session {:node (localhost)} os)]
+        result (execute-plan session {:node (localhost)} os)]
     (is (map? result))
     (is (= 2 (count (:action-results result))))
     (is (map? (node-info session {:node (localhost)}))
