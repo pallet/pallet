@@ -14,10 +14,10 @@ Node removal functions are no-ops."
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
    [pallet.compute.protocols :as impl]
-   [pallet.core.node :as node]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.protocols]
-   [pallet.tag :refer [set-state-for-node]]
+   [pallet.node :as node]
+   [pallet.tag :refer [set-state-flag]]
    [pallet.utils.async :refer [go-try]]))
 
 (deftype NodeTagEphemeral [tags]
@@ -44,7 +44,7 @@ Node removal functions are no-ops."
   ;;                 :group-name (:group-name group-spec)
   ;;                 :service compute))
   ;;   ;; make sure we don't bootstrap
-  ;;   (set-state-for-node :bootstrapped {:node @node})
+  ;;   (set-state-flag :bootstrapped @node)
   ;;   [@node])
 
   pallet.core.protocols/Closeable
@@ -84,5 +84,5 @@ Node removal functions are no-ops."
   (let [service (LocalhostService. (atom nil) environment tag-provider)
         node (localhost {:compute-service service})]
     (reset! (.node service) node)
-    (set-state-for-node :bootstrapped {:node node})
+    (set-state-flag :bootstrapped node)
     service))

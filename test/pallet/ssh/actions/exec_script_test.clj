@@ -37,7 +37,7 @@
   (with-admin-user (assoc *admin-user*
                      :username (test-username))
     (let [session (ssh-session)
-          target {:node (localhost)}]
+          target (localhost)]
       (testing "simple exec"
         (let [{:keys [action-results return-value] :as result}
               (execute-plan

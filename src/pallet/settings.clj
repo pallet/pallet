@@ -3,8 +3,8 @@
   target node ids and a facility keyword."
   (:require
    [pallet.core.plan-state :as plan-state]
-   [pallet.session :refer [plan-state target target-session?]]
-   [pallet.target :as target]))
+   [pallet.node :as node]
+   [pallet.session :refer [plan-state target target-session?]]))
 
 ;; ;;; ## Settings
 (defn get-settings
@@ -15,7 +15,7 @@
      {:pre [(target-session? session)]}
      (plan-state/get-settings
       (plan-state session)
-      (target/id (target session)) facility options))
+      (node/id (target session)) facility options))
   ([session facility]
      (get-settings session facility {})))
 
@@ -25,7 +25,7 @@
    nil `instance-id`, then `:default` is used"
   ([session target facility {:keys [instance-id default] :as options}]
      (plan-state/get-settings
-      (plan-state session) (target/id target) facility options))
+      (plan-state session) (node/id target) facility options))
   ([session target facility]
      (get-target-settings session target facility {})))
 
@@ -37,7 +37,7 @@
      {:pre [(target-session? session)]}
      (plan-state/assoc-settings
       (plan-state session)
-      (target/id (target session))
+      (node/id (target session))
       facility
       kv-pairs
       options))
@@ -51,7 +51,7 @@
   ([session facility path value {:keys [instance-id] :as options}]
      (plan-state/update-settings
       (plan-state session)
-      (target/id (target session))
+      (node/id (target session))
       facility
       assoc-in [path value] options))
   ([session facility path value]
@@ -69,6 +69,6 @@
     (assert f "nil update function")
     (plan-state/update-settings
      (plan-state session)
-     (target/id (target session))
+     (node/id (target session))
      facility
      f args options)))

@@ -15,7 +15,7 @@
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
    [pallet.session :refer [target target-session?]]
-   [pallet.target :as target :refer [node primary-ip ssh-port]]
+   [pallet.node :refer [primary-ip ssh-port]]
    [pallet.target-info :refer [admin-user packager]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]

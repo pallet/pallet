@@ -7,9 +7,9 @@
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
    [pallet.local.execute :refer [local-checked-script]]
+   [pallet.node :as node]
    [pallet.session :as session]
    [pallet.ssh.file-upload.sftp-upload :refer [upload-path]]
-   [pallet.target :as target]
    [pallet.user :refer [effective-username]]))
 
 (defn rsync-upload-file
@@ -38,8 +38,8 @@
      (upload-path upload-root
                   (effective-username (:user action-options))
                   target-path)
-     (target/primary-ip target)
-     (target/ssh-port target)
+     (node/primary-ip target)
+     (node/ssh-port target)
      (:username (:user action-options))
      (merge (-> (default-options action-options)
                 (select-keys [:rsync-path]))

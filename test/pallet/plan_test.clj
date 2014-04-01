@@ -35,12 +35,12 @@
    :os-version "13.10"
    :packager :apt})
 
-(def ubuntu-target {:node (node)})
+(def ubuntu-node (node))
 
 (deftest execute-action-test
   (testing "execute-action"
     (let [session (-> (plan-session)
-                      (set-target ubuntu-target))
+                      (set-target ubuntu-node))
           result (execute-action session {:action {:action-symbol 'a}
                                           :args [1]})]
       (is (validate action-result-map result))
@@ -53,7 +53,7 @@
           "records the results in the session recorder")))
   (testing "execute-action with fail action"
     (let [session (-> (plan-session)
-                      (set-target ubuntu-target))
+                      (set-target ubuntu-node))
           e (try
               (execute-action session
                               {:action {:action-symbol `test-actions/fail}
@@ -80,7 +80,7 @@
           plan (fn [session]
                  (exec-script* session "ls")
                  :rv)
-          result (execute-plan* session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-node plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{:action 'pallet.actions.decl/exec-script*
@@ -95,7 +95,7 @@
                  (with-action-options session {:record-all false}
                    (exec-script* session "ls"))
                  :rv)
-          result (execute-plan* session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-node plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{}] (:action-results result)) "no details in action-results")
@@ -106,7 +106,7 @@
           plan (fn [session]
                  (fail session)
                  :rv)
-          result (execute-plan* session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-node plan)]
       (is (map? result))
       (is (= 1 (count (:action-results result))))
       (is (= [{:action 'pallet.actions.test-actions/fail
@@ -124,10 +124,10 @@
                  (throw e))]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo #"Exception in plan-fn"
-           (execute-plan* session ubuntu-target plan))
+           (execute-plan* session ubuntu-node plan))
           "non domain error should throw")
       (testing "throws an exception"
-        (let [execute-e (try (execute-plan* session ubuntu-target plan)
+        (let [execute-e (try (execute-plan* session ubuntu-node plan)
                              (catch clojure.lang.ExceptionInfo e
                                e))
               {:keys [action-results exception] :as result} (ex-data execute-e)]
@@ -146,7 +146,7 @@
           plan (fn [session]
                  (exec-script* session "ls")
                  (throw e))
-          result (execute-plan* session ubuntu-target plan)]
+          result (execute-plan* session ubuntu-node plan)]
       (is (map? result) "doesn't throw")
       (is (= 1 (count (:action-results result))))
       (is (= e (:exception result)) "reports the exception")
@@ -182,10 +182,6 @@
                        :recorder (in-memory-recorder)})
       (set-user user/*admin-user*)))
 
-(def ubuntu-target {:override {:os-family :ubuntu
-                               :os-version "13.10"
-                               :packager :apt}
-                    :node (node)})
 
 (deftest execute-plans-test
   (testing "execute-plans"
@@ -193,7 +189,7 @@
           plan (fn [session]
                  (exec-script* session "ls")
                  :rv)
-          target-plans [[ubuntu-target plan]]
+          target-plans [{:target ubuntu-node :plan-fn plan}]
           result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))
@@ -212,7 +208,7 @@
               [session]
               (exec-script* session "ls")
               :rv)
-            target-plans [[ubuntu-target plan]]
+            target-plans [{:target ubuntu-node :plan-fn plan}]
             result (sync (execute-plans session target-plans))]
         (is (not (seq result)))
         (is (not (errors result)))
@@ -225,7 +221,7 @@
             (fn [session]
               (exec-script* session "ls")
               :rv)
-            target-plans [[ubuntu-target plan]]
+            target-plans [{:target ubuntu-node :plan-fn plan}]
             result (sync (execute-plans session target-plans))]
         (is (= 1 (count result)))
         (is (every? #(validate target-result-map %) result))
@@ -249,7 +245,7 @@
                 [session]
                 (exec-script* session "ls")
                 :rv)
-              target-plans [[ubuntu-target plan]]
+              target-plans [{:target ubuntu-node :plan-fn plan}]
               result (sync (execute-plans session target-plans))]
           (is (not (seq result)))
           (is (not (errors result)))
@@ -262,7 +258,7 @@
                 [session]
                 (exec-script* session "ls")
                 :rv)
-              target-plans [[ubuntu-target plan]]
+              target-plans [{:target ubuntu-node :plan-fn plan}]
               result (sync (execute-plans session target-plans))]
           (is (= 1 (count result)))
           (is (every? #(validate target-result-map %) result))
@@ -277,7 +273,7 @@
           plan (fn [session]
                  (exec-script* session "ls")
                  (throw e))
-          target-plans [[ubuntu-target plan]]]
+          target-plans [{:target ubuntu-node :plan-fn plan}]]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo #"execute-plans failed"
            (sync (execute-plans session target-plans)))
@@ -291,7 +287,7 @@
           (is (some #(= e (root-cause %)) exceptions)
               "listing an exception with the cause")
           (is (= 1 (count results)) "containing the results")
-          (is (= ubuntu-target (:target (first results)))
+          (is (= ubuntu-node (:target (first results)))
               "reporting the target")
           (is (not (contains? result :rv)) "doesn't record a return value")
           (is (every? plan-errors results))
@@ -304,7 +300,7 @@
           plan (fn [session]
                  (exec-script* session "ls")
                  (throw e))
-          target-plans [[ubuntu-target plan]]
+          target-plans [{:target ubuntu-node :plan-fn plan}]
           result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
       (is (every? #(validate target-result-map %) result))

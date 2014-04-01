@@ -9,16 +9,16 @@
    [pallet.actions.impl :as actions-impl]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.node :as node]
+   [pallet.node :as node]
    [pallet.execute :as execute]
    [pallet.core.executor :refer [node-state]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.group :refer [group-spec]]
+   [pallet.node :as node]
    [pallet.script :as script]
    [pallet.session :as session]
    [pallet.spec :refer [server-spec]]
    [pallet.stevedore :as stevedore]
-   [pallet.target :as target]
    [pallet.user :refer [*admin-user*]]
    [pallet.utils :refer [apply-map]]))
 
@@ -178,7 +178,7 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn target-node-state
   [session key]
   (get (node-state (session/executor session)
-                   (target/node (session/target session)))
+                   (session/target session))
        key))
 
 ;; (defn verify-flag-set

@@ -9,7 +9,7 @@
 
 (use-fixtures :once (logging-threshold-fixture))
 
-(def session {:target {:override {:os-family :centos}}})
+(def session {:target {:os-family :centos}})
 
 (deftest add-repository-test
   (is
@@ -38,5 +38,5 @@
           "http://mirror.centos.org/centos/5.4/os/i386/repodata/repomd.xml"
           :gpgkey "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5"
           :priority 50})))
-    (build-plan [session (assoc-in session [:target :override :is-64bit] false)]
+    (build-plan [session (assoc-in session [:target :is-64bit] false)]
       (add-repository session {:version "5.4" :repository "updates"})))))

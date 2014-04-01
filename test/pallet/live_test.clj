@@ -20,7 +20,7 @@
    [taoensso.timbre :refer [debugf tracef]]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.compute :as compute]
-   [pallet.core.node :as node]
+   [pallet.node :as node]
    [pallet.group :refer [converge phase-errors service-state]]
    [pallet.plan :refer []]
    [pallet.environment :refer [environment]]))

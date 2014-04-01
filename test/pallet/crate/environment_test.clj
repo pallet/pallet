@@ -35,13 +35,13 @@
            (with-script-context [:ubuntu]
              (system-environment-file
               (target-session
-               {:target {:override {:os-family :ubuntu}}})
+               {:target {:os-family :ubuntu}})
               "xx" {}))))
     (is (= ["/etc/profile.d/xx.sh" false]
            (with-script-context [:centos]
              (system-environment-file
               (target-session
-               {:target {:override {:os-family :centos}}})
+               {:target {:os-family :centos}})
               "xx" {}))))))
 
 

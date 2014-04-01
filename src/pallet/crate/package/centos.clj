@@ -4,7 +4,7 @@
    [pallet.actions :refer [package package-source repository]]
    [pallet.plan :refer [defplan]]
    [pallet.session :refer [target]]
-   [pallet.target :refer [is-64bit?]]
+   [pallet.node :refer [is-64bit?]]
    [pallet.utils :refer [apply-map]]))
 
 (def ^{:private true} centos-repo

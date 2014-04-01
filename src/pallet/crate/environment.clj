@@ -5,11 +5,11 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-script* remote-file]]
    [pallet.actions.impl :refer [checked-commands*]]
+   [pallet.node :refer [os-family]]
    [pallet.plan :refer [defplan]]
    [pallet.script.lib :as lib]
    [pallet.session :refer [target]]
-   [pallet.stevedore :as stevedore]
-   [pallet.target :refer [os-family]]))
+   [pallet.stevedore :as stevedore]))
 
 (defn system-environment-file
   [session env-name {:keys [path shared] :or {shared ::not-set} :as options}]

@@ -25,7 +25,7 @@
         plan (fn [session]
                (exec-script* session "ls")
                :rv)
-        result (execute-plan session {:node (localhost)} plan)]
+        result (execute-plan session (localhost) plan)]
     (is (map? result))
     (is (= 1 (count (:action-results result))))
     (is (every? #(zero? (:exit %)) (:action-results result)))

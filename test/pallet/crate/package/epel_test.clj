@@ -9,8 +9,8 @@
 
 (deftest epel-test
   (is
-   (build-plan [session {:target {:override
-                                  {:packager :yum
-                                   :os-family :centos
-                                   :os-version "5.5"}}}]
+   (build-plan [session {:target
+                         {:packager :yum
+                          :os-family :centos
+                          :os-version "5.5"}}]
     (add-epel session {}))))

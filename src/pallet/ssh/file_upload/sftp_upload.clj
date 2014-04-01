@@ -14,7 +14,6 @@
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :refer [node]]
    [pallet.transport :as transport]
    [pallet.user :refer [effective-username]]
    [pallet.utils :refer [base64-md5]])
@@ -124,7 +123,7 @@
                        (-> action-options :user :username)
                        target-path)
           target-md5-path (str upload-path ".md5")]
-      (with-connection ssh-connection (node target)
+      (with-connection ssh-connection target
                        (:user action-options)
                        [connection]
         (let [target-md5 (sftp-remote-md5 connection target-md5-path)

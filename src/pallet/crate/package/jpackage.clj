@@ -10,7 +10,7 @@
    [pallet.plan :refer [defplan]]
    [pallet.session :refer [target]]
    [pallet.settings :refer [assoc-settings get-settings]]
-   [pallet.target :refer [os-family os-version]]))
+   [pallet.node :refer [os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/

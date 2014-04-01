@@ -6,7 +6,6 @@
    [taoensso.timbre :as logging]
    [pallet.core.plan-state :refer [get-settings update-settings]]
    [pallet.session :refer [target]]
-   [pallet.target :as target]
    [pallet.utils :refer [maybe-assoc]]))
 
 (defn normalise-eol

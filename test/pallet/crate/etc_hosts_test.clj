@@ -18,5 +18,5 @@
   (testing "compile"
     (is
      (build-actions
-         [session {:target {:node (test-utils/make-node "g" {:group-name :grp})}}]
+         [session {:target (test-utils/make-node "g" {:group-name :grp})}]
        (etc-hosts/set-hostname session)))))

@@ -59,6 +59,8 @@
           (merge
            (if (domain-error? cause)
              {:pallet/domain true})
+           (if cause
+             (ex-data cause))
            data
            {:exceptions exceptions})
           cause))))

@@ -12,32 +12,43 @@
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
    [pallet.exception
     :refer [combine-exceptions compiler-exception domain-error?]]
+   [pallet.node :refer [script-template validate-node]]
    [pallet.script :refer [with-script-context]]
    [pallet.session
-    :refer [base-session? executor plan-state recorder
-            set-executor set-recorder set-target target-session? user]]
+    :refer [base-session base-session? executor plan-state recorder
+            set-executor set-recorder set-target target-session? user
+            target-session]]
    [pallet.stevedore :refer [with-script-language]]
-   [pallet.target :refer [has-node?]]
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
    [pallet.utils.async
-    :refer [concat-chans map-thread reduce-concat-results reduce-results]]
+    :refer [concat-chans map-thread reduce-concat-results reduce-results
+            WritePort]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
    [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; # Action Plan Execution
 
+(def Target {schema/Keyword schema/Any})
+
 (def action-result-map
-  {schema/Keyword schema/Any})
+  {(schema/optional-key :error) schema/Any ; used to report action
+                                           ; domain errors
+   schema/Keyword schema/Any})
 
 (def plan-result-map
-  {:action-results [action-result-map]
+  {(optional-key :action-results) [action-result-map]
    (optional-key :return-value) schema/Any
    (optional-key :exception) Exception})
 
 (def plan-exception-map
-  (assoc plan-result-map :target schema/Any))
+  (assoc plan-result-map
+    :target schema/Any))
+
+(def PlanResult
+  (assoc plan-result-map
+    :target Target))
 
 ;;; ## Execute action on a target
 (defn execute-action
@@ -78,23 +89,6 @@
       rv)))
 
 ;;; ## Execute a Plan Function against a Target
-(defn script-template-for-target
-  [target]
-  {:pre [target (has-node? target)]}
-  (let [{:keys [os-family os-version packager]}
-        (select-keys (:node target) [:os-family :os-version :packager])
-        context (seq (remove
-                      nil?
-                      [os-family
-                       packager
-                       (when (and os-family os-version)
-                         (keyword
-                          (format "%s-%s" (name os-family) os-version)))]))]
-    (debugf "Script context: %s" (pr-str context))
-    (when-not context
-      (debugf "No script context available: %s" target))
-    context))
-
 (defmulti execute-plan*
   "Execute a plan function. Does not call any plan middleware.
 
@@ -112,6 +106,7 @@
   [session target plan-fn]
   {:return-value (plan-fn session)})
 
+
 ;; Ensures that the session target is set, and that the script
 ;; environment is set up for the node.
 
@@ -122,9 +117,8 @@
 (defmethod execute-plan* ::node
   [session target plan-fn]
   {:pre [(base-session? session)
-         (map? target)
+         (validate-node target)
          (fn? plan-fn)
-         (has-node? target)
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
          (executor session)]
@@ -139,7 +133,7 @@
     (assert (target-session? session) "target session created correctly")
     ;; We need the script context for script blocks in the plan
     ;; functions.
-    (with-script-context (script-template-for-target target)
+    (with-script-context (script-template target)
       (with-script-language :pallet.stevedore.bash/bash
         (debugf "execute* %s" target)
         (let [[rv e] (try
@@ -166,11 +160,12 @@
 
 (defn execute-plan
   "Using the session, execute plan-fn on target. Uses any plan
-  middleware defined on the plan-fn."
+  middleware defined on the plan-fn.  Results are recorded by any
+  recorder in the session, as well as being returned."
   [session target plan-fn]
   {:pre [(fn? plan-fn)
          (map? target)]
-   :post [(or (nil? %) (validate target-result-map %))]}
+   :post [(or (nil? %) (validate PlanResult %))]}
   (let [{:keys [middleware]} (meta plan-fn)
         result (if middleware
                  (middleware session target plan-fn)
@@ -179,6 +174,10 @@
       (assoc result :target target))))
 
 ;;; ## Execute Plan Functions on Mulitple Targets
+(def TargetPlan
+  {:target schema/Any
+   :plan-fn (schema/=> WritePort target-session)})
+
 (defn execute-plans*
   "Using the executor in `session`, execute phase on all targets.
   The targets are executed in parallel, each in its own thread.  A
@@ -191,7 +190,7 @@
   [session target-plans ch]
   (let [c (chan)]
     (->
-     (map-thread (fn execute-plan-fns [[target plan-fn]]
+     (map-thread (fn execute-plan-fns [{:keys [target plan-fn]}]
                    (try
                      [(execute-plan session target plan-fn)]
                      (catch Exception e
@@ -209,8 +208,11 @@
   middleware is called.  plans are executed in parallel.
   `target-plans` is a sequence of target, plan-fn tuples."
   [session target-plans ch]
+  {:pre [(validate base-session session)
+         (validate [TargetPlan] target-plans)
+         (validate WritePort ch)]}
   (debugf "execute-plans %s target-plans" (count target-plans))
-  (let [mw-targets (group-by (comp :phase-middleware meta second)
+  (let [mw-targets (group-by (comp :phase-middleware meta :plan-fn)
                              target-plans)
         c (chan)]
     (debugf "execute-plans %s distinct middleware" (count mw-targets))

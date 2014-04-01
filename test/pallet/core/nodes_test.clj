@@ -1,8 +1,8 @@
 (ns pallet.core.nodes
   (:require
    [clojure.test :refer :all]
-   [pallet.core.node :as node]
-   [pallet.core.nodes :refer :all]))
+   [pallet.core.nodes :refer :all]
+   [pallet.node :as node]))
 
 (deftest localhost-test
   (let [node (localhost {})]

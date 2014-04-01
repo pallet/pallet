@@ -3,7 +3,7 @@
   (:require
    [pallet.kb :refer [packager-for-os]]
    [pallet.session :as session]
-   [pallet.target :as target]
+   [pallet.node :as node]
    [pallet.user :refer [user?]]))
 
 ;;; These functions take a session so we can override algorithms via the session
@@ -12,17 +12,12 @@
   "Return the effective admin `user`, from the target or the global admin user."
   [session]
   {:post [(user? %)]}
-  (or (target/user (session/target session))
+  (or (node/user (session/target session))
       (session/user session)))
 
 (defn packager
   [session]
-  (let [target (session/target session)]
-    (or (target/packager target)
-        (if-let [os-family (target/os-family target)]
-          (packager-for-os os-family (target/os-version target))))))
-
-
-(defn add-node-os
-  [plan-state target]
-  )
+  (let [node (session/target session)]
+    (or (node/packager node)
+        (if-let [os-family (node/os-family node)]
+          (packager-for-os os-family (node/os-version node))))))

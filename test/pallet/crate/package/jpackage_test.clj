@@ -13,10 +13,9 @@
   (is
    (build-plan
        [session {:target
-                 {:node
-                  (make-node "n" {:os-family :centos
-                                  :os-version "5.5"
-                                  :packager :yum})}}]
+                 (make-node "n" {:os-family :centos
+                                 :os-version "5.5"
+                                 :packager :yum})}]
      (jpackage-utils session)
      (add-jpackage session {})
      (package-manager-update-jpackage session))))

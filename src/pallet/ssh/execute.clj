@@ -7,7 +7,7 @@
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions.impl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
-   [pallet.core.node :as node]
+   [pallet.node :as node]
    [pallet.core.script-builder :as script-builder]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output]]

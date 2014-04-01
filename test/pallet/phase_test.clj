@@ -13,8 +13,8 @@
   (is (= :x (phase-kw [:x])))
   (is (= :x (phase-kw [:x :a :b]))))
 
-(deftest target-phase-test
-  (let [f (fn [])]
-    (is (= f (target-phase {:x f} :x)))
-    (is (= f (target-phase {:x f} [:x])))
-    (is (= f (target-phase {:x f} [:x :a :b])))))
+;; (deftest target-phase-test
+;;   (let [f (fn [])]
+;;     (is (= f (target-phase {:x f} :x)))
+;;     (is (= f (target-phase {:x f} [:x])))
+;;     (is (= f (target-phase {:x f} [:x :a :b])))))

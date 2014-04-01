@@ -5,11 +5,11 @@
    [pallet.actions.impl :refer [*script-location-info*]]
    [pallet.build-actions :refer [build-plan]]
    [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
+   [pallet.node :refer [primary-ip]]
    [pallet.plan :refer [plan-context plan-fn]]
    [pallet.group :refer [group-spec lift]]
    [pallet.script.lib :refer [ls]]
    [pallet.stevedore :as stevedore]
-   [pallet.target :refer [primary-ip]]
    [pallet.test-utils :refer [make-localhost-compute test-username
                               with-location-info]]
    [pallet.user :refer [*admin-user*]]))

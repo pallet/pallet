@@ -5,13 +5,12 @@
    [pallet.action :refer [implementation]]
    [pallet.actions.direct :refer [direct-script]]
    [pallet.core.executor.protocols :refer :all]
-   [pallet.core.node :as node]
    [pallet.core.script-state :as script-state :refer [update-node-state]]
    [pallet.execute :refer [result-with-error-map]]
    [pallet.exception :refer [domain-info]]
    [pallet.ssh.execute :as ssh]
    [pallet.local.execute :as local]
-   [pallet.target :refer [primary-ip]]
+   [pallet.node :as node :refer [primary-ip]]
    [pallet.transport :as transport]
    [pallet.user :refer [user?]]))
 
@@ -25,10 +24,9 @@
 
 (deftype SshActionExecutor [transport state]
   ActionExecutor
-  (execute [executor target action]
-    {:pre [(:node target)(map? action)]}
-    (let [node (:node target)
-          [metadata value] (direct-script
+  (execute [executor node action]
+    {:pre [node (map? action)]}
+    (let [[metadata value] (direct-script
                             action
                             (script-state/node-state @state (node/id node)))]
       (logging/debugf "metadata %s" (pr-str metadata))
@@ -45,7 +43,7 @@
                   (when (and exit (pos? exit)
                              (:error-on-non-zero-exit (:options action) true))
                     (let [result (result-with-error-map
-                                  (primary-ip target) "Error executing script"
+                                  (primary-ip node) "Error executing script"
                                   result)]
                       (throw
                        (domain-info
@@ -53,10 +51,9 @@
                         {:result result}))))
                   result)
 
-        :transfer/from-local {:return-value ((:f value) target)}
+        :transfer/from-local {:return-value ((:f value) node)}
         :transfer/to-local (ssh/ssh-to-local
-                            transport (:node target) (:user action)
-                            value))))
+                            transport node (:user action) value))))
 
   ActionExecutorState
   (node-state [executor node]

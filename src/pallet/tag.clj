@@ -3,7 +3,7 @@
   (:require
    [taoensso.timbre :refer [debugf tracef]]
    [clojure.string :refer [blank?]]
-   [pallet.core.node :refer [id image-user node? tag tag! taggable?]]))
+   [pallet.node :refer [id node? tag tag! taggable?]]))
 
 ;;; # Node state tagging
 (def state-tag-name "pallet/state")
@@ -14,7 +14,7 @@
     {}
     (read-string s)))
 
-(defn set-state-for-node
+(defn set-state-flag
   "Sets the boolean `state-name` flag on `node`."
   [node state-name]
   {:pre [(node? node)]}

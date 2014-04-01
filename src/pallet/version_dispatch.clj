@@ -17,8 +17,8 @@ data may provide a version."
    [pallet.core.version-dispatch
     :refer [os-match-less version-spec-more-specific version-map]]
    [pallet.exception :refer [compiler-exception]]
+   [pallet.node :refer [os-family os-version]]
    [pallet.plan :refer [plan-context defmulti-every]]
-   [pallet.target :refer [os-family os-version]]
    [pallet.utils.multi :as multi]
    [pallet.versions :refer [as-version-vector version-matches? version-spec?]]))
 

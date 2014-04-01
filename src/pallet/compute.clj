@@ -147,16 +147,6 @@ Provider specific options may also be passed."
   (require-protocol impl/ComputeService compute 'nodes)
   (impl/nodes compute ch))
 
-(defn targets
-  "Return the targets from the compute service."
-  [compute ch]
-  (require-protocol impl/ComputeService compute 'targets)
-  (go-try ch
-    (let [c (chan)]
-      (impl/nodes compute c)
-      (let [[nodes e] (<! c)]
-        (>! ch [(map #(hash-map :node %) nodes) e])))))
-
 (defn create-nodes
   "Create nodes running in the compute service."
   [compute node-spec user node-count options ch]
@@ -165,8 +155,10 @@ Provider specific options may also be passed."
   (impl/create-nodes compute node-spec user node-count options ch))
 
 (defn destroy-nodes
-  "Destroy the nodes running in the compute service. Return a sequence
-  of node ids that have been destroyed."
+  "Destroy the nodes running in the compute service. Writes arex-tuple
+  with a sequence of result maps, with the :return-value set
+  to :pallet.compute/target-remved if the node as been successfully
+  destroyed."
   [compute nodes ch]
   (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'destroy-nodes)
   (impl/destroy-nodes compute nodes ch))

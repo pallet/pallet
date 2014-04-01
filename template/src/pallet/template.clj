@@ -3,7 +3,7 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [remote-file]]
-   [pallet.target :refer [os-family packager]]
+   [pallet.node :refer [os-family packager]]
    [pallet.session :refer [target]]
    [pallet.strint :as strint]
    [pallet.utils :as utils]

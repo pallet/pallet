@@ -23,9 +23,9 @@
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.protocols :as impl :refer [node-tag]]
-   [pallet.core.node :as node]
    [pallet.core.protocols :as core-impl]
    [pallet.environment :as environment]
+   [pallet.node :as node]
    [pallet.utils :refer [apply-map]]
    [pallet.utils.async :refer [go-try]])
   (:import

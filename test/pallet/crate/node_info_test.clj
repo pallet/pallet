@@ -19,8 +19,8 @@
   (let [session (session/create {:executor (ssh/ssh-executor)
                                  :plan-state (in-memory-plan-state)
                                  :user user/*admin-user*})
-        result (execute-plan session {:node (localhost)} os)]
+        result (execute-plan session (localhost) os)]
     (is (map? result))
     (is (= 2 (count (:action-results result))))
-    (is (map? (node-info session {:node (localhost)}))
+    (is (map? (node-info session (localhost)))
         "The os phase updates the plan-state with the discovered os details")))

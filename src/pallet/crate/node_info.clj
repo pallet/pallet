@@ -4,15 +4,14 @@
    [clojure.string :as string :refer [blank? lower-case]]
    [taoensso.timbre :refer [debugf]]
    [pallet.actions :refer [exec-script]]
-   [pallet.core.node :refer [node-values-schema]]
    [pallet.middleware :refer [execute-on-filtered]]
+   [pallet.node :as node :refer [node-values-schema]]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.spec :as spec :refer [bootstrapped-meta unbootstrapped-meta]]
    [pallet.session :refer [plan-state target target-session?]]
    [pallet.settings
     :refer [assoc-settings get-settings get-target-settings update-settings]]
    [pallet.stevedore :refer [script]]
-   [pallet.target :as target]
    [pallet.utils :refer [maybe-assoc]]
    [schema.core :as schema :refer [check optional-key validate]]))
 
@@ -24,7 +23,7 @@
 (defn node-info
   "Return the node information in settings for the specified target."
   [session target]
-  {:pre [(target/has-node? target)]
+  {:pre [(node/node? target)]
    :post [(or (nil? %) (node-details-map? %))]}
   (let [node-info-map (get-target-settings session target facility)]
     (debugf "node-info node-info-map %s" node-info-map)
@@ -45,7 +44,7 @@
 (defn target-with-os
   "Adds any inferred os details to a target"
   [target plan-state]
-  (merge (node-info (target/node target) plan-state) target))
+  (merge (node-info target plan-state) target))
 
 ;;; NB no script functions here
 (defn os-detection
@@ -165,11 +164,11 @@
                          unbootstrapped-meta
                          (update-in unbootstrapped-meta [:middleware]
                                     #(execute-on-filtered
-                                      % (complement target/os-family)))))
+                                      % (complement node/os-family)))))
      :pallet/os-bs (vary-meta
                     (plan-fn [session] (os session))
                     merge (if all-targets
                             bootstrapped-meta
                             (update-in bootstrapped-meta [:middleware]
                                        #(execute-on-filtered
-                                         % (complement target/os-family)))))}}))
+                                         % (complement node/os-family)))))}}))

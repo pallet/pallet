@@ -7,11 +7,11 @@ service."
    [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
-   [pallet.phase :refer [phases-with-meta]]
+   [pallet.node :as node]
+   [pallet.phase :refer [phase-schema phases-with-meta]]
    [pallet.plan :refer [execute-plan*]]
    [pallet.session :as session
     :refer [extension set-extension update-extension]]
-   [pallet.target :as target]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [schema.core :as schema :refer [check required-key optional-key validate]])
   (:import clojure.lang.IFn))
@@ -42,6 +42,11 @@ service."
    (optional-key :phases-meta) phases-meta-schema
    (optional-key :default-phases) [schema/Keyword]
    (optional-key :override) override-schema})
+
+(def ExtendedServerSpec
+  (assoc server-spec-schema
+    ;; allow extensions to the server-spec
+    schema/Any schema/Any))
 
 (defn check-server-spec
   [m]
@@ -150,13 +155,13 @@ specified in the `:extends` argument."
 (defn ^:internal add-target
   "Record the target-map in the session targets extension."
   [session target]
-  {:pre [(target/has-node? target)]}
+  {:pre [(node/node? target)]}
   (update-extension session targets-extension (fnil conj []) target))
 
 (defn ^:internal set-targets
   "Set the target-maps in the session targets extension."
   [session targets]
-  {:pre [(every? target/has-node? targets)]}
+  {:pre [(every? node/node? targets)]}
   (set-extension session targets-extension targets))
 
 (defn targets
@@ -171,9 +176,9 @@ specified in the `:extends` argument."
 ;;; of target maps, where each target map is for a single node, and
 ;;; specifies the server-spec for that node.
 
-(defn target-with-specs
-  "Build a target from a target and a sequence of predicate, spec pairs.
-  The returned target will contain all specs where the predicate
+(defn spec-for-target
+  "Build a spec from a target and a sequence of predicate, spec pairs.
+  The returned spec will contain all specs where the predicate
   returns true, merged in the order they are specified in the input
   sequence."
   [predicate-spec-pairs target]
@@ -181,11 +186,22 @@ specified in the `:extends` argument."
                        (= 2 (count %))
                        (fn? (first %))
                        (map? (second %)))
-                 predicate-spec-pairs)]}
+                 predicate-spec-pairs)
+         (validate [ExtendedServerSpec] (map second predicate-spec-pairs))]
+   :post [(validate ExtendedServerSpec %)]}
   (reduce
-   (fn [target [predicate spec]]
+   (fn [target-spec [predicate spec]]
      (if (predicate target)
-       (merge-specs merge-spec-algorithm target spec)
-       target))
-   target
+       (merge-specs merge-spec-algorithm target-spec spec)
+       target-spec))
+   {}
    predicate-spec-pairs))
+
+;;; Look up a phase plan-fn
+(defn phase-plan
+  "Return a plan-fn for `spec`, corresponding to the phase-spec map, `phase`."
+  [spec {:keys [phase args]}]
+  (if-let [f (phase (:phases spec))]
+    (if args
+      #(apply f % args)
+      f)))

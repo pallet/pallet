@@ -7,12 +7,12 @@
    [pallet.actions
     :refer [exec-checked-script exec-script remote-file sed]]
    [pallet.kb :refer [os-hierarchy]]
+   [pallet.node :as node]
    [pallet.plan :refer [defmethod-plan defmulti-plan defplan]]
    [pallet.script.lib :as lib]
    [pallet.session :refer [target]]
    [pallet.settings :refer [get-settings update-settings]]
-   [pallet.stevedore :as stevedore]
-   [pallet.target :as target]))
+   [pallet.stevedore :as stevedore]))
 
 ;;; ## Add entries to the host file settings
 (defn merge-hosts [& ms]
@@ -71,13 +71,13 @@
     :or {use-hostname true use-private-ip true}}]
   (let [h (when use-hostname (hostname {:fqdn true}))
         n (target session)]
-    {(or (and use-private-ip (target/private-ip n))
-         (target/primary-ip n))
+    {(or (and use-private-ip (node/private-ip n))
+         (node/primary-ip n))
      (vec
       (filter identity
               [(if (and use-hostname (not (blank? (:out @h))))
                  (:out @h)
-                 (target/hostname session))]))}))
+                 (node/hostname session))]))}))
 
 
 ;;; ## Localhost and other Aliases
@@ -127,7 +127,7 @@
   (fn [session hostname]
     (assert hostname "Must specify a valid hostname")
     (debugf "hostname dispatch %s" hostname)
-    (let [os (target/os-family (target session))]
+    (let [os (node/os-family (target session))]
       (debugf "hostname for os %s" os)
       os))
   {:hierarchy os-hierarchy})
@@ -158,7 +158,7 @@
   "Set the hostname on a node. Note that sudo may stop working if the
 hostname is not in /etc/hosts."
   [session & {:keys [update-etc-hosts] :or {update-etc-hosts true}}]
-  (let [node-name (target/hostname (target session))]
+  (let [node-name (node/hostname (target session))]
     (when update-etc-hosts
       (when-not (:exit
                  (exec-script session ("grep" ~node-name (lib/etc-hosts))))
@@ -166,6 +166,6 @@ hostname is not in /etc/hosts."
          session
          "Add self hostname"
          (println ">>" (lib/etc-hosts))
-         ((println ~(target/primary-ip (target session)) " " ~node-name)
+         ((println ~(node/primary-ip (target session)) " " ~node-name)
           ">>" (lib/etc-hosts)))))
     (set-hostname* session node-name)))

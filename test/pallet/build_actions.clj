@@ -10,8 +10,9 @@
    [pallet.environment :as environment]
    [pallet.group :refer [group-spec]]
    [pallet.kb :refer [packager-for-os]]
+   [pallet.node :refer [script-template]]
    [pallet.phase :as phase]
-   [pallet.plan :refer [execute-plan plan-fn script-template-for-target]]
+   [pallet.plan :refer [execute-plan plan-fn]]
    [pallet.script :as script :refer [with-script-context]]
    [pallet.session
     :refer [plan-state target target-session? validate-target-session]]
@@ -30,16 +31,15 @@
   (let [phase (:phase session)
         session (dissoc session :phase)
         _ (validate-target-session session)
-        target (target session)]
+        target (target session)
+        plan-fn f]
     (logging/debugf "produce-phases %s" session)
     (assert phase)
-    (with-script-context (script-template-for-target target)
+    (with-script-context (script-template target)
       (with-script-language :pallet.stevedore.bash/bash
         (let [session (dissoc session :target)
-              target (assoc-in target [:phases phase] f)
               {:keys [action-results] :as result-map}
-              (execute-plan
-               session target (phase/target-phase (:phases target) phase))]
+              (execute-plan session target plan-fn)]
           (logging/debugf "build-actions result-map %s" result-map)
           result-map)))))
 
@@ -51,19 +51,17 @@
   [session]
   {:post [(validate-target-session (dissoc % :phase))]}
   (let [session (or session {})
-        session (update-in session [:target]
-                           #(or
-                             %
-                             (group-spec
-                                 (or
-                                  ;; (when-let [node (-> session :target :node)]
-                                  ;; (node/group-name node))
-                                  :id)
-                               {})))
-        session (update-in session [:target :override :os-family]
-                           #(or % :ubuntu))
+        ;; session (update-in session [:target]
+        ;;                    #(or
+        ;;                      %
+        ;;                      (group-spec
+        ;;                          (or
+        ;;                           ;; (when-let [node (-> session :target)]
+        ;;                           ;; (node/group-name node))
+        ;;                           :id)
+        ;;                        {})))
         session (update-in
-                 session [:target :node]
+                 session [:target]
                  #(or
                    %
                    (test-utils/make-node
@@ -81,6 +79,11 @@
                      ;; :id (or (-> session :target :node) :id)
                      :is-64bit (get-in session
                                        [:target :override :is-64bit] true)})))
+        session (update-in session [:target :os-family]
+                           #(or % :ubuntu))
+        session (update-in session [:target :id]
+                           #(or % "id"))
+
         ;; session (update-in session [:server] merge (:group session))
         ;; session (update-in session [:service-state]
         ;            #(or % [(:target session)]))

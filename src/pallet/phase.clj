@@ -20,6 +20,10 @@ Phase maps enable composition of operations across heterogenous nodes."
 (def phase-schema
   (schema/either schema/Keyword IFn phase-with-args-schema))
 
+(def PhaseSpec
+  {:phase schema/Keyword
+   (schema/optional-key :args) [schema/Any]})
+
 (defn phase-args [phase]
   (if (keyword? phase)
     nil
@@ -30,9 +34,16 @@ Phase maps enable composition of operations across heterogenous nodes."
     phase
     (first phase)))
 
-(defn target-phase [phases-map phase]
-  (tracef "target-phase %s %s" phases-map phase)
-  ((phase-kw phase) phases-map))
+(defn phase-spec
+  "Return a phase spec map for a phase call.  A phase call is either a
+  phase keyword, or a sequence of phase keyword an arguments for the
+  phase function."
+  [phase]
+  {:pre [(schema/validate phase-schema phase)]
+   :post [(schema/validate PhaseSpec %)]}
+  (let [args (phase-args phase)]
+    (cond-> {:phase (phase-kw phase)}
+      (seq args) (assoc :args args))))
 
 ;;; # Phase metadata
 (defn phases-with-meta

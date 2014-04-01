@@ -8,11 +8,11 @@
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.exception :refer [domain-info]]
+   [pallet.node :as node]
    [pallet.plan :refer [plan-fn]]
    [pallet.spec :refer :all]
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
-   [pallet.target :as target]
    [pallet.user :as user]
    [schema.core :as schema :refer [validate]]))
 
@@ -54,21 +54,21 @@
   (testing "type"
     (is (= :pallet.spec/server-spec (type (server-spec {:roles :r1}))))))
 
-(deftest target-with-specs-test
+(deftest spec-for-target-test
   (testing "two specs with different roles"
     (let [s1 (server-spec {:roles :r1})
           s2 (server-spec {:roles :r2})]
       (testing "predicates that macth different nodes"
         (let [predicate-spec-pairs [[(fn [n] (= :ubuntu
-                                                (-> n :node :os-family))) s1]
-                                    [(fn [n] (= 22 (target/ssh-port n))) s2]]]
+                                                (-> n :os-family))) s1]
+                                    [(fn [n] (= 22 (node/ssh-port n))) s2]]]
           (testing "node matching one spec"
-            (let [n1 {:node {:id "n1" :os-family :centos :ssh-port 22}}]
-              (is (= (assoc (server-spec {:extends [s2]}) :node (:node n1))
-                     (target-with-specs predicate-spec-pairs n1))
+            (let [n1 {:id "n1" :os-family :centos :ssh-port 22}]
+              (is (= (server-spec {:extends [s2]})
+                     (spec-for-target predicate-spec-pairs n1))
                   "Target has correct roles")))
           (testing "node matching two specs"
-            (let [n2 {:node {:id "n2" :os-family :ubuntu :ssh-port 22}}]
-              (is (= (assoc (server-spec {:extends [s1 s2]}) :node (:node n2))
-                     (target-with-specs predicate-spec-pairs n2))
+            (let [n2 {:id "n2" :os-family :ubuntu :ssh-port 22}]
+              (is (= (server-spec {:extends [s1 s2]})
+                     (spec-for-target predicate-spec-pairs n2))
                   "Target has correct roles"))))))))

@@ -5,7 +5,7 @@
    [com.palletops.log-config.timbre :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.node :as node]
+   [pallet.node :as node]
    [pallet.tag :refer [has-state-flag?]]
    [pallet.utils :refer [tmpfile with-temporary with-temp-file]]
    [pallet.utils.async :refer [sync]]))

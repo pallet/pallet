@@ -1,9 +1,9 @@
-(ns pallet.core.node
+(ns pallet.node
   "Provider level API for nodes in pallet"
   (:refer-clojure :exclude [proxy])
   (:require
    [clojure.stacktrace :refer [print-cause-trace]]
-   [taoensso.timbre :refer [trace]]
+   [taoensso.timbre :refer [debugf trace]]
    [pallet.compute.protocols :as impl]
    [pallet.user :refer [user-schema]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
@@ -209,3 +209,20 @@ keys may be present."
          (compute-service node)
          (string? base-name)]}
   (impl/matches-base-name? (compute-service node) (hostname node) base-name))
+
+(defn script-template
+  [node]
+  {:pre [(validate-node node)]}
+  (let [{:keys [os-family os-version packager]}
+        (select-keys node [:os-family :os-version :packager])
+        context (seq (remove
+                      nil?
+                      [os-family
+                       packager
+                       (when (and os-family os-version)
+                         (keyword
+                          (format "%s-%s" (name os-family) os-version)))]))]
+    (debugf "Script context: %s" (pr-str context))
+    (when-not context
+      (debugf "No script context available: %s" node))
+    context))

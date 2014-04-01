@@ -15,7 +15,7 @@
   []
   (-> (session/create {:executor (plan/plan-executor)
                        :recorder (in-memory-recorder)})
-      (session/set-target {:node {:id "localhost"}})
+      (session/set-target {:id "localhost"})
       (session/set-user user/*admin-user*)))
 
 (deftest declare-action-test

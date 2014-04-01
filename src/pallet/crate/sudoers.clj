@@ -6,13 +6,13 @@
    [pallet.crate-install :as crate-install]
    [pallet.group :as group]
    [pallet.kb :refer [admin-group]]
+   [pallet.node :refer [os-family os-version]]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.script.lib :refer [file config-root]]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
    [pallet.session :refer [target target-session?]]
    [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
-   [pallet.target :refer [os-family os-version]]
    [pallet.utils :as utils :refer [conj-distinct]]))
 
 ;; TODO - add recogintion of +key or key+

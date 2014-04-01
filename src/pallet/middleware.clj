@@ -5,15 +5,15 @@
    [pallet.plan :as plan :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
-   [pallet.target :as target]))
+   [pallet.node :as node]))
 
 ;;; # Admin-user setting middleware
 (defn image-user-middleware
   "Returns a middleware for setting the admin user to the image credentials."
   [handler]
   (fn [session target plan-fn]
-    {:pre [(target/has-node? target)]}
-    (let [user (into {} (filter val (target/image-user target)))
+    {:pre [(node/node? target)]}
+    (let [user (into {} (filter val (node/image-user target)))
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
                  user)
@@ -35,10 +35,10 @@
   have the state flag set."
   [handler state-flag]
   (fn execute-one-shot-flag [session target plan-fn]
-    {:pre [(target/has-node? target)]}
-    (when-not (target/has-state-flag? target state-flag)
+    {:pre [(node/node? target)]}
+    (when-not (tag/has-state-flag? target state-flag)
       (let [result (handler session target plan-fn)]
-        (target/set-state-flag target state-flag)
+        (tag/set-state-flag target state-flag)
         result))))
 
 (defn execute-on-filtered
@@ -48,7 +48,7 @@
   (logging/tracef "execute-on-filtered")
   (fn execute-on-filtered
     [session target plan-fn]
-    {:pre [(target/has-node? target)]}
+    {:pre [(node/node? target)]}
     (when (filter-f target)
       (handler session target plan-fn))))
 
@@ -57,7 +57,7 @@
   that have the specified state flag set."
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
-  (execute-on-filtered handler #(target/has-state-flag? % state-flag)))
+  (execute-on-filtered handler #(tag/has-state-flag? % state-flag)))
 
 (defn execute-on-unflagged
   "Return an action middleware, that will execute a phase on nodes
@@ -65,4 +65,4 @@
   [handler state-flag]
   (logging/tracef "execute-on-flagged state-flag %s" state-flag)
   (execute-on-filtered
-   handler (complement #(target/has-state-flag? % state-flag))))
+   handler (complement #(tag/has-state-flag? % state-flag))))

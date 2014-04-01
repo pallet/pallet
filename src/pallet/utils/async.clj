@@ -12,6 +12,9 @@
 (defn ^:no-check channel? [x]
   (satisfies? Channel x))
 
+(def ReadPort clojure.core.async.impl.protocols.ReadPort)
+(def WritePort clojure.core.async.impl.protocols.WritePort)
+
 (defmacro go-logged
   "Provides a go macro, where any exception thrown by body is logged."
   [& body]

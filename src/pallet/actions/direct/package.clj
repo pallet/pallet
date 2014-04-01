@@ -20,8 +20,8 @@
    [pallet.actions.impl :refer [checked-commands]]
    [pallet.actions.direct.file :refer [sed*]]
    [pallet.actions.direct.remote-file :refer [remote-file*]]
+   [pallet.node :refer [os-family]]
    [pallet.script.lib :as lib]
-   [pallet.target :refer [os-family]]
    [pallet.script :refer [with-script-context *script-context*]]
    [pallet.stevedore :as stevedore
     :refer [checked-script fragment with-source-line-comments]]

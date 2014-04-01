@@ -4,7 +4,7 @@
    [pallet.compute :refer [service-properties]]
    [pallet.compute.node-list :refer [node-list-service]]
    [pallet.executors :refer [action-plan-data]]
-   [pallet.core.node :as node :refer [node-map]]))
+   [pallet.node :as node :refer [node-map]]))
 
 (defn service-map-from-compute [compute]
   (service-properties compute))

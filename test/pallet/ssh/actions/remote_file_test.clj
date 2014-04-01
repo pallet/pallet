@@ -123,7 +123,7 @@
                 (is (nil? (phase-errors result)))
                 (is (some
                      #(= (first (sync (nodes compute))) %)
-                     (map :node (:targets result)))))
+                     (:targets result))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
               (is (slurp (str (upload-file-path
@@ -148,7 +148,7 @@
                   (is (nil? (phase-errors result)))
                   (is (some
                        #(= (first (sync (nodes compute))) %)
-                       (map :node (:targets result))))))
+                       (:targets result)))))
               (testing "with md5 guard different content"
                 (logging/info "remote-file test: local-file with md5 guard")
                 (io/copy "text2" tmp)
@@ -167,7 +167,7 @@
                   (is (nil? (:exception result)))
                   (is (some
                        #(= (first (sync (nodes compute))) %)
-                       (map :node (:targets result)))))))
+                       (:targets result))))))
             (testing "content"
               (let [result (lift
                             local
@@ -375,7 +375,7 @@
 ;;               (is (nil? (phase-errors session)))
 ;;               (is (some
 ;;                    #(= (first (nodes compute)) %)
-;;                    (map :node (:targets session)))))
+;;                    (:targets session))))
 ;;             (is (.canRead target-tmp))
 ;;             (is (= "text" (slurp (.getPath target-tmp))))))))))
 
@@ -408,7 +408,7 @@
 ;;               (is (nil? (phase-errors result)))
 ;;               (is (some
 ;;                    #(= (first (nodes compute)) %)
-;;                    (map :node (:targets result)))))
+;;                    (:targets result))))
 ;;             (is (.canRead target-tmp))
 ;;             (is (= "text" (slurp (.getPath target-tmp))))))))))
 

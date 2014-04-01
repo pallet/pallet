@@ -1,7 +1,7 @@
 (ns pallet.core.node-test
   (:require
    [clojure.test :refer :all]
-   [pallet.core.node :as node :refer [node-address]]))
+   [pallet.node :as node :refer [node-address]]))
 
 (deftest node?-test
   (is (not (node/node? {})))

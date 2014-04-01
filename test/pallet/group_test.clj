@@ -246,14 +246,14 @@
 (deftest service-state-test
   (testing "service state"
     (let [service (make-localhost-compute :group-name :local)
-          ss (group/service-state
-              (sync (compute/targets service))
-              [(group/group-spec :local {})])]
+          nodes (sync (compute/nodes service))
+          ss (group/service-state nodes [(group/group-spec :local {})])]
+      (is (= 1 (count nodes)))
       (is (= 1 (count ss)))
-      (is (= :local (:group-name (first ss))))
+      (is (= :local (:group-name (:spec (first ss)))))
       (is (= (dissoc (localhost {:group-name :local}) :compute-service)
-             (dissoc (:node (first ss)) :compute-service)))
-      (is (every? :node ss)))))
+             (dissoc (:target (first ss)) :compute-service)))
+      (is (every? :target ss)))))
 
 (deftest all-group-nodes-test
   (testing "all-group-nodes"
@@ -263,9 +263,9 @@
               [(group/group-spec :local {})]
               [(group/group-spec :other {})])]
       (is (= 1 (count ss)))
-      (is (= :local (:group-name (first ss))))
+      (is (= :local (:group-name (:spec (first ss)))))
       (is (= (dissoc (localhost {:group-name :local}) :compute-service)
-             (dissoc (:node (first ss)) :compute-service))))))
+             (dissoc (:target (first ss)) :compute-service))))))
 
 (deftest node-count-adjuster-test
   (testing "node-count-adjuster"
@@ -276,9 +276,9 @@
           g (group/group-spec :local {:count 1})
           c (chan)
           targets (group/service-state
-                   (sync (compute/targets service))
+                   (sync (compute/nodes service))
                    [(group/group-spec :local {})])
-          _ (is (every? :node targets))
+          _ (is (every? :target targets))
           r (group/node-count-adjuster
              session
              service [g]
@@ -307,9 +307,9 @@
                                      (exec-script* session "ls"))}})
           c (chan)
           targets (group/service-state
-                   (sync (compute/targets service))
+                   (sync (compute/nodes service))
                    [(group/group-spec :local {})])
-          _ (is (every? :node targets))
+          _ (is (every? :target targets))
           r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]
       (is (map? res) "Result is a map")

@@ -11,7 +11,7 @@
 
 (use-fixtures :once (logging-threshold-fixture))
 
-(def session {:target {:override {:os-family :debian}}})
+(def session {:target {:os-family :debian}})
 
 (deftest debian-backports-test
   (is

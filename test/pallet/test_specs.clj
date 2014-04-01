@@ -30,7 +30,7 @@
   ;;           target-node
   ;;           target-nodes
   ;;           targets]]
-  ;;  [pallet.core.node :refer [id tag tag!]]
+  ;;  [pallet.node :refer [id tag tag!]]
   ;;  [pallet.plan :refer [defplan]]
   ;;  [pallet.script-test :refer [is-true is= testing-script]]
   ;;  [pallet.settings :refer [assoc-in-settings get-settings]]

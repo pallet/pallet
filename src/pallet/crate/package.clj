@@ -5,7 +5,7 @@
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.settings :refer [get-settings update-settings]]
    [pallet.spec :as spec]
-   [pallet.target :refer [packager]]
+   [pallet.node :refer [packager]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 

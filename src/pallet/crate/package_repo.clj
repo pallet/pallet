@@ -5,7 +5,7 @@
    [pallet.plan :refer [defplan]]
    [pallet.script :refer [defimpl defscript]]
    [pallet.session :refer [target]]
-   [pallet.target :refer [packager]]))
+   [pallet.node :refer [packager]]))
 
 ;; https://help.ubuntu.com/community/Repositories/Personal
 ;; http://odzangba.wordpress.com/2006/10/13/how-to-build-local-apt-repositories/

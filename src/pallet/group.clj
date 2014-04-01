@@ -1,7 +1,7 @@
 (ns pallet.group
-  "Pallet Group functions for adjusting nodes
+  "Pallet Group functions for adjusting groups of nodes
 
-Provides the node-spec, service-spec and group-spec abstractions.
+Provides the group-spec abstraction.
 
 Provides the lift and converge operations.
 
@@ -18,24 +18,24 @@ Uses a TargetMap to describe a node with its group-spec info."
             node-spec-schema service-properties]]
    [pallet.crate.node-info :as node-info]
    [pallet.core.executor.ssh :as ssh]
-   [pallet.core.node :as node :refer [node?]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
+   [pallet.node :as node :refer [node?]]
    [pallet.phase :as phase
-    :refer [phases-with-meta process-phases phase-schema]]
+    :refer [phases-with-meta process-phases phase-schema phase-spec]]
    [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
             recorder target target-session? update-extension]]
    [pallet.spec :as spec
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
-            targets target-with-specs]]
-   [pallet.target :as target]
+            set-targets targets]]
    [pallet.target-info :refer [admin-user]]
    [pallet.target-ops
-    :refer [create-targets destroy-targets lift-op lift-phase]]
+    :refer [create-targets destroy-targets lift-abort-on-error lift-phase
+            target-phase target-plan target-with-specs TargetSpec]]
    [pallet.user :as user]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
@@ -99,7 +99,8 @@ Uses a TargetMap to describe a node with its group-spec info."
 ;;; ## Group-spec
 
 (defn group-spec
-  "Create a group-spec.
+  "Create a group-spec.  A group spec is a server spec, with additional
+  keys for matching nodes.
 
    `name` is used for the group name, which is set on each node and links a node
    to its node-spec
@@ -294,16 +295,16 @@ Uses a TargetMap to describe a node with its group-spec info."
   fall back onto checking the whether the node's base-name matches the
   group name."
   [target group-name]
-  {:pre [(target/node target)]}
-  (if (target/taggable? target)
-    (= group-name (target/tag target group-name-tag))
-    (target/has-base-name? target group-name)))
+  {:pre [(node? target)]}
+  (if (node/taggable? target)
+    (= group-name (node/tag target group-name-tag))
+    (node/has-base-name? target group-name)))
 
 (defn target-in-group?
   "Check if a node satisfies a group's node-filter."
   {:internal true}
   [target group]
-  {:pre [(target/node target)
+  {:pre [(node? target)
          (check-group-spec group)]}
   (debugf "node-in-group? target %s group %s" target group)
   (debugf "node-in-group? target in group %s"
@@ -313,13 +314,16 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 ;;; # Map Nodes to Groups Based on Group's Node-Filter
 (defn service-state
-  "For a sequence of targets, filter those nodes in the specified
-  `groups`. Returns a sequence that contains a target-map for each
+  "For a sequence of nodes, filter those nodes in the specified
+  `groups`. Returns a sequence that contains a target-spec map for each
   matching target."
-  [targets groups]
+  [nodes groups]
   {:pre [(every? #(check-group-spec %) groups)
-         (every? target/node targets)]}
-  (tracef "service-state %s" (vec targets))
+         (every? node? nodes)]
+   :post [(validate [TargetSpec] %)]}
+  (tracef "service-state %s" (vec nodes))
+  (debugf "service-state local %s"
+          (mapv #(node/has-base-name? % "local") nodes))
   (let [group-member? (fn [group]
                         (let [group-name (name (:group-name group))]
                           (:node-filter
@@ -328,9 +332,9 @@ Uses a TargetMap to describe a node with its group-spec info."
                              (target-has-group-name? target group-name)))))
         predicate-spec-pairs (map (juxt group-member? identity) groups)
         _ (debugf "service-state p-s-p %s" (pr-str predicate-spec-pairs))
-        targets (map #(target-with-specs predicate-spec-pairs %) targets)]
-    (debugf "service-state targets %s" (vec targets))
-    (filter :group-name targets)))
+        target-specs (map #(target-with-specs predicate-spec-pairs %) nodes)]
+    (debugf "service-state target-specs %s" (vec target-specs))
+    (filter (comp :group-name :spec) target-specs)))
 
 ;;; # Operations
 
@@ -350,9 +354,9 @@ Uses a TargetMap to describe a node with its group-spec info."
 ;;; ## Calculation of node count adjustments
 (defn group-delta
   "Calculate actual and required counts for a group"
-  [targets group]
-  (debugf "group-delta targets %s group %s" (vec targets) group)
-  (let [existing-count (count targets)
+  [target-specs group]
+  (debugf "group-delta targets %s group %s" (vec target-specs) group)
+  (let [existing-count (count target-specs)
         target-count (:count group ::not-specified)]
     (when (= target-count ::not-specified)
       (throw
@@ -362,20 +366,20 @@ Uses a TargetMap to describe a node with its group-spec info."
          :group group}) (:group-name group)))
     {:actual existing-count
      :target target-count
-     :targets targets
+     :target-specs target-specs
      :delta (- target-count existing-count)
      :group group}))
 
 (defn group-deltas
   "Calculate actual and required counts for a sequence of groups. Returns a map
   from group to a map with :actual and :target counts."
-  [targets groups]
-  (debugf "group-deltas targets %s groups %s" (vec targets) (vec groups))
+  [target-specs groups]
+  (debugf "group-deltas targets %s groups %s" (vec target-specs) (vec groups))
   (map
    (fn [group]
      (group-delta (filter
-                   (fn [t] (target-in-group? t group))
-                   targets)
+                   (fn [t] (target-in-group? (:target t) group))
+                   target-specs)
                   group))
    groups))
 
@@ -488,10 +492,11 @@ Uses a TargetMap to describe a node with its group-spec info."
            session
            compute-service
            (:node-spec group)
-           group
            (session/user session)
            count
            {:node-name (name (:group-name group))}
+           (-> group :phases :settings)
+           (-> group :phases :bootstrap)
            c)
           (let [[{:keys [bootstrap targets] :as m} e2] (<! c)]
             (>! ch [(merge m {:create-group result})
@@ -529,14 +534,14 @@ the :destroy-server, :destroy-group, and :create-group phases."
   {:pre [(base-session? session)
          compute-service
          (every? :count groups)
-         (every? (some-fn :node :group) targets)]}
+         (validate [TargetSpec] targets)]}
   (debugf "node-count-adjuster targets %s" (vec targets))
   (go-try ch
     (let [group-deltas (group-deltas targets groups)
           removal-specs (group-removal-specs group-deltas)
           add-specs (group-add-specs group-deltas)
 
-          targets-map (reduce #(assoc %1 (node/id (:node %2)) %2)
+          targets-map (reduce #(assoc %1 (node/id (:target %2)) %2)
                               {} targets)
           c-remove (chan)
           c-add (chan)]
@@ -548,9 +553,9 @@ the :destroy-server, :destroy-group, and :create-group phases."
 
       (let [[res-remove e-remove] (<! c-remove)
             [res-add e-add] (<! c-add)
-            old-node-ids (mapcat :old-node-ids res-remove)
+            old-node-ids (map (comp :id :target) res-remove)
             targets-map (apply dissoc targets-map old-node-ids)
-            targets (concat (vals targets-map) (mapcat :targets res-add))
+            targets (concat (vals targets-map) (distinct (map :target res-add)))
             result {:results (concat (mapcat :destroy-server res-remove)
                                      (mapcat :destroy-group res-remove)
                                      (mapcat :results res-add))
@@ -617,7 +622,7 @@ the :destroy-server, :destroy-group, and :create-group phases."
                   (fn [g] (update-in g [:phases] select-keys [:settings]))
                   all-node-set)]
     (if (seq groups)
-      (service-state (sync (compute/targets compute)) (concat groups consider))
+      (service-state (sync (compute/nodes compute)) (concat groups consider))
       consider)))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
@@ -628,10 +633,24 @@ the :destroy-server, :destroy-group, and :create-group phases."
   [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
   (all-group-nodes compute groups nil) options)
 
+
+(defn target-phases [target-specs phases]
+  (map
+   (fn [phase]
+     (debugf "phase %s" phase)
+     (let [spec (phase-spec phase)]
+       (debugf "phase-spec %s" phase)
+       {:result-id spec
+        :target-plans
+        (->>
+         target-specs
+         (map #(target-plan % spec))
+         (remove nil?))}))
+   phases))
+
 (def ^{:doc "A sequence of keywords, listing the lift-options"}
   lift-options
-  [:targets :phase-execution-f :execution-settings-f
-   :post-phase-f :post-phase-fsm :partition-f])
+  [:targets])
 
 (defn converge*
   "Converge the existing compute resources with the counts
@@ -704,9 +723,18 @@ the :destroy-server, :destroy-group, and :create-group phases."
               (let [nodes-set (:targets converge-result)
                     _ (debugf "nodes-set after converge %s" (vec nodes-set))
                     phases (concat (when os-detect [:pallet/os-bs :pallet/os])
-                                   [:settings :bootstrap] phases)]
+                                   [:settings :bootstrap] phases)
+                    session (set-targets
+                             session
+                             (filter node/node? (concat targets nodes-set)))]
                 (debugf "running phases %s" (vec phases))
-                (lift-op session phases nodes-set lift-options c)
+
+
+
+                (lift-abort-on-error
+                 session
+                 (target-phases nodes-set phases)
+                 c)
                 (let [[result e] (<! c)]
                   [(-> converge-result
                        (update-in [:results] concat result))
@@ -826,25 +854,26 @@ the admin-user on the nodes.
                     (throw (ex-info "No source of nodes"
                                     {:error :no-nodes-and-no-compute-service})))
                 _ (logging/trace "Retrieved nodes")
+                session (set-targets
+                         session
+                         (filter node/node? (concat targets nodes-set)))
                 c (chan)
-                _ (lift-op
+                _ (lift-abort-on-error
                    session
-                   (concat
-                    (when os-detect [:pallet/os :pallet/os-bs])
-                    [:settings])
-                   nodes-set
-                   {}
+                   (target-phases nodes-set [:settings])
                    c)
                 [settings-results e] (<! c)
                 errs (errors settings-results)
                 result {:results settings-results
                         :session session
-                        :targets nodes-set}]
+                        :targets (map :target nodes-set)}]
             (cond
              e [result e]
              errs [result (ex-info "settings phase failed" {:errors errs})]
              :else (do
-                     (lift-op session phases nodes-set lift-options c)
+                     (lift-abort-on-error
+                      session (target-phases nodes-set phases)
+                      c)
                      (let [[lift-results e] (<! c)
                            errs (errors lift-results)
                            result (update-in result [:results]
