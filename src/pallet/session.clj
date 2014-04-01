@@ -63,25 +63,25 @@ The session is a map with well defined keys:
    (optional-key :record-all) {schema/Keyword schema/Bool}
    (optional-key :event-fn) schema/Any})
 
-(def base-session
+(def BaseSession
   {:execution-state execution-state
    (optional-key :plan-state) pallet.core.plan_state.protocols.StateGet
    :type (schema/eq ::session)})
 
-(def target-session
-  (assoc base-session :target {schema/Keyword schema/Any}))
+(def TargetSession
+  (assoc BaseSession :target {schema/Keyword schema/Any}))
 
 (defn base-session?
   [x]
-  (not (schema/check base-session x)))
+  (not (schema/check BaseSession x)))
 
 (defn target-session?
   [x]
-  (not (schema/check target-session x)))
+  (not (schema/check TargetSession x)))
 
 (defn validate-target-session
   [x]
-  (schema/validate target-session x))
+  (schema/validate TargetSession x))
 
 (defn create
   "Create a session with the specified components."
@@ -92,7 +92,7 @@ The session is a map with well defined keys:
          (executor? executor)
          (or (= ::empty (:action-options args ::empty))
              (map? action-options))]
-   :post [(validate base-session %)]}
+   :post [(validate BaseSession %)]}
   (merge
    {:type ::session
     :execution-state (select-keys

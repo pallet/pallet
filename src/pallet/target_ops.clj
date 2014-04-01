@@ -12,7 +12,7 @@
    [pallet.plan :as plan
     :refer [execute-plans errors plan-fn TargetPlan]]
    [pallet.session :as session
-    :refer [base-session base-session? extension plan-state set-extension target
+    :refer [BaseSession base-session? extension plan-state set-extension target
             target-session? update-extension]]
    [pallet.spec
     :refer [bootstrapped-meta extend-specs phase-plan phases-schema
@@ -71,7 +71,7 @@
   "Execute plans, merging the result-id map into the result of each
   plan-fn.  Write a result tuple to the channel, ch."
   [session {:keys [result-id target-plans] :as target-phase} ch]
-  {:pre [(validate base-session session)
+  {:pre [(validate BaseSession session)
          (validate TargetPhase target-phase)
          (validate WritePort ch)]
    :post [(validate ReadPort %)]}
@@ -244,7 +244,7 @@
   on any target will stop the processing of further phases on all
   targets."
   [session target-phases ch]
-  {:pre [(validate base-session session)
+  {:pre [(validate BaseSession session)
          (validate [TargetPhase] target-phases)
          (validate WritePort ch)]
    :post [(validate ReadPort %)]}

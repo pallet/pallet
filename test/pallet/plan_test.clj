@@ -43,7 +43,7 @@
                       (set-target ubuntu-node))
           result (execute-action session {:action {:action-symbol 'a}
                                           :args [1]})]
-      (is (validate action-result-map result))
+      (is (validate ActionResult result))
       (is (= {:action 'a :args [1]}
              result)
           "returns the result of the action")
@@ -63,7 +63,7 @@
                 (is (ex-data e) "exception has ex-data")
                 e))
           {:keys [result]} (ex-data e)]
-      (is (validate action-result-map result))
+      (is (validate ActionResult result))
       (is (= {:action `test-actions/fail
               :args []
               :error {:message "fail action"}}
@@ -135,7 +135,7 @@
           (is (= 1 (count action-results)))
           (is (= exception (root-cause execute-e)) "setting a cause exception")
           (is (= e exception) "reporting the cause exception")
-          (is (validate plan-exception-map result)
+          (is (validate PlanTargetResult result)
               "reporting the action exception as cause")
           (is (:target result) "reporting the failed target")
           (is (not (contains? result :rv)) "doesn't record a return value")
@@ -192,7 +192,7 @@
           target-plans [{:target ubuntu-node :plan-fn plan}]
           result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
-      (is (every? #(validate target-result-map %) result))
+      (is (every? #(validate TargetResult %) result))
       (is (= :rv (:return-value (first result))))
       (is (every? (complement plan-errors) result))
       (is (not (errors result)))
@@ -224,7 +224,7 @@
             target-plans [{:target ubuntu-node :plan-fn plan}]
             result (sync (execute-plans session target-plans))]
         (is (= 1 (count result)))
-        (is (every? #(validate target-result-map %) result))
+        (is (every? #(validate TargetResult %) result))
         (is (= :rv (:return-value (first result))))
         (is (every? (complement plan-errors) result))
         (is (not (errors result)))
@@ -261,7 +261,7 @@
               target-plans [{:target ubuntu-node :plan-fn plan}]
               result (sync (execute-plans session target-plans))]
           (is (= 1 (count result)))
-          (is (every? #(validate target-result-map %) result))
+          (is (every? #(validate TargetResult %) result))
           (is (= :rv (:return-value (first result))))
           (is (every? (complement plan-errors) result))
           (is (not (errors result)))
@@ -303,7 +303,7 @@
           target-plans [{:target ubuntu-node :plan-fn plan}]
           result (sync (execute-plans session target-plans))]
       (is (= 1 (count result)))
-      (is (every? #(validate target-result-map %) result))
+      (is (every? #(validate TargetResult %) result))
       (is (every? :exception result) "reports an exception")
       (is (every? #(not (contains? % :rv)) result)
           "Doesn't report a return value")
