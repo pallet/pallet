@@ -17,6 +17,7 @@ Uses a TargetMap to describe a node with its group-spec info."
     :refer [check-node-spec compute-service? node-spec
             node-spec-schema service-properties]]
    [pallet.crate.node-info :as node-info]
+   [pallet.core.context :refer [context with-request-context]]
    [pallet.core.executor.ssh :as ssh]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
@@ -663,82 +664,80 @@ the :destroy-server, :destroy-group, and :create-group phases."
                          :as options}]
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
-  (let [[phases phase-map] (process-phases phase)
-        phase-map (if os-detect
-                    (merge phase-map (:phases (node-info/server-spec {})))
-                    phase-map)
-        _ (debugf "phase-map %s" phase-map)
-        groups (if (map? group-spec->count)
-                 [group-spec->count]
-                 group-spec->count)
-        groups (expand-group-spec-with-counts group-spec->count)
-        {:keys [groups targets]} (-> groups
-                                     expand-cluster-groups
-                                     split-groups-and-targets)
-        _ (logging/tracef "groups %s" (vec groups))
-        _ (logging/tracef "targets %s" (vec targets))
-        _ (logging/tracef "environment keys %s"
-                          (select-keys options environment-args))
-        environment (merge-environments
-                     (and compute (pallet.environment/environment compute))
-                     environment
-                     (select-keys options environment-args))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
-        groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)
-        lift-options (select-keys options lift-options)
-        initial-plan-state (or plan-state {})
-        ;; initial-plan-state (assoc (or plan-state {})
-        ;;                      action-options-key
-        ;;                      (select-keys debug
-        ;;                                   [:script-comments :script-trace]))
-        phases (or (seq phases)
-                   (apply total-order-merge
-                          (map
-                           #(get % :default-phases [:configure])
-                           (concat groups targets))))]
-    (debugf "converge* targets %s" (vec targets))
-    (doseq [group groups] (check-group-spec group))
-    (go-try ch
-      (>! ch
-          (let [session (session/create
-                         {:executor (ssh/ssh-executor)
-                          :plan-state (in-memory-plan-state initial-plan-state)
-                          :user user/*admin-user*})
-                nodes-set (all-group-nodes compute groups all-node-set)
-                nodes-set (concat nodes-set targets)
-                _  (debugf "nodes-set before converge %s" (vec nodes-set))
-                _ (when-not (or compute (seq nodes-set))
-                    (throw (ex-info
-                            "No source of nodes"
-                            {:error :no-nodes-and-no-compute-service})))
-                c (chan)
-                _ (node-count-adjuster session compute groups nodes-set c)
-                [converge-result e] (<! c)]
-            (debugf "new targets %s" (vec (:targets converge-result)))
-            (debugf "old ids %s" (vec (:old-node-ids converge-result)))
-            (if e
-              [converge-result e]
-              (let [nodes-set (:targets converge-result)
-                    _ (debugf "nodes-set after converge %s" (vec nodes-set))
-                    phases (concat (when os-detect [:pallet/os-bs :pallet/os])
-                                   [:settings :bootstrap] phases)
-                    session (set-targets
-                             session
-                             (filter node/node? (concat targets nodes-set)))]
-                (debugf "running phases %s" (vec phases))
+  (with-request-context
+    (let [[phases phase-map] (process-phases phase)
+          phase-map (if os-detect
+                      (merge phase-map (:phases (node-info/server-spec {})))
+                      phase-map)
+          _ (debugf "phase-map %s" phase-map)
+          groups (if (map? group-spec->count)
+                   [group-spec->count]
+                   group-spec->count)
+          groups (expand-group-spec-with-counts group-spec->count)
+          {:keys [groups targets]} (-> groups
+                                       expand-cluster-groups
+                                       split-groups-and-targets)
+          _ (logging/tracef "groups %s" (vec groups))
+          _ (logging/tracef "targets %s" (vec targets))
+          _ (logging/tracef "environment keys %s"
+                            (select-keys options environment-args))
+          environment (merge-environments
+                       (and compute (pallet.environment/environment compute))
+                       environment
+                       (select-keys options environment-args))
+          groups (groups-with-phases groups phase-map)
+          targets (groups-with-phases targets phase-map)
+          groups (map (partial group-with-environment environment) groups)
+          targets (map (partial group-with-environment environment) targets)
+          lift-options (select-keys options lift-options)
+          initial-plan-state (or plan-state {})
+          phases (or (seq phases)
+                     (apply total-order-merge
+                            (map
+                             #(get % :default-phases [:configure])
+                             (concat groups targets))))]
+      (debugf "converge* targets %s" (vec targets))
+      (doseq [group groups] (check-group-spec group))
+      (go-try ch
+              (>! ch
+                  (let [session (session/create
+                                 {:executor (ssh/ssh-executor)
+                                  :plan-state (in-memory-plan-state
+                                               initial-plan-state)
+                                  :user user/*admin-user*})
+                        nodes-set (all-group-nodes compute groups all-node-set)
+                        nodes-set (concat nodes-set targets)
+                        _ (when-not (or compute (seq nodes-set))
+                            (throw (ex-info
+                                    "No source of nodes"
+                                    {:error :no-nodes-and-no-compute-service})))
+                        c (chan)
+                        _ (node-count-adjuster
+                           session compute groups nodes-set c)
+                        [converge-result e] (<! c)]
+                    (debugf "new targets %s" (vec (:targets converge-result)))
+                    (debugf "old ids %s" (vec (:old-node-ids converge-result)))
+                    (if e
+                      [converge-result e]
+                      (let [nodes-set (:targets converge-result)
+                            phases (concat
+                                    (when os-detect [:pallet/os-bs :pallet/os])
+                                    [:settings :bootstrap] phases)
+                            session (set-targets
+                                     session
+                                     (filter node/node?
+                                             (concat targets nodes-set)))]
+                        (debugf "running phases %s" (vec phases))
 
-
-
-                (lift-abort-on-error
-                 session
-                 (target-phases nodes-set phases)
-                 c)
-                (let [[result e] (<! c)]
-                  [(-> converge-result
-                       (update-in [:results] concat result))
-                   e]))))))))
+                        (lift-abort-on-error
+                         session
+                         (target-phases nodes-set phases)
+                         c)
+                        (let [[result e] (<! c)]
+                          [(-> converge-result
+                               (update-in [:results] concat result)
+                               (assoc :request-id (:request-id (context))))
+                           e])))))))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -809,79 +808,80 @@ the admin-user on the nodes.
                 :as options}]
   (logging/trace "Lift*")
   (check-lift-options options)
-  (let [[phases phase-map] (process-phases phase)
-        phase-map (if os-detect
-                    (merge phase-map (:phases (node-info/server-spec {})))
-                    phase-map)
-        {:keys [groups targets]} (-> node-set
-                                     expand-cluster-groups
-                                     split-groups-and-targets)
-        _ (logging/tracef "groups %s" (vec groups))
-        _ (logging/tracef "targets %s" (vec targets))
-        _ (logging/tracef "environment keys %s"
-                          (select-keys options environment-args))
-        _ (logging/tracef "options %s" options)
-        environment (merge-environments
-                     (and compute (pallet.environment/environment compute))
-                     environment
-                     (select-keys options environment-args))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
-        groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)
-        initial-plan-state (or plan-state {})
-        ;; TODO
-        ;; initial-plan-state (assoc (or plan-state {})
-        ;;                      action-options-key
-        ;;                      (select-keys debug
-        ;;                                   [:script-comments :script-trace]))
-        lift-options (select-keys options lift-options)
-        phases (or (seq phases)
-                   (apply total-order-merge
-                          (map :default-phases (concat groups targets))))]
-    (doseq [group groups] (check-group-spec group))
-    (logging/trace "Lift ready to start")
-    (go-try ch
-      (>! ch
-          (let [session (session/create
-                         {:executor (ssh/ssh-executor)
-                          :plan-state (in-memory-plan-state initial-plan-state)
-                          :user user/*admin-user*})
-                nodes-set (all-group-nodes compute groups all-node-set)
-                nodes-set (concat nodes-set targets)
-                ;; TODO put nodes-set target maps into :extensions
-                _ (when-not (or compute (seq nodes-set))
-                    (throw (ex-info "No source of nodes"
+  (with-request-context
+    (let [[phases phase-map] (process-phases phase)
+          phase-map (if os-detect
+                      (merge phase-map (:phases (node-info/server-spec {})))
+                      phase-map)
+          {:keys [groups targets]} (-> node-set
+                                       expand-cluster-groups
+                                       split-groups-and-targets)
+          _ (logging/tracef "groups %s" (vec groups))
+          _ (logging/tracef "targets %s" (vec targets))
+          _ (logging/tracef "environment keys %s"
+                            (select-keys options environment-args))
+          _ (logging/tracef "options %s" options)
+          environment (merge-environments
+                       (and compute (pallet.environment/environment compute))
+                       environment
+                       (select-keys options environment-args))
+          groups (groups-with-phases groups phase-map)
+          targets (groups-with-phases targets phase-map)
+          groups (map (partial group-with-environment environment) groups)
+          targets (map (partial group-with-environment environment) targets)
+          initial-plan-state (or plan-state {})
+          lift-options (select-keys options lift-options)
+          phases (or (seq phases)
+                     (apply total-order-merge
+                            (map :default-phases (concat groups targets))))]
+      (doseq [group groups] (check-group-spec group))
+      (logging/trace "Lift ready to start")
+      (go-try ch
+              (>! ch
+                  (let [session (session/create
+                                 {:executor (ssh/ssh-executor)
+                                  :plan-state (in-memory-plan-state
+                                               initial-plan-state)
+                                  :user user/*admin-user*})
+                        nodes-set (all-group-nodes compute groups all-node-set)
+                        nodes-set (concat nodes-set targets)
+                        ;; TODO put nodes-set target maps into :extensions
+                        _ (when-not (or compute (seq nodes-set))
+                            (throw (ex-info
+                                    "No source of nodes"
                                     {:error :no-nodes-and-no-compute-service})))
-                _ (logging/trace "Retrieved nodes")
-                session (set-targets
-                         session
-                         (filter node/node? (concat targets nodes-set)))
-                c (chan)
-                _ (lift-abort-on-error
-                   session
-                   (target-phases nodes-set [:settings])
-                   c)
-                [settings-results e] (<! c)
-                errs (errors settings-results)
-                result {:results settings-results
-                        :session session
-                        :targets (map :target nodes-set)}]
-            (cond
-             e [result e]
-             errs [result (ex-info "settings phase failed" {:errors errs})]
-             :else (do
-                     (lift-abort-on-error
-                      session (target-phases nodes-set phases)
-                      c)
-                     (let [[lift-results e] (<! c)
-                           errs (errors lift-results)
-                           result (update-in result [:results]
-                                             concat lift-results)]
-                       [result (or e
-                                   (if errs
-                                     (ex-info "phase failed"
-                                              {:errors errs})))]))))))))
+                        _ (logging/trace "Retrieved nodes")
+                        session (set-targets
+                                 session
+                                 (filter node/node? (concat targets nodes-set)))
+                        c (chan)
+                        _ (lift-abort-on-error
+                           session
+                           (target-phases nodes-set [:settings])
+                           c)
+                        [settings-results e] (<! c)
+                        errs (errors settings-results)
+                        result {:results settings-results
+                                :session session
+                                :targets (map :target nodes-set)
+                                :request-id (:request-id (context))}]
+                    (cond
+                     e [result e]
+                     errs [result
+                           (ex-info "settings phase failed" {:errors errs})]
+                     :else (do
+                             (lift-abort-on-error
+                              session (target-phases nodes-set phases)
+                              c)
+                             (let [[lift-results e] (<! c)
+                                   errs (errors lift-results)
+                                   result (update-in result [:results]
+                                                     concat lift-results)]
+                               [result (or e
+                                           (if errs
+                                             (ex-info
+                                              "phase failed"
+                                              {:errors errs})))])))))))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified

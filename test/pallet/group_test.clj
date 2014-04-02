@@ -313,7 +313,7 @@
           r (group/converge* [g] c {:compute service})
           [res e] (<!! c)]
       (is (map? res) "Result is a map")
-      (is (= #{:targets :old-node-ids :results} (set (keys res)))
+      (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
           "Result has the correct keys")
       (is (empty? (:new-nodes res)) "Result has no new nodes")
       (is (empty? (:old-node-ids res)) "Result has no old nodes")
@@ -331,7 +331,7 @@
                                      (exec-script* session "ls"))}})
           res (group/converge [g] :compute service)]
       (is (map? res) "Result is a map")
-      (is (= #{:targets :old-node-ids :results} (set (keys res)))
+      (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
           "Result has the correct keys")
       (is (empty? (:new-nodes res)) "Result has no new nodes")
       (is (empty? (:old-node-ids res)) "Result has no old nodes")

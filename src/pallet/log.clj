@@ -12,7 +12,7 @@
   adds any :context values."
   [{:keys [level throwable message timestamp hostname ns domain context]}
    & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
-  ;; <timestamp> <hostname> <LEVEL> [<domain or ns>] - <message> <throwable>
+  ;; <timestamp> <LEVEL> [<domain or ns>] <context vals> - <message> <throwable>
   (format "%s %s [%s]%s - %s%s"
           timestamp
           (-> level name upper-case)

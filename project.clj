@@ -21,7 +21,7 @@ unprecedented level of customization."
                   :exclusions [org.clojure/clojurescript]]
                  [com.palletops/api-builder "0.1.0"]
                  [com.palletops/chiba "0.2.0"]
-                 [com.palletops/log-config "0.1.0"]
+                 [com.palletops/log-config "0.1.1"]
                  [com.palletops/pallet-common "0.4.0"]
                  [com.palletops/pallet-repl "0.8.0-beta.2"
                   :exclusions [com.palletops/pallet]]
