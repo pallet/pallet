@@ -1,10 +1,27 @@
 (ns pallet.log
   "Logging configuration for pallet."
   (:require
+   [clojure.string :refer [join upper-case]]
    [com.palletops.log-config.timbre
-    :refer [context-msg domain-msg format-with-domain-context]]
-   [taoensso.timbre :refer [merge-config! str-println]]
+    :refer [context-msg domain-msg]]
+   [taoensso.timbre :as timbre :refer [merge-config! str-println]]
    [taoensso.timbre.tools.logging :refer [use-timbre]]))
+
+(defn format-with-domain-context
+  "A formatter that shows domain rather than ns when it is set, and
+  adds any :context values."
+  [{:keys [level throwable message timestamp hostname ns domain context]}
+   & [{:keys [nofonts?] :as appender-fmt-output-opts}]]
+  ;; <timestamp> <hostname> <LEVEL> [<domain or ns>] - <message> <throwable>
+  (format "%s %s [%s]%s - %s%s"
+          timestamp
+          (-> level name upper-case)
+          (or (and domain (name domain)) ns)
+          (if (seq context)
+            (str " " (join " " (map (comp str val) context)))
+            "")
+          (or message "")
+          (or (timbre/stacktrace throwable "\n" (when nofonts? {})) "")))
 
 (def timbre-config
   "A basic timbre configuration for use with pallet."

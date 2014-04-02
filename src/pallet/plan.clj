@@ -1,12 +1,13 @@
 (ns pallet.plan
   "API for execution of pallet plan functions."
   (:require
-   [clojure.core.async :as async :refer [<!! chan]]
+   [clojure.core.async :as async :refer [<!! chan go]]
    [taoensso.timbre :refer [debugf tracef]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [clojure.string :as string]
    [com.palletops.log-config.timbre :refer [with-context-update]]
    [pallet.core.api-builder :refer [defn-api]]
+   [pallet.core.context :refer [with-context]]
    [pallet.core.executor :as executor]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -178,13 +179,14 @@
   recorder in the session, as well as being returned."
   {:sig [[BaseSession Target PlanFn :- (schema/maybe PlanTargetResult)]]}
   [session target plan-fn]
-  (let [{:keys [middleware]} (meta plan-fn)
-        result (if middleware
-                 (middleware session target plan-fn)
-                 (execute-plan* session target plan-fn))]
-    (if result
-      (validate (schema/maybe PlanTargetResult)
-        (assoc result :target target)))))
+  (with-context {:target ((some-fn :group-name :id :primary-ip) target)}
+    (let [{:keys [middleware]} (meta plan-fn)
+          result (if middleware
+                   (middleware session target plan-fn)
+                   (execute-plan* session target plan-fn))]
+      (if result
+        (validate (schema/maybe PlanTargetResult)
+                  (assoc result :target target))))))
 
 ;;; ## Execute Plan Functions on Mulitple Targets
 (defn execute-plans*
@@ -199,15 +201,16 @@
   [session target-plans ch]
   (let [c (chan)]
     (->
-     (map-thread (fn execute-plan-fns [{:keys [target plan-fn]}]
-                   (try
-                     [(execute-plan session target plan-fn)]
-                     (catch Exception e
-                       (let [data (ex-data e)]
-                         (if (contains? data :action-results)
-                           [data e]
-                           [nil e])))))
-                 target-plans)
+     (map (fn execute-plan-fns [{:keys [target plan-fn]}]
+            (go
+              (try
+                [(execute-plan session target plan-fn)]
+                (catch Exception e
+                  (let [data (ex-data e)]
+                    (if (contains? data :action-results)
+                      [data e]
+                      [nil e]))))))
+          target-plans)
      (concat-chans c))
     (reduce-results c "execute-plans* failed" ch)))
 

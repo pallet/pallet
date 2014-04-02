@@ -4,6 +4,7 @@
    [clojure.set :as set]
    [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.compute :as compute]
+   [pallet.core.context :refer [with-context]]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
@@ -75,16 +76,17 @@
          (validate TargetPhase target-phase)
          (validate WritePort ch)]
    :post [(validate ReadPort %)]}
-  (logging/debugf "lift-phase %s %s" result-id (count target-plans))
-  (let [c (chan)]
-    (execute-plans session target-plans c)
-    (go-try ch
-      (let [[results exception] (<! c)
-            results (mapv #(merge result-id %) results)]
-        (>! ch [results
-                ;; wrap any exception, so we get results with phase info
-                (combine-exceptions
-                 [exception] "lift-phase failed" {:results results})])))))
+  (with-context {:result-id result-id}
+    (logging/debugf "lift-phase %s target plans" (count target-plans))
+    (let [c (chan)]
+      (execute-plans session target-plans c)
+      (go-try ch
+              (let [[results exception] (<! c)
+                    results (mapv #(merge result-id %) results)]
+                (>! ch [results
+                        ;; wrap any exception, so we get results with phase info
+                        (combine-exceptions
+                         [exception] "lift-phase failed" {:results results})]))))))
 
 ;;; # Synchronisation
 (defn synch-phases
