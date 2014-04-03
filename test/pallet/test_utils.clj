@@ -133,8 +133,8 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn make-localhost-compute
   [& {:as options}]
-  (node-list/node-list-service
-   [(localhost options)]))
+  (node-list/node-list
+   {:node-list [(localhost options)]}))
 
 (defmacro build-resources
   "Forwarding definition"

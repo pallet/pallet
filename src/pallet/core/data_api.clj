@@ -2,7 +2,7 @@
   (:require
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.compute :refer [service-properties]]
-   [pallet.compute.node-list :refer [node-list-service]]
+   [pallet.compute.node-list :refer [node-list]]
    [pallet.executors :refer [action-plan-data]]
    [pallet.node :as node :refer [node-map]]))
 
@@ -17,7 +17,7 @@
   "Creates mock provider with a mock node, and a mock group, and then lifts
  the plan function `pfn` on such group. "
   [executor pfn node & {:keys [settings-phase ]}]
-  (let [compute (node-list-service [node])
+  (let [compute (node-list {:node-list [node]})
         group-name (second node)
         os-family (nth node 3)]
     (let [group (merge (group-spec group-name :image {:os-family os-family})

@@ -7,11 +7,14 @@
    system. Nodes are constructed using `make-node`.
 
    An instance of the node-list provider can be built using
-   `node-list-service`.
+   `node-list`.
 
-       (node-list-service
-         [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
-          [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
+       (node-list
+         {:node-list
+          [{:id \"host1\" :public-ip \"192.168.1.101\"
+            :os-family :ubuntu :packager :apt}
+           {:id \"host2\" :public-ip \"192.168.1.102\"
+            :os-family :ubuntu :packager :apt}]})"
   (:require
    [clojure.core.async :refer [>! <! close! go]]
    [clojure.edn :as edn]
@@ -19,6 +22,7 @@
    [clojure.string :as string]
    [taoensso.timbre :as logging]
    [pallet.compute :as compute]
+   [pallet.core.api-builder :refer [defn-api]]
    [pallet.environment]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
@@ -27,7 +31,8 @@
    [pallet.environment :as environment]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map]]
-   [pallet.utils.async :refer [go-try]])
+   [pallet.utils.async :refer [go-try]]
+   [schema.core :as schema :refer [check optional-key validate]])
   (:import
    java.net.InetAddress))
 
@@ -198,38 +203,28 @@ support."
     nodelist))
 
 ;;;; Compute service constructor
-(defn node-list-service
-  "Create a node-list compute service, based on a sequence of nodes. Each
-   node is passed as either a node object constructed with `make-node`,
-   or as a vector of arguments for `make-node`.
-
-   Optionally, an environment map can be passed using the :environment keyword.
-   See `pallet.environment`."
-  {:added "0.6.8"
-   :deprecated true}
-  [node-list & {:keys [environment tag-provider] :as options}]
-  (compute/instantiate-provider
-   :node-list (assoc options :node-list node-list)))
-
-(defn node-list
+(defn-api node-list
   "Create a node-list compute service, based on a sequence of
-  nodes. Each node is passed as either a node object constructed with
-  `make-node`, or as a vector of arguments for `make-node`.
+  node maps.
 
   If no `:node-list` is not passed, this will look for a file
   describing the nodes.  Default locations are ${PALLET_HOSTS},
   ./.pallet-nodes.edn, ~/.pallet/nodes.edn and /etc/pallet/nodes.edn,
   in that order of priority.
 
-  A node descriptor in the nodes config file is either an IP (or
-  resolvable DNS name) string, or a vector of options to be passed as
-  arguments to `pallet.compute.node-list/node`.
+  A node descriptor in the nodes config file is a node-map.
 
-  The node file is either a vector of node descriptions, or a map from
-  group name to vector of node descriptors.
+  The node file is either a vector of node maps, or a map from
+  group name to vector of node maps.
 
   Optionally, an environment map can be passed using the :environment
   keyword.  See `pallet.environment`."
-  {:added "0.9.0"}
-  [& {:keys [node-list node-file environment tag-provider] :as options}]
+  {:added "0.9.0"
+   :sig [[{(optional-key :node-list) [node/node-schema]
+           (optional-key :node-file) String
+           (optional-key :environment) {schema/Keyword schema/Any}
+           (optional-key :tag-provider)
+           pallet.compute.protocols.NodeTagWriter}
+          :- pallet.compute.protocols.ComputeService ]]}
+  [{:keys [node-list node-file environment tag-provider] :as options}]
   (compute/instantiate-provider :node-list options))
