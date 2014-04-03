@@ -272,13 +272,13 @@
                         :phase :pallet.compute/create-nodes
                         :return-value :pallet.compute/target-created})))]))))
 
-(deftest create-nodes-test
+(deftest create-targets-test
   (testing "Create targets with explicit phase, no plan-state."
     (let [session (plan-session)
           results (sync (create-targets
                          session
                          (OneShotCreateService.)
-                         {:image {:image-id "x"}}
+                         {:image {:image-id "x" :os-family :ubuntu}}
                          (session/user session)
                          3
                          "base"

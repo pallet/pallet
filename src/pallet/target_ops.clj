@@ -3,7 +3,7 @@
    [clojure.core.async :as async :refer [<! <!! >! chan]]
    [clojure.set :as set]
    [taoensso.timbre :as logging :refer [debugf tracef]]
-   [pallet.compute :as compute]
+   [pallet.compute :as compute :refer [node-spec-schema]]
    [pallet.core.context :refer [with-context]]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
@@ -11,7 +11,7 @@
    [pallet.node :as node]
    [pallet.phase :as phase :refer [phase-schema phases-with-meta PhaseSpec]]
    [pallet.plan :as plan
-    :refer [execute-plans errors plan-fn TargetPlan]]
+    :refer [execute-plans errors plan-fn Target TargetPlan]]
    [pallet.session :as session
     :refer [BaseSession base-session? extension plan-state set-extension target
             target-session? update-extension]]
@@ -64,7 +64,10 @@
   {:pre [(validate [TargetSpec] target-specs)
          (validate PhaseSpec phase-spec)]
    :post [(validate TargetPhase %)]}
-  {:target-plans (map #(target-plan % phase-spec) target-specs)
+  {:target-plans (->>
+                  target-specs
+                  (map #(target-plan % phase-spec))
+                  (remove nil?))
    :result-id phase-spec})
 
 ;;; # Lift
@@ -134,7 +137,7 @@
                 (debugf "synch-phases called :op")
                 (let [[results exception :as r] (<! c)
                       _ (assert
-                         (sequential? results)
+                         (or (nil? results) (sequential? results))
                          "Invalid step :op function (result must be sequential)")
                       _ (debugf "synch-phases result %s" r)
                       res (concat res results)
@@ -172,14 +175,20 @@
 (defn successful-targets-state
   "Return a state that is the set of successful targets."
   [[results] state]
-  (first (partition-result-targets results)))
+  {:pre [(or (validate (schema/maybe #{Target}) state) true)]
+   :post [(or (validate (schema/maybe #{Target}) %) true)]}
+  (let [[good bad] (partition-result-targets results)]
+    (set/union
+     (set/difference state (set bad))
+     good)))
 
 (defn filter-target-phase
   "Remove targets from a target-phase."
   [target-phase targets]
-  {:pre [(set? targets)
-         (validate TargetPhase target-phase)]
-   :post [(validate TargetPhase %)]}
+  {:pre [(schema/named
+          (or (validate (schema/maybe #{Target}) targets) true) "targets")
+         (schema/named (validate TargetPhase target-phase) "target-phase")]
+   :post [(schema/named (validate TargetPhase %) "result target-phase")]}
   (update-in target-phase [:target-plans] #(filter (comp targets :target) %)))
 
 (defn synch-phases-abort-on-error
@@ -228,11 +237,13 @@
   specified in the target-set.  For use with synch-phases-filter-on-error."
   [session target-phase]
   (fn lift-target-phase-with-filter [target-set c]
+    {:pre [(or (validate (schema/maybe #{Target}) target-set) true)]}
     (lift-phase session (filter-target-phase target-phase target-set) c)))
 
 (defn destroy-nodes-with-filter-fn
   [compute-service]
   (fn destroy-nodes-with-filter [targets c]
+    (debugf "destroy-nodes-with-filter %s targets" (count targets))
     (compute/destroy-nodes
      compute-service
      targets
@@ -265,7 +276,7 @@
   (logging/debugf "lift-phases target-ids %s" (mapv :target-id target-phases))
   (synch-phases-filter-on-error
    (map #(lift-target-phase-with-filter-fn session %) target-phases)
-   (map :target (:target-plans (first target-phases)))
+   (set (map :target (:target-plans (first target-phases))))
    ch))
 
 ;;; # Creating and Removing Nodes
@@ -275,12 +286,13 @@
   result of the phase and the result of the node destruction are
   written to the :results keys of a map in a rex-tuple to the output
   chan, ch."
-  [session compute-service target-phase ch]
-  (debugf "destroy-targets %s targets" (count (:target-plans target-phase)))
+  [session compute-service targets target-phase ch]
+  {:pre [(validate TargetPhase target-phase)]}
+  (debugf "destroy-targets %s targets" (count targets))
   (synch-phases-filter-on-error
    [(lift-target-phase-with-filter-fn session target-phase)
     (destroy-nodes-with-filter-fn compute-service)]
-   (map :target (:target-plans target-phase))
+   (validate #{Target} (set (map :target targets)))
    ch))
 
 ;;; This tries to run an initial phase, so if tagging is not
@@ -293,6 +305,7 @@
   map, with :targets and :results keys."
   [session compute-service node-spec user count base-name
    settings-fn plan-fn ch]
+  {:pre [(validate node-spec-schema node-spec)]}
   (debugf "create-targets %s nodes with base-name %s" count base-name)
   (tracef "create-targets node-spec %s" node-spec)
   (synch-phases

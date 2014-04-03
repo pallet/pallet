@@ -14,7 +14,10 @@
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
 (def image-spec-schema
-  {:image-id (schema/either String schema/Keyword)})
+  {:image-id (schema/either String schema/Keyword)
+   :os-family schema/Keyword
+   (optional-key :packager) schema/Keyword
+   schema/Keyword schema/Any})
 
 (def image-search-schema
   {(optional-key :image-id) (schema/either String schema/Keyword)

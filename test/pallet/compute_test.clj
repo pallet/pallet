@@ -35,8 +35,8 @@
     (is (= input5 (check-node-spec input5)))))
 
 (deftest node-spec-test
-  (is (= {:image {:image-id "xx"}}
-         (node-spec {:image {:image-id "xx"}})))
+  (is (= {:image {:image-id "xx" :os-family :ubuntu}}
+         (node-spec {:image {:image-id "xx" :os-family :ubuntu}})))
   (is (= {:hardware {}}
          (node-spec {:hardware {}})))
   (is (= {:location {:subnet-id "subnet-xxxx"}}
@@ -48,6 +48,8 @@
 
 (deftest matches-selectors?-test
   (is (matches-selectors?
-       #{:x :y} {:node-spec {:image {:image-id "xx"}} :selectors #{:x}}))
+       #{:x :y} {:node-spec {:image {:image-id "xx" :os-family :ubuntu}}
+                 :selectors #{:x}}))
   (is (not (matches-selectors?
-            #{:x :y} {:node-spec {:image {:image-id "xx"}} :selectors #{:z}}))))
+            #{:x :y} {:node-spec {:image {:image-id "xx" :os-family :ubuntu}}
+                      :selectors #{:z}}))))
