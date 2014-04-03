@@ -5,13 +5,13 @@
    [clojure.string :as string]
    [taoensso.timbre :as logging]
    [com.palletops.log-config.timbre :refer [with-context]]
+   [pallet.actions.direct.execute :as execute
+    :refer [clean-logs log-script-output]]
    [pallet.actions.impl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
-   [pallet.node :as node]
    [pallet.core.script-builder :as script-builder]
-   [pallet.execute :as execute
-    :refer [clean-logs log-script-output]]
    [pallet.local.execute :as local]
+   [pallet.node :as node]
    [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [chown env exit mkdir]]

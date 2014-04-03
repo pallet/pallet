@@ -3,16 +3,16 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [taoensso.timbre :as logging]
+   [pallet.actions.direct.execute :as execute
+    :refer [log-script-output result-with-error-map status-lines]]
    [pallet.compute.jvm :as jvm]
    [pallet.core.script-builder :as script-builder]
-   [pallet.execute :as execute
-    :refer [log-script-output result-with-error-map status-lines]]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.transport :as transport]
    [pallet.transport.local]
-   [pallet.utils :refer [log-multiline]]))
+   [pallet.utils :refer [log-multiline]]
+   [taoensso.timbre :as logging]))
 
 (def local-connection
   (transport/open (transport/factory :local {}) nil nil nil))

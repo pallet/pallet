@@ -1,4 +1,4 @@
-(ns pallet.execute
+(ns pallet.actions.direct.execute
   "Execute actions."
   (:require
    [clojure.set :refer [union]]
