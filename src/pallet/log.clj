@@ -51,6 +51,7 @@
     :spit
     {:doc "Spits to `(:spit-filename :shared-appender-config)` file."
      :min-level nil :enabled? true :async? false :rate-limit nil
+     :spit-filename "logs/pallet.log"
      :fn (fn [{:keys [ap-config output]}] ; Can use any appender args
            (when-let [filename (:spit-filename ap-config)]
              (try (spit filename (str output "\n") :append true)
