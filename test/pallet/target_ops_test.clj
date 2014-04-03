@@ -266,7 +266,9 @@
       (>! ch [(take node-count
                     (repeatedly
                      (fn []
-                       {:target {:id (name (gensym "id"))}
+                       {:target {:id (name (gensym "id"))
+                                 :os-family :ubuntu
+                                 :packager :apt}
                         :phase :pallet.compute/create-nodes
                         :return-value :pallet.compute/target-created})))]))))
 

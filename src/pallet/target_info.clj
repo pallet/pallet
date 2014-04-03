@@ -14,10 +14,3 @@
   {:post [(user? %)]}
   (or (node/user (session/target session))
       (session/user session)))
-
-(defn packager
-  [session]
-  (let [node (session/target session)]
-    (or (node/packager node)
-        (if-let [os-family (node/os-family node)]
-          (packager-for-os os-family (node/os-version node))))))

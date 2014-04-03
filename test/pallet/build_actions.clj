@@ -81,6 +81,10 @@
                                        [:target :override :is-64bit] true)})))
         session (update-in session [:target :os-family]
                            #(or % :ubuntu))
+        session (update-in session [:target :packager]
+                           #(or % (packager-for-os
+                                   (-> session :target :os-family)
+                                   (-> session :target :os-version))))
         session (update-in session [:target :id]
                            #(or % "id"))
 

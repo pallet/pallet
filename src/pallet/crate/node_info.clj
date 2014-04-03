@@ -4,6 +4,7 @@
    [clojure.string :as string :refer [blank? lower-case]]
    [taoensso.timbre :refer [debugf]]
    [pallet.actions :refer [exec-script]]
+   [pallet.kb :refer [packager-for-os]]
    [pallet.middleware :refer [execute-on-filtered]]
    [pallet.node :as node :refer [node-values-schema]]
    [pallet.plan :refer [defplan plan-fn]]
@@ -145,7 +146,9 @@
   {:pre [(target-session? session)]}
   (let [os (infer-os session)
         distro (infer-distro session)
-        m (dissoc (merge os distro) :action-symbol :context)]
+        m (dissoc (merge os distro) :action-symbol :context)
+        m (update-in m [:packager]
+                     #(or % (packager-for-os (:os-family m) (:os-version m))))]
     (debugf "os %s %s %s" os distro m)
     (when (plan-state session)
       (node-info! session m))

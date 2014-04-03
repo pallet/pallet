@@ -63,12 +63,14 @@
                                                 (-> n :os-family))) s1]
                                     [(fn [n] (= 22 (node/ssh-port n))) s2]]]
           (testing "node matching one spec"
-            (let [n1 {:id "n1" :os-family :centos :ssh-port 22}]
+            (let [n1 {:id "n1" :os-family :centos :ssh-port 22
+                      :packager :apt}]
               (is (= (server-spec {:extends [s2]})
                      (spec-for-target predicate-spec-pairs n1))
                   "Target has correct roles")))
           (testing "node matching two specs"
-            (let [n2 {:id "n2" :os-family :ubuntu :ssh-port 22}]
+            (let [n2 {:id "n2" :os-family :ubuntu :ssh-port 22
+                      :packager :apt}]
               (is (= (server-spec {:extends [s1 s2]})
                      (spec-for-target predicate-spec-pairs n2))
                   "Target has correct roles"))))))))

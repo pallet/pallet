@@ -15,8 +15,8 @@
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
    [pallet.session :refer [target target-session?]]
-   [pallet.node :refer [primary-ip ssh-port]]
-   [pallet.target-info :refer [admin-user packager]]
+   [pallet.node :refer [primary-ip packager ssh-port]]
+   [pallet.target-info :refer [admin-user]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]]
@@ -562,7 +562,7 @@ only specified files or directories, use the :extract-files option.
        (packages session [\"git\" \"git-email\"])
        (packages session [\"git-core\" \"git-email\"] {:action :remove})"
   ([session package-names {:keys [yum aptitude pacman brew] :as options}]
-     (let [packager (packager session)]
+     (let [packager (packager (target session))]
        (decl/packages session package-names options)))
   ([session package-names]
      (packages session package-names {})))
@@ -586,7 +586,7 @@ only specified files or directories, use the :extract-files option.
                                priority 50}
                           :as options}]
      (decl/package session package-name
-                   (merge {:packager (packager session)} options)))
+                   (merge {:packager (packager (target session))} options)))
   ([session package-name] (package session package-name {})))
 
 (defplan package-manager
@@ -607,7 +607,7 @@ only specified files or directories, use the :extract-files option.
        (package-manager session :add-scope :scope :non-free)"
   ([session action {:keys [packages scope] :as options}]
      (decl/package-manager
-      session action (merge {:packager (packager session)} options)))
+      session action (merge {:packager (packager (target session))} options)))
   ([session action]
      (package-manager session action {})))
 
@@ -659,7 +659,7 @@ only specified files or directories, use the :extract-files option.
    :execution :aggregated}
   [session name {:keys [] :as options}]
   (decl/package-source session name
-                       (merge {:packager (packager session)})))
+                       (merge {:packager (packager (target session))})))
 
 (defn add-rpm
   "Add an rpm.  Source options are as for remote file."

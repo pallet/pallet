@@ -36,14 +36,16 @@
        (compute/instantiate-provider :node-list {:node-list []}))))
 
 (deftest nodes-test
-  (let [node {:id "n" :hostname "t"  :primary-ip "1.2.3.4" :os-family :ubuntu}
+  (let [node {:id "n" :hostname "t"  :primary-ip "1.2.3.4" :os-family :ubuntu
+              :packager :apt}
         node-list (compute/instantiate-provider :node-list {:node-list [node]})]
     (is (= [(assoc node :compute-service node-list)]
            (sync (compute/nodes node-list))))
     (is (node/validate-node (first (sync (compute/nodes node-list)))))))
 
 (deftest tags-test
-  (let [node {:id "n" :hostname "t" :primary-ip "1.2.3.4" :os-family :ubuntu}
+  (let [node {:id "n" :hostname "t" :primary-ip "1.2.3.4" :os-family :ubuntu
+              :packager :apt}
         node-list (compute/instantiate-provider :node-list {:node-list [node]})
         node (first (sync (compute/nodes node-list)))]
     (is (= node-list (node/compute-service node)))

@@ -2,16 +2,7 @@
  "Functions for returning and filtering nodes"
  (:require
   [pallet.compute.jvm :as jvm]
-  ;; [pallet.compute.node-list :as node-list]
-  ))
-
-;; (defn localhost
-;;   "Returns a node for localhost.  Optionally takes a map as per
-;; `pallet.compute.node-list/make-node`."
-;;   ([options]
-;;      (node-list/make-localhost-node options))
-;;   ([]
-;;      (localhost {})))
+  [pallet.kb :refer [packager-for-os]]))
 
 (defn localhost
   "Make a node representing the local host. This calls `make-node` with values
@@ -31,6 +22,7 @@
   {:id id
    :hostname (str (clojure.core/name group-name) "-0")
    :primary-ip ip
-   :os-family os-family})
+   :os-family os-family
+   :packager (packager-for-os os-family nil)})
   ([]
      (localhost {})))

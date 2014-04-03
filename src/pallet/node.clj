@@ -26,9 +26,9 @@
    (optional-key :run-state) (schema/enum
                               :running :stopped :suspended :terminated)
    (optional-key :proxy) proxy-map
-   (optional-key :os-family) schema/Keyword
+   :os-family schema/Keyword
    (optional-key :os-version) String
-   (optional-key :packager) schema/Keyword
+   :packager schema/Keyword
    (optional-key :image-user) user-schema
    (optional-key :user) user-schema
    (optional-key :hardware) {schema/Keyword schema/Any}})

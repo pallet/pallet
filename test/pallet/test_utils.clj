@@ -13,6 +13,7 @@
    [pallet.core.executor :refer [node-state]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.group :refer [group-spec]]
+   [pallet.kb :refer [packager-for-os]]
    [pallet.node :as node]
    [pallet.script :as script]
    [pallet.session :as session]
@@ -112,12 +113,18 @@ list, Alan Dipert and MeikelBrandmeyer."
   [node-name {:as options}]
   {:pre [node-name]
    :post [(node/validate-node %)]}
-  (merge
-   {:hostname (str (name (:group-name options node-name)) "-0")
-    :id (name node-name)
-    :primary-ip (:ip options "1.2.3.4")
-    :os-family (:os-family options :ubuntu)}
-   (dissoc options :group-name :ip :os-family)))
+  (as->
+   (merge
+    {:hostname (str (name (:group-name options node-name)) "-0")
+     :id (name node-name)
+     :primary-ip (:ip options "1.2.3.4")
+     :os-family (:os-family options :ubuntu)}
+    (dissoc options :group-name :ip :os-family))
+   node
+   (-> (update-in node [:packager]
+                  #(or % (packager-for-os
+                          (:os-family node)
+                          (:os-version node)))))))
 
 (defn make-localhost-node
   "Simple localhost node for testing"
