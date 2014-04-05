@@ -5,8 +5,9 @@
    [taoensso.timbre :refer [debugf tracef]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [clojure.string :as string]
+   [com.palletops.api-builder.core :refer [assert*]]
    [com.palletops.log-config.timbre :refer [with-context-update]]
-   [pallet.core.api-builder :refer [defn-api]]
+   [pallet.core.api-builder :refer [defn-api defn-sig]]
    [pallet.core.context :refer [with-context]]
    [pallet.core.executor :as executor]
    [pallet.core.recorder :refer [record results]]
@@ -24,14 +25,20 @@
    [pallet.user :refer [obfuscated-passwords user?]]
    [pallet.utils :refer [local-env map-arg-and-ref]]
    [pallet.utils.async
-    :refer [concat-chans map-thread reduce-concat-results reduce-results
-            ReadPort WritePort]]
+    :refer [concat-chans map-thread reduce-results ReadPort WritePort]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
-   [schema.core :as schema :refer [check optional-key validate]]))
+   [schema.core :as schema :refer [check maybe optional-key validate]]))
 
 ;;; # Action Plan Execution
 (def PlanFn (schema/=> schema/Any BaseSession schema/Any))
+
+(def Action ; defined here to avoid circular dependency
+  {:action {:action-symbol clojure.lang.Symbol
+            :impls clojure.lang.Atom
+            (optional-key :options) {schema/Keyword schema/Any}}
+   :args [schema/Any]
+   (optional-key :options) {schema/Keyword schema/Any}})
 
 (def Target
   "Defines a target for execution.  This is usually a node or a spec,
@@ -42,6 +49,7 @@
   "The result of a single action.  The `:error` key is reserved for
   reporting failed actions (domain errors)."
   {(schema/optional-key :error) schema/Any
+   (schema/optional-key :summary) (maybe String)
    schema/Keyword schema/Any})
 
 (def PlanResult
@@ -71,13 +79,15 @@
   (assoc TargetResult schema/Keyword schema/Any))
 
 ;;; ## Execute action on a target
-(defn ^:internal execute-action
-  "Execute an action map within the context of the current session."
+(defn-sig ^:internal execute-action
+  "Execute an action map within the context of the current session.
+  If the action throws an exception, add it to the result, and throw a
+  wrapped exception containing the results.  Throwing the exception will
+  cease execution of the plan function (unless explicitly handled)."
+  {:sig [[TargetSession Action :- ActionResult]]}
   [{:keys [target] :as session} action]
-  {:pre [(target-session? session)
-         (user? (user session))
-         (map? target)]
-   :post [(validate ActionResult %)]}
+  {:pre [(user? (user session))
+         (validate Target target)]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
   (let [executor (executor session)]
@@ -96,8 +106,7 @@
 
       (tracef "execute-action rv %s" (pr-str rv))
       (when record?
-        (assert (map? rv)
-                (str "Action return value must be a map: " (pr-str rv)))
+        (assert* (map? rv) "Action return value must be a map: %s", rv)
         (let [rv (if (:record-all (action :options) true)
                    rv
                    (if (or (:error rv) e)
@@ -132,7 +141,7 @@
 ;; environment is set up for the node.
 
 ;; Returns a map with `:target`, `:return-value` and `:action-results`
-;; keys.
+;; keys. May throw non-domain exceptions.
 
 ;; The result is also written to the recorder in the session.
 (defmethod execute-plan* ::node
@@ -156,7 +165,7 @@
     ;; functions.
     (with-script-context (script-template target)
       (with-script-language :pallet.stevedore.bash/bash
-        (debugf "execute* %s" target)
+        (debugf "execute-plan* %s" target)
         (let [[rv e] (try
                        [(plan-fn session)]
                        (catch Exception e
@@ -177,7 +186,7 @@
   "Using the session, execute plan-fn on target. Uses any plan
   middleware defined on the plan-fn.  Results are recorded by any
   recorder in the session, as well as being returned."
-  {:sig [[BaseSession Target PlanFn :- (schema/maybe PlanTargetResult)]]}
+  {:sig [[BaseSession Target PlanFn :- (maybe PlanTargetResult)]]}
   [session target plan-fn]
   (with-context {:target ((some-fn :group-name :id :primary-ip) target)}
     (let [{:keys [middleware]} (meta plan-fn)
@@ -185,11 +194,10 @@
                    (middleware session target plan-fn)
                    (execute-plan* session target plan-fn))]
       (if result
-        (validate (schema/maybe PlanTargetResult)
-                  (assoc result :target target))))))
+        (assoc result :target target)))))
 
 ;;; ## Execute Plan Functions on Mulitple Targets
-(defn execute-plans*
+(defn-sig execute-plans*
   "Using the executor in `session`, execute phase on all targets.
   The targets are executed in parallel, each in its own thread.  A
   single [result, exception] tuple will be written to the channel ch,
@@ -198,18 +206,22 @@
 
   Does not call phase middleware.  Does call plan middleware.  Suitable
   as the handler for a phase-middleware."
+  {:sig [[BaseSession [TargetPlan] WritePort :- ReadPort]]}
   [session target-plans ch]
   (let [c (chan)]
     (->
      (map (fn execute-plan-fns [{:keys [target plan-fn]}]
             (go
               (try
-                [(execute-plan session target plan-fn)]
-                (catch Exception e
+                (if-let [r (execute-plan session target plan-fn)]
+                  (merge {:results [r]}
+                         (select-keys r [:exception]))
+                  (debugf "execute-plan* no result"))
+                (catch Throwable e
                   (let [data (ex-data e)]
                     (if (contains? data :action-results)
-                      [data e]
-                      [nil e]))))))
+                      {:results [data] :exception e}
+                      {:exception e}))))))
           target-plans)
      (concat-chans c))
     (reduce-results c "execute-plans* failed" ch)))
@@ -232,50 +244,40 @@
          (mw session target-plans c)
          (execute-plans* session target-plans c)))
      c)
-    (reduce-concat-results c "execute-plans failed" ch)))
+    (reduce-results c "execute-plans failed" ch)))
 
 ;;; # Exception reporting
-(defn plan-errors
+(defn-api plan-errors
   "Return a plan result containing just the errors in the action results
   and any exception information.  If there are no errors, return nil."
+  {:sig [[(schema/either AdornedPlanResult AdornedTargetResult)
+          :- (maybe (schema/either AdornedPlanResult AdornedTargetResult))]]}
   [plan-result]
-  {:pre [(validate
-          (schema/either AdornedPlanResult AdornedTargetResult)
-          plan-result)]
-   :post [(or
-           (nil? %)
-           (validate
-            (schema/either AdornedPlanResult AdornedTargetResult)
-            plan-result))]}
   (let [plan-result (update-in plan-result [:action-results]
                                #(filter :error %))]
     (if (or (:exception plan-result)
             (seq (:action-results plan-result)))
       plan-result)))
 
-
-(defn errors
+(defn-api errors
   "Return a sequence of errors for a sequence of result maps.
    Each element in the sequence represents a failed action, and is a
    map, with :target, :error, :context and all the return value keys
    for the return value of the failed action."
+  {:sig [[[AdornedTargetResult] :- [AdornedTargetResult]]]}
   [results]
-  {:pre [(every? #(validate AdornedTargetResult %) results)]
-   :post [(every? (fn [r] (validate AdornedTargetResult r)) results)]}
   (seq (remove nil? (map plan-errors results))))
 
-(defn error-exceptions
+(defn-api error-exceptions
   "Return a sequence of exceptions from a sequence of results."
+  {:sig [[[AdornedTargetResult] :- [Throwable]]]}
   [results]
-  {:pre [(every? #(validate AdornedTargetResult %) results)]
-   :post [(every? (fn [e] (instance? Throwable e)) %)]}
   (seq (remove nil? (map :exception results))))
 
-(defn throw-errors
+(defn-api throw-errors
   "Throw an exception if there is any exception in results."
+  {:sig [[[AdornedTargetResult] :- (schema/eq nil)]]}
   [results]
-  {:pre [(every? #(validate AdornedTargetResult %) results)]
-   :post [(nil? %)]}
   (when-let [e (seq (remove nil? (map :exception results)))]
     (throw
      (combine-exceptions e))))

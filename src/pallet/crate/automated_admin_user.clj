@@ -7,7 +7,7 @@
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.session :as session]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
-   [pallet.spec :refer [server-spec]]
+   [pallet.spec :as spec]
    [pallet.utils :refer [conj-distinct]]))
 
 (def facility ::automated-admin-user)
@@ -74,7 +74,20 @@
 (def
   ^{:doc "Convenience server spec to add the current admin-user on bootstrap."}
   with-automated-admin-user
-  (server-spec
+  (spec/server-spec
+   {:phases {:settings (plan-fn [session]
+                         (debugf "with-automated-admin-user :settings")
+                         (sudoers/settings session {})
+                         (settings session {})
+                         (create-admin-user session))
+             :bootstrap (plan-fn [session]
+                          (package-manager session :update)
+                          (configure session {}))}}))
+
+(defn server-spec
+  "Convenience server spec to add the current admin-user on bootstrap."
+  [options]
+  (spec/server-spec
    {:phases {:settings (plan-fn [session]
                          (debugf "with-automated-admin-user :settings")
                          (sudoers/settings session {})

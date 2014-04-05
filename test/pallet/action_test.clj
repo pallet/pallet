@@ -55,7 +55,7 @@
                :action 'pallet.action-test/b
                :options {:sudo-user "user"
                          :m 1
-                         :user user/*admin-user*}}]
+                         :user (assoc user/*admin-user* :sudo-user "user")}}]
              (plan/plan (session/executor session)))))))
 
 (deftest effective-user-test

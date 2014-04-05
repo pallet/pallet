@@ -40,14 +40,15 @@
               :packager :apt}
         node-list (compute/instantiate-provider :node-list {:node-list [node]})]
     (is (= [(assoc node :compute-service node-list)]
-           (sync (compute/nodes node-list))))
-    (is (node/validate-node (first (sync (compute/nodes node-list)))))))
+           (:targets (sync (compute/nodes node-list)))))
+    (is (node/validate-node
+         (first (:targets (sync (compute/nodes node-list))))))))
 
 (deftest tags-test
   (let [node {:id "n" :hostname "t" :primary-ip "1.2.3.4" :os-family :ubuntu
               :packager :apt}
         node-list (compute/instantiate-provider :node-list {:node-list [node]})
-        node (first (sync (compute/nodes node-list)))]
+        node (first (:targets (sync (compute/nodes node-list))))]
     (is (= node-list (node/compute-service node)))
     (is (nil? (node/tag node "some-tag")))
     (is (= ::x (node/tag node "some-tag" ::x)))

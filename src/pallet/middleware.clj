@@ -2,6 +2,7 @@
   "Allow decorating how plan functions are executed."
   (:require
    [taoensso.timbre :as logging :refer [debugf]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.plan :as plan :refer [errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
@@ -26,7 +27,8 @@
                   (session/user session)
                   user))]
       (debugf "image-user %s" user)
-      (handler (set-user session user) target plan-fn))))
+      (with-action-options session {:user user}
+        (handler session target plan-fn)))))
 
 ;;; # Phase Execution Functions
 (defn execute-one-shot-flag

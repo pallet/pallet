@@ -1,10 +1,14 @@
 (ns pallet.log
   "Logging configuration for pallet."
   (:require
+   [clojure.core.async :refer [chan close! sliding-buffer]]
    [clojure.string :refer [join upper-case]]
    [com.palletops.log-config.timbre
     :refer [context-msg domain-msg]]
-   [taoensso.timbre :as timbre :refer [merge-config! str-println]]
+   [com.palletops.log-config.timbre.async-channel
+    :refer [make-async-channel-appender memory-sink]]
+   [taoensso.timbre :as timbre
+    :refer [merge-config! set-config! str-println]]
    [taoensso.timbre.tools.logging :refer [use-timbre]]))
 
 (defn format-with-domain-context
@@ -62,3 +66,38 @@
   []
   (merge-config! timbre-config)
   (use-timbre))
+
+(defonce ^{:doc "Async logging memory"}
+  memory
+  (atom nil))
+
+(defonce ^{:doc "Async logging channel"}
+  memory-ch
+  (atom nil))
+
+(defn dev-log-config
+  []
+  (merge-config! timbre-config)
+  (use-timbre))
+
+(defn start-memory-sink
+  []
+  (when-let [ch @memory-ch]
+    (close! ch))
+  (reset! memory-ch (chan (sliding-buffer 100)))
+  (set-config! [:appenders :async]
+               (make-async-channel-appender @memory-ch {:enabled? true}))
+  (memory-sink @memory-ch memory 1000))
+
+(defn stop-memory-sink
+  []
+  (close! @memory-ch)
+  (reset! memory-ch nil))
+
+(defn pprint-memory-args
+  []
+  (clojure.pprint/pprint (map :args @memory)))
+
+(defn clear-memory!
+  []
+  (reset! memory nil))

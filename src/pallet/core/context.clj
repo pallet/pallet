@@ -4,7 +4,10 @@
    [com.palletops.log-config.timbre :as log-config]
    [potemkin]))
 
-(potemkin/import-vars log-config/with-context log-config/context)
+(potemkin/import-vars
+ log-config/with-context
+ log-config/context
+ log-config/with-domain)
 
 (defmacro with-request-context
   "Ensure that there is a request id in the context"

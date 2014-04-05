@@ -16,7 +16,8 @@
 
 (defn execute-ssh
   [transport node action value]
-  (ssh/ssh-script-on-target transport node (:user action) action value))
+  (ssh/ssh-script-on-target
+   transport node (-> action :options :user) action value))
 
 (defn execute-local
   [node action value]

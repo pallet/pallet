@@ -53,8 +53,9 @@
   [session action argv]
   {:pre [(validate-target-session session)]}
   (let [options (merge (:options action) (action-options session))
-        user (effective-user (admin-user session) action-options)
+        user (effective-user (admin-user session) options)
         options (update-in options [:user] merge user)]
+    (debugf "effective-user %s %s %s" (admin-user session) options user)
     (execute-action session (action-map action argv options))))
 
 (defn- action-execute-fn

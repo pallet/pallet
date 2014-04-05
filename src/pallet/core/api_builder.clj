@@ -19,5 +19,6 @@
    (log-exit)
    (log-scope)])
 
-(defn-api x {:sig [[schema.core/Any :- schema.core/Any]]}
-  [x]x)
+(def-defn defn-sig
+  [(validate-sig)
+   (add-sig-doc)])

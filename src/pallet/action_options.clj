@@ -2,6 +2,7 @@
   "Options for controlling the behaviour of actions."
   (:require
    [pallet.session :as session]
+   [pallet.user :as user]
    [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; # Action Options
@@ -15,7 +16,8 @@
    (optional-key :script-env) {(schema/either schema/Keyword String) schema/Any}
    (optional-key :script-env-fwd) [(schema/either schema/Keyword String)]
    (optional-key :script-prefix) schema/Keyword
-   (optional-key :sudo-user) String})
+   (optional-key :sudo-user) String
+   (optional-key :user) user/user-schema})
 
 (defn action-options
   "Return any action-options currently defined on the session."

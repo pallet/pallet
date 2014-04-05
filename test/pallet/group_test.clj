@@ -11,7 +11,9 @@
    [pallet.compute.node-list :as node-list]
    [pallet.compute.protocols :as impl]
    [pallet.compute.test-provider :refer [test-service]]
+   [pallet.core.context :refer [with-domain]]
    [pallet.core.executor.ssh :as ssh]
+   [pallet.core.executor.plan :refer [plan-executor]]
    [pallet.core.nodes :refer [localhost]]
    [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.recorder :refer [results]]
@@ -247,154 +249,274 @@
 
 (deftest service-state-test
   (testing "service state"
-    (let [service (make-localhost-compute :group-name :local)
+    (let [node {:id "id" :os-family :ubuntu :packager :apt :hostname "local-0"}
+          service (test-service {:node-list [node]})
           nodes (sync (compute/nodes service))
-          ss (group/service-state nodes [(group/group-spec :local {})])]
-      (is (= 1 (count nodes)))
+          ss (group/service-state
+              (:targets nodes) [(group/group-spec :local {})])]
+      (is (= 1 (count (:targets nodes))))
       (is (= 1 (count ss)))
       (is (= :local (:group-name (:spec (first ss)))))
-      (is (= (dissoc (localhost {:group-name :local}) :compute-service)
+      (is (= node
              (dissoc (:target (first ss)) :compute-service)))
       (is (every? :target ss)))))
 
 (deftest all-group-nodes-test
   (testing "all-group-nodes"
-    (let [service (make-localhost-compute :group-name :local)
+    (let [node {:id "id" :os-family :ubuntu :packager :apt :hostname "local-0"}
+          service (test-service {:node-list [node]})
           ss (group/all-group-nodes
               service
               [(group/group-spec :local {})]
               [(group/group-spec :other {})])]
       (is (= 1 (count ss)))
       (is (= :local (:group-name (:spec (first ss)))))
-      (is (= (dissoc (localhost {:group-name :local}) :compute-service)
+      (is (= node
              (dissoc (:target (first ss)) :compute-service))))))
 
 (deftest node-count-adjuster-test
   (testing "node-count-adjuster"
     (testing "create a node"
-      (let [session (session/create {:executor (ssh/ssh-executor)
+      (let [session (session/create {:executor (plan-executor)
                                      :plan-state (in-memory-plan-state)
                                      :user user/*admin-user*})
-            service (test-service {})
+            service (test-service {:bootstrapped false})
             g (group/group-spec :local
-                {:count 1
+                {:phases {:settings (plan-fn [session]
+                                      (exec-script* session "echo settings"))
+                          :bootstrap (plan-fn [session]
+                                       (exec-script* session "echo bootstrap"))}
+                 :count 1
                  :node-spec (node-spec
                              {:image {:os-family :ubuntu
                                       :packager :apt
                                       :image-id "xxx"}})})
             c (chan)
             targets (group/service-state
-                     (sync (compute/nodes service))
-                     [(group/group-spec :local {})])
+                     (:targets (sync (compute/nodes service)))
+                     [g])
             _ (is (empty? targets))
             r (group/node-count-adjuster
                session
                service [g]
                targets
                c)
-            [res e] (<!! c)]
-        (is (nil? e) "No exception thrown")
-        (when e
-          (print-cause-trace e))
-        (is (map? res) "Result is a map")
-        (is (= #{:targets :old-node-ids :results} (set (keys res)))
-            "Result has the correct keys")
-        (is (= 1 (count (:targets res))) "Result has a target")
-        (is (empty? (:old-node-ids res)) "Result has no old nodes")
-        (is (empty? (:results res)) "Has no phase results")))))
+            {:keys [results targets new-targets
+                    old-targets exception] :as r} (<!! c)
+            result (first results)]
+        (is (nil? (when exception (throw exception))) "No exception thrown")
+        (is (empty? targets) "Result has no targets")
+        (is (= 1 (count new-targets)) "Result has a new target")
+        (is (empty? old-targets) "No targets removed")
+        (is (= 2 (count results)) "Two phases ran on one node")
+        (is (= #{:results :new-targets :new-target-specs}
+               (set (keys r)))
+            "Result has the correct keys")))
+    (testing "remove a node"
+      (let [session (session/create {:executor (plan-executor)
+                                     :plan-state (in-memory-plan-state)
+                                     :user user/*admin-user*})
+            service (test-service
+                     {:bootstrapped false
+                      :node-list [{:id "id" :os-family :ubuntu :packager :apt
+                                   :hostname "local-1"}]})
+            g (group/group-spec :local
+                {:phases {:destroy-server
+                          (plan-fn [session] :destroy-server)
+                          :destroy-group
+                          (plan-fn [session] :destroy-group)}
+                 :count 0
+                 :node-spec (node-spec
+                             {:image {:os-family :ubuntu
+                                      :packager :apt
+                                      :image-id "xxx"}})})
+            c (chan)
+            targets (group/service-state
+                     (:targets (sync (compute/nodes service)))
+                     [g])
+            r (group/node-count-adjuster
+               session
+               service [g]
+               targets
+               c)
+            {:keys [results targets new-targets
+                    old-targets exception] :as r} (<!! c)
+            result (first results)]
+        (is (empty? (:targets (sync (compute/nodes service)))))
+        (is (nil? (when exception (throw exception))) "No exception thrown")
+        (is (= 1 (count old-targets)) "Result has an old target")
+        (is (= 2 (count results)) "Two phases ran on one node")
+        (is (= #{:old-targets :results} (set (keys r)))
+            "Result has the correct keys")))))
 
 (deftest converge*-test
   (testing "converge*"
-    (let [session (session/create {:executor (ssh/ssh-executor)
+    (let [session (session/create {:executor (plan-executor)
                                    :plan-state (in-memory-plan-state)})
-          service (make-localhost-compute :group-name :local)
+          service (test-service {:bootstrapped false})
           g (group/group-spec :local
               {:count 1
                :phases {:configure (plan-fn [session]
-                                     (exec-script* session "ls"))}})
+                                     (exec-script* session "ls"))}
+               :node-spec (node-spec
+                           {:image {:os-family :ubuntu
+                                    :packager :apt
+                                    :image-id "xxx"}})})
           c (chan)
           targets (group/service-state
-                   (sync (compute/nodes service))
+                   (:targets (sync (compute/nodes service)))
                    [(group/group-spec :local {})])
           _ (is (every? :target targets))
-          r (group/converge* [g] c {:compute service})
-          [res e] (<!! c)]
+          r (group/converge* [g] c {:compute service :executor (plan-executor)})
+          {:keys [results exception] :as res} (<!! c)]
+      (is (nil? (when exception (throw exception))) "No exception thrown")
       (is (map? res) "Result is a map")
-      (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
+      (is (= #{:target-specs :new-targets :new-target-specs :results
+               :old-nodes :new-nodes :request-id :targets :failed-targets}
+             (set (keys res)))
           "Result has the correct keys")
-      (is (empty? (:new-nodes res)) "Result has no new nodes")
+      (is (= 1 (count (:new-nodes res))) "Result has a new nodes")
       (is (empty? (:old-node-ids res)) "Result has no old nodes")
-      (is (seq (:results res)) "Has phase results")
-      (is (nil? e) "No exception thrown")
-      (when e
-        (print-cause-trace e)))))
+      (is (= 1 (count (:results res))) "Has a phase result")
+      (is (= :configure (:phase (first (:results res))))
+          "Has a :configure phase result"))))
 
 (deftest converge-test
-  (testing "converge noop"
-    (let [service (make-localhost-compute :group-name :local)
-          g (group/group-spec :local
-              {:count 1
-               :phases {:configure (plan-fn [session]
-                                     (exec-script* session "ls"))}})
-          res (group/converge [g] :compute service)]
-      (is (map? res) "Result is a map")
-      (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
-          "Result has the correct keys")
-      (is (empty? (:new-nodes res)) "Result has no new nodes")
-      (is (empty? (:old-node-ids res)) "Result has no old nodes")
-      (is (seq (:results res)) "Has phase results")))
-
+  ;; (testing "converge noop"
+  ;;   (let [service (make-localhost-compute :group-name :local)
+  ;;         g (group/group-spec :local
+  ;;             {:count 1
+  ;;              :phases {:configure (plan-fn [session]
+  ;;                                    (exec-script* session "ls"))}
+  ;;              :node-spec (node-spec
+  ;;                          {:image {:os-family :ubuntu
+  ;;                                   :packager :apt
+  ;;                                   :image-id "xxx"}})})
+  ;;         res (group/converge [g] :compute service)]
+  ;;     (is (map? res) "Result is a map")
+  ;;     (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
+  ;;         "Result has the correct keys")
+  ;;     (is (empty? (:new-nodes res)) "Result has no new nodes")
+  ;;     (is (empty? (:old-node-ids res)) "Result has no old nodes")
+  ;;     (is (seq (:results res)) "Has phase results")))
   (testing "with test-service"
-    (testing "and no node changes"
-      (let [service (test-service
-                     {:node-list [{:id "id" :os-family :ubuntu :packager :apt
-                                   :hostname "local-1"}]})
-            g (group/group-spec :local
-                {:count 1
-                 :node-spec (node-spec
+    (testing "with no phases on group"
+      (let [g (group/group-spec :local
+                {:node-spec (node-spec
                              {:image {:os-family :ubuntu
                                       :packager :apt
                                       :image-id "xxx"}})})
-            res (group/converge [g] :compute service :os-detect false)]
-        (is (map? res) "Result is a map")
-        (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
-            "Result has the correct keys")
-        (is (= 1 (count (:targets res))) "Result has 1 nodes")
-        (is (empty? (:old-node-ids res)) "Result has no old nodes")
-        (is (empty? (:results res)) "Has no phase results")))
-    (testing "add a node"
-      (let [service (test-service {})
-            g (group/group-spec :local
-                {:count 1
-                 :node-spec (node-spec
+            node {:id "id" :os-family :ubuntu :packager :apt
+                  :hostname "local-1"}]
+        (testing "and no node changes"
+          (let [service (test-service {:node-list [node]})
+                g (assoc g :count 1)
+                res (group/converge [g] :compute service :os-detect false)]
+            (is (map? res) "Result is a map")
+            (is (= #{:target-specs :old-nodes :new-nodes
+                     :results :request-id :targets :failed-targets}
+                   (set (keys res)))
+                "Result has the correct keys")
+            (is (= 1 (count (:target-specs res))) "Result has 1 target spec")
+            (is (empty? (:new-nodes res)) "Result has no new nodesx")
+            (is (empty? (:old-nodes res)) "Result has no old nodes")
+            (is (empty? (:results res)) "Has no phase results")))
+        (testing "add a node"
+          (let [service (test-service {})
+                g (assoc g :count 1)
+                res (group/converge [g] :compute service :os-detect false)]
+            (is (map? res) "Result is a map")
+            (is (= #{:old-nodes :new-nodes :target-specs :new-targets
+                     :new-target-specs :results :request-id
+                     :targets :failed-targets}
+                   (set (keys res)))
+                "Result has the correct keys")
+            (is (= 1 (count (:target-specs res))) "Result has 1 nodes")
+            (is (= 1 (count (:new-nodes res))) "Result has 1 new node")
+            (is (empty? (:old-nodes res)) "Result has no old nodes")
+            (is (empty? (:results res)) "Has no phase results")))
+        (testing "remove a node"
+          (let [service (test-service {:node-list [node]})
+                g (assoc g :count 0)
+                res (group/converge [g] :compute service :os-detect false)]
+            (is (map? res) "Result is a map")
+            (is (= #{:old-nodes :new-nodes :target-specs :old-targets :results
+                     :request-id :targets :failed-targets}
+                   (set (keys res)))
+                "Result has the correct keys")
+            (is (= 0 (count (:target-specs res))) "Result has no nodes")
+            (is (empty? (:new-targets res)) "Result has no new targets")
+            (is (= [(assoc node :compute-service service)]
+                   (:old-targets res)) "Result has an old target")
+            (is (= [(assoc node :compute-service service)]
+                   (:old-nodes res)) "Result has an old node")
+            (is (empty? (:results res)) "Has no phase results")))))
+    (testing "with phases on group"
+      (let [g (group/group-spec :local
+                {:node-spec (node-spec
                              {:image {:os-family :ubuntu
                                       :packager :apt
-                                      :image-id "xxx"}})})
-            res (group/converge [g] :compute service :os-detect false)]
-        (is (map? res) "Result is a map")
-        (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
-            "Result has the correct keys")
-        (is (= 1 (count (:targets res))) "Result has 1 nodes")
-        (is (empty? (:old-node-ids res)) "Result has no old nodes")
-        (is (empty? (:results res)) "Has no phase results")))
-    (testing "remove a node"
-      (let [service (test-service
-                     {:node-list [{:id "id" :os-family :ubuntu :packager :apt
-                                   :hostname "local-1"}]})
-            g (group/group-spec :local
-                {:count 0
-                 :node-spec (node-spec
-                             {:image {:os-family :ubuntu
-                                      :packager :apt
-                                      :image-id "xxx"}})})
-            res (group/converge [g] :compute service :os-detect false)]
-        (is (map? res) "Result is a map")
-        (is (= #{:targets :old-node-ids :results :request-id} (set (keys res)))
-            "Result has the correct keys")
-        (is (= 0 (count (:targets res))) "Result has no nodes")
-        (is (= ["id"] (:old-node-ids res)) "Result has an old node id")
-        (is (empty? (:results res)) "Has no phase results")))))
-
+                                      :image-id "xxx"}})
+                 :phases {:settings (plan-fn [_] :settings)
+                          :bootstrap (plan-fn [_] :bootstrap)
+                          :configure (plan-fn [_] :configure)
+                          :destroy-server (plan-fn [_] :destroy-server)
+                          :create-group (plan-fn [_] :create-group)
+                          :destroy-group (plan-fn [_] :destroy-group)}})
+            node {:id "id" :os-family :ubuntu :packager :apt
+                  :hostname "local-1"}]
+        (testing "and no node changes"
+          (let [service (test-service {:node-list [node]})
+                g (assoc g :count 1)
+                res (group/converge [g] :compute service :os-detect false)]
+            (is (map? res) "Result is a map")
+            (is (= #{:target-specs :old-nodes :new-nodes
+                     :results :request-id :targets :failed-targets}
+                   (set (keys res)))
+                "Result has the correct keys")
+            (is (= 1 (count (:target-specs res))) "Result has 1 target spec")
+            (is (empty? (:new-nodes res)) "Result has no new nodesx")
+            (is (empty? (:old-nodes res)) "Result has no old nodes")
+            (is (= 1 (count (:results res))) "Has one phase results")
+            (is (= #{:configure} (set (map :phase (:results res))))
+                "Has correct phase results")))
+        (testing "add a node"
+          (with-domain :add-a-node
+            (let [service (test-service {:bootstrapped false})
+                  g (assoc g :count 1)
+                  res (group/converge [g] :compute service :os-detect false)]
+              (is (map? res) "Result is a map")
+              (is (= #{:old-nodes :new-nodes :target-specs :new-targets
+                       :new-target-specs :results :request-id
+                       :targets :failed-targets}
+                     (set (keys res)))
+                  "Result has the correct keys")
+              (is (= 1 (count (:target-specs res))) "Result has 1 nodes")
+              (is (= 1 (count (:new-nodes res))) "Result has 1 new node")
+              (is (empty? (:old-nodes res)) "Result has no old nodes")
+              (is (= 4 (count (:results res))) "Has phase results")
+              (is (= #{:bootstrap :create-group :configure :settings}
+                     (set (map :phase (:results res))))
+                  "Has correct phase results"))))
+        (testing "remove a node"
+          (let [service (test-service {:node-list [node]})
+                g (assoc g :count 0)
+                res (group/converge [g] :compute service :os-detect false)]
+            (is (map? res) "Result is a map")
+            (is (= #{:old-nodes :new-nodes :target-specs :old-targets :results
+                     :request-id :targets :failed-targets}
+                   (set (keys res)))
+                "Result has the correct keys")
+            (is (= 0 (count (:target-specs res))) "Result has no nodes")
+            (is (empty? (:new-targets res)) "Result has no new targets")
+            (is (= [(assoc node :compute-service service)]
+                   (:old-targets res)) "Result has an old target")
+            (is (= [(assoc node :compute-service service)]
+                   (:old-nodes res)) "Result has an old node")
+            (is (= 2 (count (:results res))) "Has phase results")
+            (is (= #{:destroy-server :destroy-group}
+                   (set (map :phase (:results res))))
+                "Has correct phase results")))))))
 
 
 ;; ;; test what happens when a script fails
@@ -544,6 +666,33 @@
 ;;                    :phases
 ;;                    :a))
 ;;               (session)])))))
+
+(deftest lift-test
+  (testing "with phases on group"
+    (let [g (group/group-spec :local
+              {:node-spec (node-spec
+                           {:image {:os-family :ubuntu
+                                    :packager :apt
+                                    :image-id "xxx"}})
+               :phases {:settings (plan-fn [_] :settings)
+                        :bootstrap (plan-fn [_] :bootstrap)
+                        :configure (plan-fn [_] :configure)
+                        :destroy-server (plan-fn [_] :destroy-server)
+                        :create-group (plan-fn [_] :create-group)
+                        :destroy-group (plan-fn [_] :destroy-group)}})
+          node {:id "id" :os-family :ubuntu :packager :apt
+                :hostname "local-1"}]
+      (testing "lift default phase"
+        (let [service (test-service {:node-list [node]})
+              g (assoc g :count 1)
+              res (group/lift [g] :compute service :os-detect false)]
+          (is (map? res) "Result is a map")
+          (is (= #{:session :results :request-id :targets :failed-targets}
+                 (set (keys res)))
+              "Result has the correct keys")
+          (is (= 2 (count (:results res))) "Has one phase results")
+          (is (= #{:settings :configure} (set (map :phase (:results res))))
+              "Has correct phase results"))))))
 
 ;; (deftest lift-test
 ;;   (testing "lift on group"

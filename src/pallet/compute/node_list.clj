@@ -89,7 +89,7 @@ support."
     [compute ch]
     "List nodes. A sequence of node instances will be put onto the channel, ch."
     (go-try ch
-      (>! ch [@node-list])))
+      (>! ch {:targets @node-list})))
 
   pallet.environment.protocols.Environment
   (environment [_] environment)

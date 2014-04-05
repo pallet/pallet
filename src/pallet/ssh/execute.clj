@@ -4,6 +4,7 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [taoensso.timbre :as logging]
+   [com.palletops.api-builder.core :refer [assert*]]
    [com.palletops.log-config.timbre :refer [with-context]]
    [pallet.actions.direct.execute :as execute
     :refer [clean-logs log-script-output]]
@@ -26,6 +27,8 @@
   "Return the user to use for authentication.  This is not necessarily the
   admin user (e.g. when bootstrapping, it is the image user)."
   [user]
+  (assert* (:username user)
+           "SSH authentication requires a username.  User is %s" user)
   (logging/debugf "authentication %s" (obfuscated-passwords user))
   {:user user})
 

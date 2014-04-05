@@ -6,7 +6,8 @@
    [clojure.core.async
     :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
    [taoensso.timbre :refer [debugf errorf]]
-   [pallet.exception :refer [combine-exceptions]]))
+   [pallet.exception :refer [combine-exceptions domain-error?]]
+   [pallet.utils.rex-map :refer [merge-rex-maps]]))
 
 ;;; # Helpers for external protocols
 (defn ^:no-check channel? [x]
@@ -38,6 +39,7 @@
      {:pre [(channel? from) (channel? to)]}
      (go-loop []
        (let [v (<! from)]
+         (debugf "pipe %s" v)
          (if (nil? v)
            (when close? (close! to))
            (do (>! to v)
@@ -75,23 +77,13 @@
      {:pre [(every? channel? chans) (channel? to)]}
      (go-logged
       (doseq [i (for [c chans] (pipe c to false))]
-
-        (<! i))
+        (<! i)) ; wait for pipe to complete
       (when close?
         (close! to))))
   ([chans to]
      (concat-chans chans to true)))
 
-
-;;; # Result Exception Tuples
-
-;;; In order to assist in consistent reporting of exceptions across
-;;; asynchronous go blocks, we can use result exception tuples
-;;; (rex-tuples) as the values into channels.
-
-;;; A rex-tuple is a sequence that contains a result value, and an
-;;; optional exception value.
-
+;;; # Rex-Map aware async functions
 
 (defmacro go-try
   "Provides a go macro which executes its body inside a try/catch block.
@@ -105,7 +97,7 @@
     (try
       ~@body
       (catch Throwable e#
-        (>! ~ch [nil e#])))))
+        (>! ~ch {:exception e#})))))
 
 (defn thread-fn
   "Execute the zero-arity function, f, in a new thread, returning a
@@ -116,7 +108,7 @@
    (try
      (f)
      (catch Throwable t
-       [nil t]))))
+       {:exception t}))))
 
 (defn map-thread
   "Apply zero-arity function, f, to each element of coll, using a
@@ -126,68 +118,53 @@
   [f coll]
   (doall (map #(thread-fn (fn [] (f %))) coll)))
 
-(defn reduce-results
-  "Reduce the results of a sequence of [result exception] tuples read
-  from channel in-ch, writing a single [result exception] to out-ch,
-  where the result is the sequence of all the read results, and the
-  exception is a composite exception of all the read exceptions.  The
-  exception data contains a :results key with the accumulated
-  results."
-  [in-ch exception-msg out-ch]
-  (go-try out-ch
-    (loop [results []
-           exceptions []]
-      (if-let [[r e] (<! in-ch)]
-        (recur (if r (conj results r) results)
-               (if e (conj exceptions e) exceptions))
-        (>! out-ch
-            [results
-             (if-let [es (seq exceptions)]
-               (combine-exceptions es exception-msg {:results results}))])))))
 
-(defn reduce-concat-results
+(defn reduce-results
   "Reduce the results of a sequence of [result exception] tuples read
   from channel in-ch, writing a single [result exception] to out-ch,
   where the result is the sequence of all the read results
   concatenated, and the exception is a composite exception of all the
   read exceptions.  The exception data contains a :results key with
-  the accumulated results."  [in-ch exception-msg out-ch]
-  (go-try out-ch
-    (loop [results []
-           exceptions []]
-      (if-let [[r e] (<! in-ch)]
-        (recur (if r (concat results r) results)
-               (if e (conj exceptions e) exceptions))
-        (>! out-ch
-            [results
-             (if-let [es (seq exceptions)]
-               (combine-exceptions es exception-msg {:results results}))])))))
+  the accumulated results."
+  ([in-ch exception-msg out-ch]
+     (go-try out-ch
+       (loop [results {}]
+         (debugf "reduce-results %s" results)
+         (if-let [r (<! in-ch)]
+           (recur (merge-rex-maps results r exception-msg))
+           (>! out-ch results)))))
+  ([in-ch out-ch]
+     (reduce-results in-ch nil out-ch)))
 
-(defn chain-and
-  "Given a channel, in-ch, that will return a series of [result,
-  exception] tuples, reduce the tuples into a single result tuple, and
-  forward it to ch.  If there is no exception in the tuples, execute
-  the async function, f, passing ch as the sole argument."
-  [in-ch f ch]
-  (go-try ch
-    (let [[results e :as result] (<! in-ch)]
-      (>! ch result)
-      (if-not e
-        (f ch)))))
+;; (defn reduce-concat-results
+;;   "Reduce the results of a sequence of [result exception] tuples read
+;;   from channel in-ch, writing a single [result exception] to out-ch,
+;;   where the result is the sequence of all the read results
+;;   concatenated, and the exception is a composite exception of all the
+;;   read exceptions.  The exception data contains a :results key with
+;;   the accumulated results."  [in-ch exception-msg out-ch]
+;;   (go-try out-ch
+;;     (loop [results []
+;;            exceptions []]
+;;       (if-let [[r e] (<! in-ch)]
+;;         (recur (if r (concat results r) results)
+;;                (if e (conj exceptions e) exceptions))
+;;         (>! out-ch
+;;             [results
+;;              (if-let [es (seq exceptions)]
+;;                (combine-exceptions es exception-msg {:results results}))])))))
 
-(defn exec-operation
-  "Execute the channel.  If `:async` is true, simply returns the
-  channel, otherwise reads a value from the channel using the timeout
-  values if specified."
-  [chan {:keys [async timeout-ms timeout-val]}]
-  (cond
-   async chan
-   timeout-ms (let [[[res e] _] (alts!! [chan (timeout timeout-ms)])]
-                (when e (throw e))
-                res)
-   :else (let [[res e] (<!! chan)]
-           (when e (throw e))
-           res)))
+;; (defn chain-and
+;;   "Given a channel, in-ch, that will return a series of [result,
+;;   exception] tuples, reduce the tuples into a single result tuple, and
+;;   forward it to ch.  If there is no exception in the tuples, execute
+;;   the async function, f, passing ch as the sole argument."
+;;   [in-ch f ch]
+;;   (go-try ch
+;;     (let [[results e :as result] (<! in-ch)]
+;;       (>! ch result)
+;;       (if-not e
+;;         (f ch)))))
 
 (defn map-chan
   "Apply a function, f, to values from the from channel, writing the
@@ -203,13 +180,33 @@
      (close! to))))
 
 (defn deref-rex
-  "Read a rex-tuple from the specified channel.  If there is an
+  "Read a rex-map from the specified channel.  If there is an
   exception, throw it, otherwise return the result."
   [ch]
-  (let [[r e] (<!! ch)]
-    (when e
-      (throw e))
+  (let [r (<!! ch)]
+    (when-let [e (:exception r)]
+      (if (domain-error? e)
+        ;; Domain exceptions are potentially "lost" using this at the
+        ;; moment.  We need to ensure that they are in the results
+        ;; somewhere.
+        (assert true "TODO - check that domain exceptions aren't lost")
+        (if (instance? Exception e)
+          (throw (ex-info (.getMessage e) (ex-data e) e))
+          (throw (ex-info "sync failed" (ex-data e) e)))))
     r))
+
+(defn exec-operation
+  "Execute the channel.  If `:async` is true, simply returns the
+  chnel, otherwise reads a value from the chnel using the timeout
+  values if specified."
+  [ch {:keys [async timeout-ms timeout-val]}]
+  (cond
+   async ch
+   timeout-ms (let [[r _] (alts!! [ch (timeout timeout-ms)])]
+                (when-let [e (:exception r)]
+                  (throw e))
+                r)
+   :else (deref-rex ch)))
 
 ;; TODO add timeout options
 (defn sync*

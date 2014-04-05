@@ -122,7 +122,7 @@
                 (is (nil? (:exception result)))
                 (is (nil? (phase-errors result)))
                 (is (some
-                     #(= (first (sync (nodes compute))) %)
+                     #(= (first (:targets (sync (nodes compute)))) %)
                      (:targets result))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
@@ -147,7 +147,7 @@
                               :user user)]
                   (is (nil? (phase-errors result)))
                   (is (some
-                       #(= (first (sync (nodes compute))) %)
+                       #(= (first (:targets (sync (nodes compute)))) %)
                        (:targets result)))))
               (testing "with md5 guard different content"
                 (logging/info "remote-file test: local-file with md5 guard")
@@ -166,7 +166,7 @@
                   (is (nil? (phase-errors result)))
                   (is (nil? (:exception result)))
                   (is (some
-                       #(= (first (sync (nodes compute))) %)
+                       #(= (first (:targets (sync (nodes compute)))) %)
                        (:targets result))))))
             (testing "content"
               (let [result (lift

@@ -2,7 +2,8 @@
   "Exception functions"
   (:require
    [clojure.java.io :as io]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [schema.core :as schema :refer [check optional-key validate]]))
 
 (defn ^:internal compiler-exception
   "Return a compiler exception.  This is should be used to throw in
@@ -39,6 +40,7 @@
   sequence.  The exceptions are listed in the :exceptions key of
   the exception data."
   ([exceptions message data]
+     {:pre [(validate [(schema/maybe Throwable)] exceptions)]}
      (if-let [exceptions (seq (remove nil? exceptions))]
        (let [cause (or (first (filter (complement domain-error?) exceptions))
                        (first exceptions))
@@ -64,5 +66,7 @@
            data
            {:exceptions exceptions})
           cause))))
+  ([exceptions data]
+     (combine-exceptions exceptions nil data))
   ([exceptions]
      (combine-exceptions exceptions nil {})))

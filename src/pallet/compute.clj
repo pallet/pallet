@@ -7,7 +7,7 @@
    [pallet.compute.implementation :as implementation]
    [pallet.core.protocols :as core-impl]
    [pallet.utils.async :refer [go-try]]
-   [schema.core :as schema :refer [check optional-key validate]]))
+   [schema.core :as schema :refer [check maybe optional-key validate]]))
 
 ;;; ## Schema types
 
@@ -145,7 +145,8 @@ Provider specific options may also be passed."
     (throw (unsupported-exception service operation))))
 
 (defn nodes
-  "Return the nodes in the compute service."
+  "Return the nodes in the compute service.  Returns a rex-map with
+  a :targets key."
   [compute ch]
   (require-protocol impl/ComputeService compute 'nodes)
   (impl/nodes compute ch))
@@ -153,7 +154,10 @@ Provider specific options may also be passed."
 (defn create-nodes
   "Create nodes running in the compute service."
   [compute node-spec user node-count options ch]
-  {:pre [(map? node-spec)(map? (:image node-spec))]}
+  {:pre [(map? node-spec)
+         (map? (:image node-spec))
+         (validate node-spec-schema node-spec)
+         (validate (maybe {schema/Keyword schema/Any}) options)]}
   (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'create-nodes)
   (impl/create-nodes compute node-spec user node-count options ch))
 
