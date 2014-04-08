@@ -1,4 +1,4 @@
-(ns pallet.target-ops
+(ns pallet.phase
   (:require
    [clojure.core.async :as async :refer [<! <!! >! put! chan close!]]
    [clojure.set :as set]
@@ -24,7 +24,6 @@
    [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; TODO explicit middleware for tagging via plan-state
-;;; TODO move target-ops into spec?
 
 (def TargetSpec
   "A target combined with a spec"

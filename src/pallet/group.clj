@@ -25,6 +25,12 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
    [pallet.node :as node :refer [node? Node]]
+   [pallet.phase
+    :refer [create-nodes-phase destroy-nodes-phase execute-target-phase
+            lift-phase lift-when-no-errors-phase lift-unfailed-targets-phase
+            parallel-phases phase-spec series-phases
+            target-phase target-plan target-with-specs targets-state
+            TargetPhase TargetSpec]]
    [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
@@ -33,12 +39,6 @@ Uses a TargetMap to describe a node with its group-spec info."
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
             phases-with-meta process-phase-calls set-targets targets PhaseCall]]
    [pallet.target-info :refer [admin-user]]
-   [pallet.target-ops
-    :refer [create-nodes-phase destroy-nodes-phase execute-target-phase
-            lift-phase lift-when-no-errors-phase lift-unfailed-targets-phase
-            parallel-phases phase-spec series-phases
-            target-phase target-plan target-with-specs targets-state
-            TargetPhase TargetSpec]]
    [pallet.user :refer [*admin-user* User]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async

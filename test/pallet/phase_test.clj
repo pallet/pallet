@@ -1,4 +1,4 @@
-(ns pallet.target-ops-test
+(ns pallet.phase-test
   (:refer-clojure :exclude [sync])
   (:require
    [clojure.core.async :refer [>! >!! <!! chan go put!]]
@@ -18,7 +18,7 @@
    [pallet.session :as session
     :refer [executor recorder set-target set-user target user]]
    [pallet.spec :refer [server-spec]]
-   [pallet.target-ops :refer :all]
+   [pallet.phase :refer :all]
    [pallet.user :as user]
    [pallet.utils.async :refer [go-try sync]]
    [schema.core :as schema :refer [validate]]
