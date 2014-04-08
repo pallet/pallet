@@ -10,13 +10,14 @@
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
-   [pallet.phase :as phase :refer [phases-with-meta PhaseSpec]]
    [pallet.plan :as plan
     :refer [execute-plans errors plan-fn PlanResult Target TargetPlan]]
    [pallet.session :as session
     :refer [BaseSession base-session? extension plan-state set-extension target
             target-session? update-extension]]
-   [pallet.spec :refer [phase-plan spec-for-target ExtendedServerSpec]]
+   [pallet.spec
+    :refer [phase-args phase-kw phase-plan spec-for-target
+            ExtendedServerSpec PhaseCall]]
    [pallet.utils.async
     :refer [go-try map-chan reduce-results ReadPort WritePort]]
    [pallet.utils.rex-map :refer [merge-rex-maps]]
@@ -60,6 +61,21 @@
    :spec (spec-for-target predicate-spec-pairs target)})
 
 ;;; # Execution Targets
+(def PhaseSpec
+  {:phase schema/Keyword
+   (schema/optional-key :args) [schema/Any]})
+
+(defn phase-spec
+  "Return a phase spec map for a phase call.  A phase call is either a
+  phase keyword, or a sequence of phase keyword an arguments for the
+  phase function."
+  [phase]
+  {:pre [(schema/validate PhaseCall phase)]
+   :post [(schema/validate PhaseSpec %)]}
+  (let [args (phase-args phase)]
+    (cond-> {:phase (phase-kw phase)}
+            (seq args) (assoc :args args))))
+
 (defn target-plan
   "Return a target plan map"
   [{:keys [target spec] :as target-spec} phase-spec]

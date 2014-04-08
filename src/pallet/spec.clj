@@ -8,7 +8,6 @@ service."
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
-   [pallet.phase :refer [phases-with-meta]]
    [pallet.plan :refer [execute-plan*]]
    [pallet.session :as session
     :refer [extension set-extension update-extension]]
@@ -98,6 +97,21 @@ only not flagged with a :bootstrapped keyword."}
                             middleware/image-user-middleware
                             (middleware/execute-one-shot-flag :bootstrapped))}})
 
+
+(defn phases-with-meta
+  "Takes a `phases-map` and applies the default phase metadata and the
+  `phases-meta` to the phases in it."
+  [phases-map phases-meta default-phase-meta]
+  (reduce-kv
+   (fn [result k v]
+     (let [dm (default-phase-meta k)
+           pm (get phases-meta k)]
+       (assoc result k (if (or dm pm)
+                         ;; explicit overrides default
+                         (vary-meta v #(merge dm % pm))
+                         v))))
+   nil
+   (or phases-map {})))
 
 ;;; ## Server-spec
 (defn server-spec
@@ -201,3 +215,41 @@ specified in the `:extends` argument."
     (if args
       #(apply f % args)
       f)))
+
+;;; # Phase call functions
+(def PhaseWithArgs
+  [(schema/one schema/Keyword "phase-kw") schema/Any])
+
+(def PhaseCall
+  (schema/either schema/Keyword IFn PhaseWithArgs))
+
+(defn phase-args [phase-call]
+  (if (keyword? phase-call)
+    nil
+    (rest phase-call)))
+
+(defn phase-kw [phase-call]
+  (if (keyword? phase-call)
+    phase-call
+    (first phase-call)))
+
+(defn process-phase-calls
+  "Process phases. Returns a phase list and a phase-map. Functions specified in
+  `phases` are identified with a keyword and a map from keyword to function.
+  The return vector contains a sequence of phase keywords and the map
+  identifying the anonymous phases."
+  [phase-calls]
+  (let [phase-calls (if (or (keyword? phase-calls) (fn? phase-calls))
+                      [phase-calls]
+                      phase-calls)]
+    (reduce
+     (fn [[phase-kws phase-map] phase-call]
+       (if (or (keyword? phase-call)
+               (and (or (vector? phase-call) (seq? phase-call))
+                    (keyword? (first phase-call))))
+         [(conj phase-kws phase-call) phase-map]
+         (let [phase-kw (-> (gensym "phase")
+                            name keyword)]
+           [(conj phase-kws phase-kw)
+            (assoc phase-map phase-kw phase-call)])))
+     [[] {}] phase-calls)))

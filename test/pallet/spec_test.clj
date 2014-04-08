@@ -74,3 +74,13 @@
               (is (= (server-spec {:extends [s1 s2]})
                      (spec-for-target predicate-spec-pairs n2))
                   "Target has correct roles"))))))))
+
+(deftest phase-args-test
+  (is (= nil (phase-args :x)))
+  (is (= [] (phase-args [:x])))
+  (is (= [:a :b] (phase-args [:x :a :b]))))
+
+(deftest phase-kw-test
+  (is (= :x (phase-kw :x)))
+  (is (= :x (phase-kw [:x])))
+  (is (= :x (phase-kw [:x :a :b]))))

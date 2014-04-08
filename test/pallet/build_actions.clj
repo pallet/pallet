@@ -11,7 +11,6 @@
    [pallet.group :refer [group-spec]]
    [pallet.kb :refer [packager-for-os]]
    [pallet.node :refer [script-template]]
-   [pallet.phase :as phase]
    [pallet.plan :refer [execute-plan plan-fn]]
    [pallet.script :as script :refer [with-script-context]]
    [pallet.session

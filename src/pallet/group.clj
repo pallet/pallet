@@ -25,20 +25,18 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
    [pallet.node :as node :refer [node? Node]]
-   [pallet.phase :as phase
-    :refer [phases-with-meta process-phases phase-spec PhaseCall]]
    [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
             recorder target target-session? update-extension]]
    [pallet.spec :as spec
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
-            set-targets targets]]
+            phases-with-meta process-phase-calls set-targets targets PhaseCall]]
    [pallet.target-info :refer [admin-user]]
    [pallet.target-ops
     :refer [create-nodes-phase destroy-nodes-phase execute-target-phase
             lift-phase lift-when-no-errors-phase lift-unfailed-targets-phase
-            parallel-phases series-phases
+            parallel-phases phase-spec series-phases
             target-phase target-plan target-with-specs targets-state
             TargetPhase TargetSpec]]
    [pallet.user :refer [*admin-user* User]]
@@ -678,7 +676,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
   (with-request-context
-    (let [[phases phase-map] (process-phases phase)
+    (let [[phases phase-map] (process-phase-calls phase)
           phase-map (if os-detect
                       (merge phase-map (:phases (node-info/server-spec {})))
                       phase-map)
@@ -815,7 +813,7 @@ the admin-user on the nodes.
   (logging/trace "Lift*")
   (check-lift-options options)
   (with-request-context
-    (let [[phases phase-map] (process-phases phase)
+    (let [[phases phase-map] (process-phase-calls phase)
           phase-map (if os-detect
                       (merge phase-map (:phases (node-info/server-spec {})))
                       phase-map)
