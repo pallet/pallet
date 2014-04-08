@@ -5,6 +5,7 @@
    [pallet.action :refer [implementation]]
    [pallet.actions.direct :refer [direct-script]]
    [pallet.actions.direct.execute :refer [result-with-error-map]]
+   [pallet.core.context :refer [with-domain]]
    [pallet.core.executor.protocols :refer :all]
    [pallet.core.script-state :as script-state :refer [update-node-state]]
    [pallet.exception :refer [domain-info]]
@@ -16,12 +17,14 @@
 
 (defn execute-ssh
   [transport node action value]
-  (ssh/ssh-script-on-target
-   transport node (-> action :options :user) action value))
+  (with-domain :ssh
+    (ssh/ssh-script-on-target
+     transport node (-> action :options :user) action value)))
 
 (defn execute-local
   [node action value]
-  (local/script-on-origin (:user action) action value))
+  (with-domain :local
+    (local/script-on-origin (:user action) action value)))
 
 (deftype SshActionExecutor [transport state]
   ActionExecutor
