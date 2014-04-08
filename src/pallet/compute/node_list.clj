@@ -220,7 +220,7 @@ support."
   Optionally, an environment map can be passed using the :environment
   keyword.  See `pallet.environment`."
   {:added "0.9.0"
-   :sig [[{(optional-key :node-list) [node/node-schema]
+   :sig [[{(optional-key :node-list) [node/Node]
            (optional-key :node-file) String
            (optional-key :environment) {schema/Keyword schema/Any}
            (optional-key :tag-provider)

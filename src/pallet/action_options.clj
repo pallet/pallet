@@ -2,12 +2,12 @@
   "Options for controlling the behaviour of actions."
   (:require
    [pallet.session :as session]
-   [pallet.user :as user]
+   [pallet.user :refer [User]]
    [schema.core :as schema :refer [check optional-key validate]]))
 
 ;;; # Action Options
 
-(def action-options-schema
+(def ActionOptions
   {(optional-key :error-on-non-zero-exit) schema/Bool
    (optional-key :new-login-after-action) schema/Bool
    (optional-key :record-all) schema/Bool
@@ -17,7 +17,7 @@
    (optional-key :script-env-fwd) [(schema/either schema/Keyword String)]
    (optional-key :script-prefix) schema/Keyword
    (optional-key :sudo-user) String
-   (optional-key :user) user/user-schema})
+   (optional-key :user) User})
 
 (defn action-options
   "Return any action-options currently defined on the session."
@@ -56,6 +56,6 @@ only the action summary and any error is recorded.  Defaults to true."
     (throw
      (Exception. "with-action-options expects a symbol as first argument.")))
   `(let [m# ~m]
-     (validate action-options-schema m#)
+     (validate ActionOptions m#)
      (let [~session (session/merge-action-options ~session ~m)]
          ~@body)))

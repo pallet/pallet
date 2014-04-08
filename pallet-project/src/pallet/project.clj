@@ -12,8 +12,9 @@ defproject refers to pallet.project.loader/defproject."
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.api :refer [cluster-spec extend-specs]]
-   [pallet.contracts :refer [check-group-spec]]
-   [pallet.utils :refer [log-multiline]]))
+   [pallet.contracts :refer [GroupSpec]]
+   [pallet.utils :refer [log-multiline]]
+   [schema.core :refer [validate]]))
 
 ;;; ## Read a project file
 (def default-pallet-file "pallet.clj")
@@ -142,7 +143,7 @@ by group-names."
                      (comp seq #(intersection (set roles) %) :roles)
                      groups)
                     groups)
-           _ (doseq [group groups] (check-group-spec group))
+           _ (doseq [group groups] (validate GroupSpec group))
            groups (apply concat
                          (for [variant variants]
                            (map
@@ -160,7 +161,7 @@ by group-names."
         :trace
         "spec-from-project groups %s"
         (with-out-str (clojure.pprint/pprint (vec groups))))
-       (doseq [group groups] (check-group-spec group))
+       (doseq [group groups] (validate GroupSpec group))
        (:groups (cluster-spec "" :groups groups))))
   ([pallet-project provider-kw]
      (spec-from-project pallet-project provider-kw #{:default})))

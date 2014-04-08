@@ -2,11 +2,12 @@
   (:require
    [clojure.test :refer :all]
    [com.palletops.log-config.timbre :refer [suppress-logging]]
-   [pallet.compute :refer :all]))
+   [pallet.compute :refer :all]
+   [schema.core :refer [validate]]))
 
 (deftest schemas-are-loose-test
   (let [input  {:network {:security-group "default"}}
-        output (check-node-spec input)]
+        output (validate NodeSpec input)]
     (is (= input output))))
 
 (deftest network-schema-spec-test
@@ -16,11 +17,11 @@
                                            :protocol "UDP"}]}}
         input3 {:network {:inbound-ports [{:port 80}]}}      ;; unallowed key
         input4 {:network {:inbound-ports [{:end-port 80}]}}] ;; no start-port
-    (is (= input1 (check-node-spec input1)))
-    (is (= input2 (check-node-spec input2)))
+    (is (= input1 (validate NodeSpec input1)))
+    (is (= input2 (validate NodeSpec input2)))
     (suppress-logging
-     (is (thrown? Exception (check-node-spec input3)))
-     (is (thrown? Exception (check-node-spec input4))))))
+     (is (thrown? Exception (validate NodeSpec input3)))
+     (is (thrown? Exception (validate NodeSpec input4))))))
 
 (deftest qos-schema-spec-test
   (let [input1 {:qos {}}
@@ -28,11 +29,11 @@
         input3 {:qos {:spot-price 2 :enable-monitoring true}}
         input4 {:qos {:enable-monitoring false}}
         input5 {:qos {:i-am-loose true}}]
-    (is (= input1 (check-node-spec input1)))
-    (is (= input2 (check-node-spec input2)))
-    (is (= input3 (check-node-spec input3)))
-    (is (= input4 (check-node-spec input4)))
-    (is (= input5 (check-node-spec input5)))))
+    (is (= input1 (validate NodeSpec input1)))
+    (is (= input2 (validate NodeSpec input2)))
+    (is (= input3 (validate NodeSpec input3)))
+    (is (= input4 (validate NodeSpec input4)))
+    (is (= input5 (validate NodeSpec input5)))))
 
 (deftest node-spec-test
   (is (= {:image {:image-id "xx" :os-family :ubuntu}}

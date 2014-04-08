@@ -8,7 +8,7 @@ service."
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
-   [pallet.phase :refer [phase-schema phases-with-meta]]
+   [pallet.phase :refer [phases-with-meta]]
    [pallet.plan :refer [execute-plan*]]
    [pallet.session :as session
     :refer [extension set-extension update-extension]]
@@ -20,37 +20,33 @@ service."
 
 ;;; ## Schemas
 
-(def phases-schema
+(def PhaseMap
   {schema/Keyword IFn})
 
-(def phase-meta-schema
+(def PhaseMeta
   {(optional-key :middleware) IFn
    (optional-key :phase-middleware) IFn})
 
-(def override-schema
+(def NodeOverride
   {(optional-key :packager) schema/Keyword
    (optional-key :os-family) schema/Keyword
    (optional-key :os-version) String})
 
-(def phases-meta-schema
-  {schema/Keyword phase-meta-schema})
+(def PhasesMeta
+  {schema/Keyword PhaseMeta})
 
-(def server-spec-schema
-  {(optional-key :phases) phases-schema
+(def ServerSpec
+  {(optional-key :phases) PhaseMap
    (optional-key :roles) #{schema/Keyword}
    (optional-key :packager) schema/Keyword
-   (optional-key :phases-meta) phases-meta-schema
+   (optional-key :phases-meta) PhasesMeta
    (optional-key :default-phases) [schema/Keyword]
-   (optional-key :override) override-schema})
+   (optional-key :override) NodeOverride})
 
 (def ExtendedServerSpec
-  (assoc server-spec-schema
+  (assoc ServerSpec
     ;; allow extensions to the server-spec
     schema/Any schema/Any))
-
-(defn check-server-spec
-  [m]
-  (validate server-spec-schema m))
 
 ;;; ## Spec Merges
 ;;; When extending specs, we need to merge spec definitions.
@@ -124,7 +120,7 @@ For a given phase, inherited phase functions are run first, in the order
 specified in the `:extends` argument."
   [{:keys [phases phases-meta default-phases packager extends roles]
     :as options}]
-  {:post [(check-server-spec %)]}
+  {:post [(validate ServerSpec %)]}
   (->
    (dissoc options :extends :phases-meta)
    (cond->

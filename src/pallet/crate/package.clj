@@ -16,12 +16,12 @@
 ;; Need to allow installing certain packages before adding a package
 ;; source for example.
 
-(def package-repo-schema
+(def PackageRepo
   {:repository String
    (optional-key :enable) schema/Bool
    (optional-key :priority) schema/Int})
 
-(def package-schema
+(def PackageSpec
   [[:package] String                     ; package name
    (optional-key :allow-unsigned) String ; flag to allow unsigned pkg
    (optional-key :repository) String     ; an optional repository
@@ -29,9 +29,9 @@
    (optional-key :disable-service-start)
    schema/Any]) ; flag to disable service startup
 
-(def package-settings-schema
-  {:packages [package-schema]
-   :package-repositories [package-repo-schema]})
+(def PackageSettings
+  {:packages [PackageSpec]
+   :package-repositories [PackageRepo]})
 
 (defn- conj-distinct
   [coll arg]

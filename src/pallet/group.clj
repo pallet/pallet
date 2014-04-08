@@ -15,8 +15,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    [taoensso.timbre :as logging :refer [debugf tracef]]
    [pallet.blobstore :refer [blobstore?]]
    [pallet.compute :as compute
-    :refer [check-node-spec compute-service? node-spec
-            node-spec-schema service-properties]]
+    :refer [compute-service? node-spec NodeSpec service-properties]]
    [pallet.core.api-builder :refer [defn-api defn-sig]]
    [pallet.core.context :refer [context with-request-context]]
    [pallet.core.executor.ssh :as ssh]
@@ -25,9 +24,9 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.crate.node-info :as node-info]
    [pallet.environment :refer [merge-environments]]
    [pallet.exception :refer [combine-exceptions]]
-   [pallet.node :as node :refer [node? node-schema]]
+   [pallet.node :as node :refer [node? Node]]
    [pallet.phase :as phase
-    :refer [phases-with-meta process-phases phase-schema phase-spec]]
+    :refer [phases-with-meta process-phases phase-spec PhaseCall]]
    [pallet.plan :refer [errors]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
@@ -42,7 +41,7 @@ Uses a TargetMap to describe a node with its group-spec info."
             parallel-phases series-phases
             target-phase target-plan target-with-specs targets-state
             TargetPhase TargetSpec]]
-   [pallet.user :as user]
+   [pallet.user :refer [*admin-user* User]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
    [pallet.utils.async
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
@@ -55,28 +54,28 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 ;;; ## Schemas
 
-(def environment-strict-schema
-  {(optional-key :user) user/user-schema
+(def EnvironmentStrict
+  {(optional-key :user) User
    (optional-key :executor) IFn
    (optional-key :compute) (schema/pred compute-service?)})
 
-(def group-spec-schema
-  (merge spec/server-spec-schema
+(def GroupSpec
+  (merge spec/ServerSpec
          {:group-name schema/Keyword
           (optional-key :node-filter) IFn
           (optional-key :count) Number
           (optional-key :removal-selection-fn) IFn
-          (optional-key :node-spec) node-spec-schema}))
+          (optional-key :node-spec) NodeSpec}))
 
-(def lift-options-schema
+(def LiftOptions
   (merge
-   environment-strict-schema
+   EnvironmentStrict
    {(optional-key :compute) (schema/pred compute-service?)
     (optional-key :blobstore) (schema/pred blobstore?)
-    (optional-key :phase) (schema/either phase-schema [phase-schema])
-    (optional-key :environment) (assoc environment-strict-schema
+    (optional-key :phase) (schema/either PhaseCall [PhaseCall])
+    (optional-key :environment) (assoc EnvironmentStrict
                                   schema/Keyword schema/Any)
-    (optional-key :user) user/user-schema
+    (optional-key :user) User
     (optional-key :async) schema/Bool
     (optional-key :timeout-ms) Number
     (optional-key :timeout-val) schema/Any
@@ -86,23 +85,23 @@ Uses a TargetMap to describe a node with its group-spec info."
     (optional-key :all-node-set) #{schema/Any}
     (optional-key :executor) schema/Any}))
 
-(def converge-options-schema
+(def ConvergeOptions
   (->
-   lift-options-schema
+   LiftOptions
    (dissoc (optional-key :compute))
    (assoc :compute (schema/pred compute-service?))))
 
 (defn check-group-spec
   [m]
-  (validate group-spec-schema m))
+  (validate GroupSpec m))
 
 (defn check-lift-options
   [m]
-  (validate lift-options-schema m))
+  (validate LiftOptions m))
 
 (defn check-converge-options
   [m]
-  (validate converge-options-schema m))
+  (validate ConvergeOptions m))
 
 ;;; ## Group-spec
 
@@ -137,20 +136,20 @@ Uses a TargetMap to describe a node with its group-spec info."
   [name {:keys [extends count image phases phases-meta default-phases packager
                 node-spec roles node-filter]
          :as options}]
-  {:pre [(or (nil? image) (map? image))]}
+  {:pre [(or (nil? image) (map? image))]
+   :post (validate GroupSpec %)}
   (let [group-name (keyword (clojure.core/name name))]
-    (check-group-spec
-     (->
-      (merge options)
-      (cond->
-       roles (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-      (extend-specs extends)
-      (maybe-update-in
-       [:phases] phases-with-meta phases-meta default-phase-meta)
-      (update-in [:default-phases] #(or default-phases % [:configure]))
-      (dissoc :extends :phases-meta)
-      (assoc :group-name group-name)
-      (vary-meta assoc :type ::group-spec)))))
+    (->
+     (merge options)
+     (cond->
+      roles (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+     (extend-specs extends)
+     (maybe-update-in
+      [:phases] phases-with-meta phases-meta default-phase-meta)
+     (update-in [:default-phases] #(or default-phases % [:configure]))
+     (dissoc :extends :phases-meta)
+     (assoc :group-name group-name)
+     (vary-meta assoc :type ::group-spec))))
 
 ;;; ## Cluster Spec
 (defn expand-cluster-groups
@@ -313,7 +312,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   {:internal true}
   [node group]
   {:pre [(node? node)
-         (check-group-spec group)]}
+         (validate GroupSpec group)]}
   (debugf "node-in-group? target %s group %s" node group)
   (debugf "node-in-group? target in group %s"
           (target-has-group-name? node (name (:group-name group))))
@@ -325,7 +324,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   "For a sequence of nodes, filter those nodes in the specified
   `groups`. Returns a sequence that contains a target-spec map for each
   matching target."
-  {:sig [[[node-schema] [group-spec-schema] :- [TargetSpec]]]}
+  {:sig [[[Node] [GroupSpec] :- [TargetSpec]]]}
   [nodes groups]
   (tracef "service-state %s" (vec nodes))
   (debugf "service-state local %s"
@@ -438,7 +437,7 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 (defn target-phases [target-specs phases]
   {:pre [(validate (schema/named [TargetSpec] "target-specs") target-specs)
-         (validate [phase-schema] target-specs)]
+         (validate [PhaseCall] phases)]
    :post [(validate [TargetPhase] %)]}
   (map
    (fn [phase]
@@ -488,7 +487,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   "Return a phase function to create `count` nodes for a `group`."
   [session compute-service group count create-group]
   {:pre [(base-session? session)
-         (validate node-spec-schema (:node-spec group))]}
+         (validate NodeSpec (:node-spec group))]}
   (debugf "create-group-nodes-phase %s %s" group count)
   (fn [res ch]
     (series-phases
@@ -619,8 +618,8 @@ Uses a TargetMap to describe a node with its group-spec info."
   "Returns the service state for the specified groups"
   [compute groups all-node-set]
   {:pre [(or (empty? groups) (compute-service? compute))
-         (every? #(check-group-spec %) groups)
-         (every? #(check-group-spec %) all-node-set)]}
+         (every? #(validate GroupSpec %) groups)
+         (every? #(validate GroupSpec %) all-node-set)]}
   (let [consider (map
                   (fn [g] (update-in g [:phases] select-keys [:settings]))
                   all-node-set)]
@@ -711,14 +710,14 @@ Uses a TargetMap to describe a node with its group-spec info."
                              #(get % :default-phases [:configure])
                              (concat groups targets))))]
       (debugf "converge* targets %s" (vec targets))
-      (doseq [group groups] (check-group-spec group))
+      (doseq [group groups] (validate GroupSpec group))
       (go-try ch
         (>! ch
             (let [session (session/create
                            {:executor executor
                             :plan-state (in-memory-plan-state
                                          initial-plan-state)
-                            :user user/*admin-user*})
+                            :user *admin-user*})
                   nodes-set (all-group-nodes compute groups all-node-set)
                   nodes-set (concat nodes-set targets)
                   _ (when-not (or compute (seq nodes-set))
@@ -841,14 +840,14 @@ the admin-user on the nodes.
           phases (or (seq phases)
                      (apply total-order-merge
                             (map :default-phases (concat groups targets))))]
-      (doseq [group groups] (check-group-spec group))
+      (doseq [group groups] (validate GroupSpec group))
       (logging/trace "Lift ready to start")
       (go-try ch
         (let [session (session/create
                        {:executor executor
                         :plan-state (in-memory-plan-state
                                      initial-plan-state)
-                        :user user/*admin-user*})
+                        :user *admin-user*})
               nodes-set (all-group-nodes compute groups all-node-set)
               nodes-set (concat nodes-set targets)
               ;; TODO put nodes-set target maps into :extensions

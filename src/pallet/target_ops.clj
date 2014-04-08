@@ -3,23 +3,20 @@
    [clojure.core.async :as async :refer [<! <!! >! put! chan close!]]
    [clojure.set :as set]
    [taoensso.timbre :as logging :refer [debugf tracef]]
-   [pallet.compute :as compute :refer [node-spec-schema]]
+   [pallet.compute :as compute :refer [NodeSpec]]
    [pallet.core.api-builder :refer [defn-api defn-sig]]
    [pallet.core.context :refer [with-context]]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
-   [pallet.phase :as phase :refer [phase-schema phases-with-meta PhaseSpec]]
+   [pallet.phase :as phase :refer [phases-with-meta PhaseSpec]]
    [pallet.plan :as plan
     :refer [execute-plans errors plan-fn PlanResult Target TargetPlan]]
    [pallet.session :as session
     :refer [BaseSession base-session? extension plan-state set-extension target
             target-session? update-extension]]
-   [pallet.spec
-    :refer [bootstrapped-meta extend-specs phase-plan phases-schema
-            set-targets spec-for-target server-spec-schema
-            unbootstrapped-meta ExtendedServerSpec]]
+   [pallet.spec :refer [phase-plan spec-for-target ExtendedServerSpec]]
    [pallet.utils.async
     :refer [go-try map-chan reduce-results ReadPort WritePort]]
    [pallet.utils.rex-map :refer [merge-rex-maps]]
@@ -225,7 +222,7 @@
 
 (defn create-nodes-phase
   [compute-service node-spec user count base-name]
-  {:pre [(validate node-spec-schema node-spec)]}
+  {:pre [(validate NodeSpec node-spec)]}
   (fn create-nodes [_ c]
     (compute/create-nodes compute-service node-spec user count base-name c)))
 

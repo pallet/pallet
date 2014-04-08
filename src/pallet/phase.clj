@@ -12,17 +12,15 @@ Phase maps enable composition of operations across heterogenous nodes."
   (:import
    clojure.lang.IFn))
 
+;; TODO empty this ns and rename target-ops to phase
+
 ;;; # Phase specification functions
 
-(def phase-with-args-schema
+(def PhaseWithArgs
   [(schema/one schema/Keyword "phase-kw") schema/Any])
 
-(def phase-schema
-  (schema/either schema/Keyword IFn phase-with-args-schema))
-
-(def PhaseSpec
-  {:phase schema/Keyword
-   (schema/optional-key :args) [schema/Any]})
+(def PhaseCall
+  (schema/either schema/Keyword IFn PhaseWithArgs))
 
 (defn phase-args [phase]
   (if (keyword? phase)
@@ -34,18 +32,24 @@ Phase maps enable composition of operations across heterogenous nodes."
     phase
     (first phase)))
 
+;;; TODO move phase-spec to target-ops
+(def PhaseSpec
+  {:phase schema/Keyword
+   (schema/optional-key :args) [schema/Any]})
+
 (defn phase-spec
   "Return a phase spec map for a phase call.  A phase call is either a
   phase keyword, or a sequence of phase keyword an arguments for the
   phase function."
   [phase]
-  {:pre [(schema/validate phase-schema phase)]
+  {:pre [(schema/validate PhaseCall phase)]
    :post [(schema/validate PhaseSpec %)]}
   (let [args (phase-args phase)]
     (cond-> {:phase (phase-kw phase)}
       (seq args) (assoc :args args))))
 
 ;;; # Phase metadata
+;; TODO rename plan-with-meta and move to p.plan
 (defn phases-with-meta
   "Takes a `phases-map` and applies the default phase metadata and the
   `phases-meta` to the phases in it."
@@ -62,6 +66,7 @@ Phase maps enable composition of operations across heterogenous nodes."
    (or phases-map {})))
 
 ;;; # Phase Specification
+;; TODO move-back to group, along with PhaseCall, et al
 (defn process-phases
   "Process phases. Returns a phase list and a phase-map. Functions specified in
   `phases` are identified with a keyword and a map from keyword to function.

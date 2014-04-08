@@ -6,7 +6,7 @@
    [pallet.actions :refer [exec-script]]
    [pallet.kb :refer [packager-for-os]]
    [pallet.middleware :refer [execute-on-filtered]]
-   [pallet.node :as node :refer [node-values-schema]]
+   [pallet.node :as node :refer [NodeValues]]
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.spec :as spec :refer [bootstrapped-meta unbootstrapped-meta]]
    [pallet.session :refer [plan-state target target-session?]]
@@ -18,14 +18,11 @@
 
 (def facility :pallet/os)
 
-(defn node-details-map? [x]
-  (validate node-values-schema x))
-
 (defn node-info
   "Return the node information in settings for the specified target."
   [session target]
   {:pre [(node/node? target)]
-   :post [(or (nil? %) (node-details-map? %))]}
+   :post [(or (nil? %) (validate NodeValues %))]}
   (let [node-info-map (get-target-settings session target facility)]
     (debugf "node-info node-info-map %s" node-info-map)
     node-info-map))
@@ -33,13 +30,13 @@
 (defn node-info!
   "Set the node os information map"
   [session node-details]
-  {:pre [(or (nil? node-details) (node-details-map? node-details))]}
+  {:pre [(or (nil? node-details) (validate NodeValues node-details))]}
   (assoc-settings session facility node-details))
 
 (defn node-info-merge!
   "Merge the os-details into the node os information map"
   [session node-details]
-  {:pre [(or (nil? node-details) (node-details-map? node-details))]}
+  {:pre [(or (nil? node-details) (validate NodeValues node-details))]}
   (update-settings session facility merge node-details))
 
 (defn target-with-os

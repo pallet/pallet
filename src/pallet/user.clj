@@ -5,7 +5,7 @@
    [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
-(def user-schema
+(def User
   (schema/both
    (schema/pred (fn [{:keys [password private-key-path private-key]}]
                   (or password private-key private-key-path)))
@@ -21,12 +21,10 @@
     (optional-key :public-key) (schema/either String bytes)
     (optional-key :passphrase) (schema/either String bytes)}))
 
-(defn validate-user
+(defn user?
+  "Predicate to test for a valid user map."
   [m]
-  (validate user-schema m))
-
-(defn user? [m]
-  (not (check user-schema m)))
+  (not (check User m)))
 
 (def key-files ["id_rsa" "id_dsa"])
 
@@ -83,7 +81,7 @@
                     passphrase
                     password sudo-password no-sudo sudo-user]
              :as options}]
-  {:post [(validate-user %)]}
+  {:post [(validate User %)]}
   (assoc options :username username))
 
 (def

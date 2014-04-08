@@ -13,13 +13,13 @@
 
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
-(def image-spec-schema
+(def ImageSpec
   {:image-id (schema/either String schema/Keyword)
    :os-family schema/Keyword
    (optional-key :packager) schema/Keyword
    schema/Keyword schema/Any})
 
-(def image-search-schema
+(def ImageSearchSchema
   {(optional-key :image-id) (schema/either String schema/Keyword)
    (optional-key :image-description-matches) String
    (optional-key :image-name-matches) String
@@ -34,52 +34,48 @@
    (optional-key :override-login-user) String
    schema/Keyword schema/Any})
 
-(def location-spec-schema
+(def LocationSpec
   {(optional-key :location-id) String
    schema/Keyword schema/Any})
 
-(def hardware-spec-schema
+(def HardwareSpec
   {(optional-key :hardware-id) String
    (optional-key :min-ram) Number
    (optional-key :min-cores) Number
    (optional-key :min-disk) Number
    schema/Keyword schema/Any})
 
-(def inbound-port-spec-schema
+(def InboundPortSpec
   {:start-port Number
    (optional-key :end-port) Number
    (optional-key :protocol) String})
 
-(def inbound-port-schema
-  (schema/either inbound-port-spec-schema Number))
+(def InboundPort
+  (schema/either InboundPortSpec Number))
 
-(def network-spec-schema
-  {(optional-key :inbound-ports) [inbound-port-schema]
+(def NetworkSpec
+  {(optional-key :inbound-ports) [InboundPort]
    schema/Keyword schema/Any})
 
-(def qos-spec-schema
+(def QosSpec
   {(optional-key :spot-price) Number
    (optional-key :enable-monitoring) schema/Bool
    schema/Keyword schema/Any})
 
-(def node-spec-schema
-  {(optional-key :image) image-spec-schema
-   (optional-key :location) location-spec-schema
-   (optional-key :hardware) hardware-spec-schema
-   (optional-key :network) network-spec-schema
-   (optional-key :qos) qos-spec-schema
+(def NodeSpec
+  {(optional-key :image) ImageSpec
+   (optional-key :location) LocationSpec
+   (optional-key :hardware) HardwareSpec
+   (optional-key :network) NetworkSpec
+   (optional-key :qos) QosSpec
    (optional-key :provider) {schema/Keyword schema/Any}
    schema/Keyword schema/Any})
 
-(def node-spec-meta-schema
-  {:node-spec node-spec-schema
+(def NodeSpecMeta
+  {:node-spec NodeSpec
    (optional-key :selectors) #{schema/Keyword}
    (optional-key :group-suffix) String
    (optional-key :name) String})
-
-(defn check-node-spec
-  [m]
-  (validate node-spec-schema m))
 
 ;;; Meta
 (defn supported-providers
@@ -156,7 +152,7 @@ Provider specific options may also be passed."
   [compute node-spec user node-count options ch]
   {:pre [(map? node-spec)
          (map? (:image node-spec))
-         (validate node-spec-schema node-spec)
+         (validate NodeSpec node-spec)
          (validate (maybe {schema/Keyword schema/Any}) options)]}
   (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'create-nodes)
   (impl/create-nodes compute node-spec user node-count options ch))
@@ -256,8 +252,9 @@ Provider specific options may also be passed."
    :qos       a map for quality of service options:
               spot-price enable-monitoring"
   [{:keys [image hardware location network qos] :as options}]
-  {:pre [(or (nil? image) (map? image))]}
-  (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
+  {:pre [(or (nil? image) (map? image))]
+   :post [(validate NodeSpec %)]}
+  (vary-meta (or options {}) assoc :type ::node-spec))
 
 ;;; # Node Spec Meta Maps
 
@@ -271,5 +268,5 @@ Provider specific options may also be passed."
   "Predicate for matching any of a set of keyword selectors with a
   node-spec meta map."
   [selectors node-spec-meta]
-  {:pre [(set? selectors) (validate node-spec-meta-schema node-spec-meta)]}
+  {:pre [(set? selectors) (validate NodeSpecMeta node-spec-meta)]}
   (seq (intersection selectors (:selectors node-spec-meta))))
