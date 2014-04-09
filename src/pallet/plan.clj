@@ -5,7 +5,8 @@
    [taoensso.timbre :refer [debugf tracef]]
    [clojure.tools.macro :refer [name-with-attributes]]
    [clojure.string :as string]
-   [com.palletops.api-builder.core :refer [assert*]]
+   [com.palletops.api-builder :refer [def-defn def-fn]]
+   [com.palletops.api-builder.core :refer [assert* arg-and-ref]]
    [com.palletops.log-config.timbre :refer [with-context-update]]
    [pallet.core.api-builder :refer [defn-api defn-sig]]
    [pallet.core.context :refer [with-context]]
@@ -28,7 +29,7 @@
     :refer [concat-chans map-thread reduce-results ReadPort WritePort]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
-   [schema.core :as schema :refer [check maybe optional-key validate]]))
+   [schema.core :as schema :refer [check maybe named optional-key validate]]))
 
 ;;; # Action Plan Execution
 (def PlanFn (schema/=> schema/Any BaseSession schema/Any))
@@ -75,6 +76,7 @@
 
 (def ^:internal AdornedPlanResult
   (assoc PlanResult schema/Keyword schema/Any))
+
 (def ^:internal AdornedTargetResult
   (assoc TargetResult schema/Keyword schema/Any))
 
@@ -134,7 +136,7 @@
 ;; Execute a plain plan function, with no node
 (defmethod execute-plan* :group
   [session target plan-fn]
-  {:return-value (plan-fn session)})
+  {:return-value (plan-fn (set-target session target))})
 
 
 ;; Ensures that the session target is set, and that the script
@@ -294,7 +296,54 @@
   `(with-context-update [[:plan] (fnil conj []) ~context-name]
      ~@body))
 
-(defmacro plan-fn
+(defn- final-fn-sym?
+  "Predicate to match the final function symbol in a form."
+  [sym form]
+  (loop [form form]
+    (when (sequential? form)
+      (let [s (first form)]
+        (if (and (symbol? s) (= sym (symbol (name s))))
+          true
+          (recur (last form)))))))
+
+(defn add-plan-context
+  "Adds a plan-context aroiund the body of the function."
+  [{:keys [name] :as defn-map}]
+  ;; if the final function call is recursive, then don't add a
+  ;; plan-context, so that just forwarding different arities only
+  ;; gives one log entry/event, etc.
+  (letfn [(add-body-context [{:keys [body] :as arity}]
+            (if (or (not name) (final-fn-sym? name body))
+              arity
+              (assoc arity :body
+                     [`(plan-context '~(symbol (str (clojure.core/name name)))
+                         ~@body)])))]
+    (update-in defn-map [:arities]
+               (fn [arities] (map add-body-context arities)))))
+
+(defn check-plan-arguments
+  "Check arguments for at least one (session) argument, and add a
+  runtime check that it is passed a TargetSession"
+  [{:keys [name] :as defn-map}]
+  (doseq [{:keys [args body]} (:arities defn-map)]
+    (when-not (pos? (count args))
+      (throw
+       (compiler-exception
+        args "defplan requires at least a session argument" {}))))
+  (letfn [(add-session-validation [{:keys [args body] :as arity}]
+            (let [args-refs (map arg-and-ref args)
+                  session (-> args-refs first second)]
+              (-> arity
+                  (assoc :args (mapv first args-refs))
+                  (update-in [:conditions :pre]
+                             (fnil conj [])
+                             `(validate (named TargetSession ~(str session))
+                                        ~session)))))]
+    (update-in defn-map [:arities]
+               (fn [arities] (map add-session-validation arities)))))
+
+
+(def-fn plan-fn
   "Create a plan function from a sequence of plan function invocations.
 
    eg. (plan-fn [session]
@@ -305,78 +354,21 @@
    around each plan function call.
 
   The plan-fn can be optionally named, as for `fn`."
-  [args & body]
-  (let [n? (symbol? args)
-        n (if n? args)
-        args (if n? (first body) args)
-        body (if n? (rest body) body)]
-    (when-not (vector? args)
-      (throw (ex-info
-              (str "plan-fn requires a vector for its arguments,"
-                   " but none found.")
-              {:type :plan-fn-definition-no-args})))
-    (when (zero? (count args))
-      (throw (ex-info
-              (str "plan-fn requires at least one argument for the session,"
-                   " but no arguments found.")
-              {:type :plan-fn-definition-args-missing})))
-    (if n
-      `(fn ~n ~args (plan-context ~(gensym (name n)) ~@body))
-      `(fn ~args ~@body))))
+  [add-plan-context check-plan-arguments])
 
-
-(defn final-fn-sym?
-  "Predicate to match the final function symbol in a form."
-  [sym form]
-  (loop [form form]
-    (when (sequential? form)
-      (let [s (first form)]
-        (if (and (symbol? s) (= sym (symbol (name s))))
-          true
-          (recur (last form)))))))
-
-(defmacro defplan
-  "Define a plan function. Assumes the first argument is a session map."
-  {:arglists '[[name doc-string? attr-map? [params*] body]]
-   :indent 'defun}
-  [sym & body]
-  (letfn [(output-body [[args & body]]
-            (let [no-context? (final-fn-sym? sym body)
-                  [session-arg session-ref] (map-arg-and-ref (first args))]
-              (when-not (vector? args)
-                (throw
-                 (compiler-exception
-                  &form "defplan requires an argument vector" {})))
-              (when-not (pos? (count args))
-                (throw
-                 (compiler-exception
-                  &form "defplan requires at least a session argument" {})))
-              `([~session-arg ~@(rest args)]
-                  ;; if the final function call is recursive, then
-                  ;; don't add a plan-context, so that just
-                  ;; forwarding different arities only gives one log
-                  ;; entry/event, etc.
-                  {:pre [(target-session? ~session-arg)]}
-                  ~@(if no-context?
-                      body
-                      [(let [locals (gensym "locals")]
-                         `(let [~locals (local-env)]
-                            (plan-context '~(symbol (str (name sym)))
-                              ~@body)))]))))]
-    (let [[sym rest] (name-with-attributes sym body)
-          sym (vary-meta sym assoc :pallet/plan-fn true)]
-      (if (vector? (first rest))
-        `(defn ~sym
-           ~@(output-body rest))
-        `(defn ~sym
-           ~@(map output-body rest))))))
+(def-defn defplan
+  "Define a plan function. Assumes the first argument is a session map.
+  Adds a plan context around the function body.  Adds checking for at
+  least one (session) argument."
+  [add-plan-context check-plan-arguments])
 
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan
   "Declare a multimethod for plan functions.  Does not have defonce semantics.
   Methods will automatically be wrapped in a plan-context."
   {:arglists '([name docstring? attr-map? dispatch-fn
-                {:keys [hierarchy] :as options}])}
+                {:keys [hierarchy] :as options}])
+   :api :plan}
   [name & args]
   (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
         {:keys [hierarchy]} options
@@ -406,9 +398,9 @@
   to `first`.
 
   Use defmethod-plan to add methods to defmulti-every."
-
   {:arglists '([name docstring? attr-map? dispatch-fns
-                {:keys [selector] :as options}])}
+                {:keys [selector] :as options}])
+   :api :plan}
   [name & args]
   (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
         {:keys [selector]} options
@@ -429,6 +421,7 @@
           (meta &form)))))
 
 (defmacro defmethod-plan
+  {:api :plan}
   [multifn dispatch-val args & body]
   (letfn [(sanitise [v]
             (string/replace (str v) #":" ""))]

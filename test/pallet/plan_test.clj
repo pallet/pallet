@@ -3,6 +3,7 @@
   (:require
    [clojure.core.async :refer [>!]]
    [clojure.stacktrace :refer [root-cause]]
+   [clojure.string :refer [split-lines]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script*]]
    [pallet.action-options :refer [with-action-options]]
@@ -19,14 +20,15 @@
     :refer [executor recorder set-target set-user target user]]
    [pallet.user :as user]
    [pallet.utils.async :refer [go-try sync]]
-   [schema.core :as schema :refer [validate]]))
+   [schema.core :as schema :refer [validate]]
+   [taoensso.timbre :refer [warnf]]))
 
 (defn test-name-in-context
   [f]
   (with-context {:test (mapv (comp :name meta) *testing-vars*)}
     (f)))
 
-(use-fixtures :once (logging-threshold-fixture))
+(use-fixtures :once (logging-threshold-fixture :warn))
 (use-fixtures :each test-name-in-context)
 
 (defn plan-session
@@ -321,3 +323,57 @@
       (is (errors results))
       (is (error-exceptions results))
       (is (thrown? clojure.lang.ExceptionInfo (throw-errors results))))))
+
+
+(deftest plan-fn-test
+  (let [f (plan-fn fname ([s x] (warnf "%s" x)) ([s] (fname s :x)))
+        g (plan-fn [s x] (warnf "%s" x))
+        session (-> (plan-session)
+                    (set-target ubuntu-node))]
+    (is (.contains (with-out-str (f session :x)) "[fname]"))
+    (is (.contains (with-out-str (f session)) "[fname]"))
+    (is (= 1 (count (split-lines (with-out-str (f session)))))
+        "logged once")
+    (is (.contains (with-out-str (g session :x)) "[]"))
+    (is (thrown-with-msg?
+         Exception #"Value does not match schema"
+         (f {} :x))
+        "Complains about invalid target session")
+    (is (thrown-with-msg?
+         Exception #"Parameter declaration missing"
+         (eval `(plan-fn)))
+        "Complains about defplan with no arg vector")
+    (is (thrown-with-msg?
+         Exception #"Parameter declaration missing"
+         (eval `(plan-fn ~'x)))
+        "Complains about defplan with name and no arg vector")
+    (is (thrown-with-msg?
+         Exception  #"defplan requires at least a session argument"
+         (eval `(plan-fn ~'x [])))
+        "Complains about defplan with empty arg vector")))
+
+(defplan f
+  ([s] (f s :x))
+  ([s x] (warnf "%s" x)))
+
+(deftest defplan-test
+  (let [session (-> (plan-session)
+                    (set-target ubuntu-node))]
+    (is (.contains (with-out-str (f session)) ":x"))
+    (is (= 1 (count (split-lines (with-out-str (f session)))))
+        "logged once")
+    (is (.contains (with-out-str (f session :x)) ":x"))
+    (is (= 1 (count (split-lines (with-out-str (f session :x)))))
+        "logged once"))
+  (is (thrown-with-msg?
+       Exception #"Value does not match schema"
+       (f {}))
+      "Complains about invalid target session")
+  (is (thrown-with-msg?
+       Exception #"Parameter declaration missing"
+       (eval `(defplan ~'x)))
+      "Complains about defplan with no arg vector")
+  (is (thrown-with-msg?
+       Exception  #"defplan requires at least a session argument"
+       (eval `(defplan ~'x [])))
+      "Complains about defplan with empty arg vector"))
