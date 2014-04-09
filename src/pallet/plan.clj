@@ -1,15 +1,12 @@
 (ns pallet.plan
   "API for execution of pallet plan functions."
   (:require
-   [clojure.core.async :as async :refer [<!! chan go]]
-   [taoensso.timbre :refer [debugf tracef]]
-   [clojure.tools.macro :refer [name-with-attributes]]
+   [clojure.core.async :refer [chan go]]
    [clojure.string :as string]
    [com.palletops.api-builder :refer [def-defn def-fn]]
-   [com.palletops.api-builder.core :refer [assert* arg-and-ref]]
-   [com.palletops.log-config.timbre :refer [with-context-update]]
+   [com.palletops.api-builder.core :refer [arg-and-ref assert*]]
    [pallet.core.api-builder :refer [defn-api defn-sig]]
-   [pallet.core.context :refer [with-context]]
+   [pallet.core.context :refer [with-context with-context-update]]
    [pallet.core.executor :as executor]
    [pallet.core.recorder :refer [record results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
@@ -18,18 +15,17 @@
     :refer [combine-exceptions compiler-exception domain-error?]]
    [pallet.node :refer [script-template validate-node]]
    [pallet.script :refer [with-script-context]]
-   [pallet.session
-    :refer [base-session? executor plan-state recorder
-            set-executor set-recorder set-target target-session? user
-            BaseSession TargetSession]]
+   [pallet.session :as session
+    :refer [BaseSession TargetSession
+            base-session? recorder set-recorder set-target target-session?
+            user]]
    [pallet.stevedore :refer [with-script-language]]
-   [pallet.user :refer [obfuscated-passwords user?]]
-   [pallet.utils :refer [local-env map-arg-and-ref]]
-   [pallet.utils.async
-    :refer [concat-chans map-thread reduce-results ReadPort WritePort]]
+   [pallet.user :refer [User]]
+   [pallet.utils.async :refer [ReadPort WritePort concat-chans reduce-results]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
-   [schema.core :as schema :refer [check maybe named optional-key validate]]))
+   [schema.core :as schema :refer [maybe named optional-key validate]]
+   [taoensso.timbre :refer [debugf tracef]]))
 
 ;;; # Action Plan Execution
 (def PlanFn (schema/=> schema/Any BaseSession schema/Any))
@@ -88,11 +84,11 @@
   cease execution of the plan function (unless explicitly handled)."
   {:sig [[TargetSession Action :- ActionResult]]}
   [{:keys [target] :as session} action]
-  {:pre [(user? (user session))
+  {:pre [(validate User (user session))
          (validate Target target)]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
-  (let [executor (executor session)]
+  (let [executor (session/executor session)]
     (tracef "execute-action executor %s" (pr-str executor))
     (assert executor "No executor in session")
     (let [[rv e] (try
@@ -153,7 +149,7 @@
          (fn? plan-fn)
          ;; Reduce preconditions? or reduce magic by not having defaults?
          ;; TODO have a default executor?
-         (executor session)]
+         (session/executor session)]
    :post [(or (nil? %) (validate PlanResult %))]}
   (debugf "execute* %s %s" target plan-fn)
   (let [r (in-memory-recorder) ; a recorder for the scope of this plan-fn

@@ -6,6 +6,7 @@
 
 (potemkin/import-vars
  log-config/with-context
+ log-config/with-context-update
  log-config/context
  log-config/with-domain)
 
