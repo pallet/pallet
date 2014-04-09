@@ -26,12 +26,12 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.exception :refer [combine-exceptions]]
    [pallet.node :as node :refer [node? Node]]
    [pallet.phase
-    :refer [create-nodes-phase destroy-nodes-phase execute-target-phase
+    :refer [create-nodes-phase destroy-nodes-phase
             lift-phase lift-when-no-errors-phase lift-unfailed-targets-phase
             parallel-phases phase-spec series-phases
             target-phase target-plan target-with-specs targets-state
-            TargetPhase TargetSpec]]
-   [pallet.plan :refer [errors]]
+            TargetSpec]]
+   [pallet.plan :refer [errors execute-target-phase TargetPhase]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
             recorder target target-session? update-extension]]

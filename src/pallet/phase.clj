@@ -11,7 +11,8 @@
    [pallet.middleware :as middleware]
    [pallet.node :as node]
    [pallet.plan :as plan
-    :refer [execute-plans errors plan-fn PlanResult Target TargetPlan]]
+    :refer [execute-plans execute-target-phase errors plan-fn
+            PlanResult Target TargetPlan TargetPhase]]
    [pallet.session :as session
     :refer [BaseSession base-session? extension plan-state set-extension target
             target-session? update-extension]]
@@ -29,11 +30,6 @@
   "A target combined with a spec"
   {:target {schema/Any schema/Any}
    :spec ExtendedServerSpec})
-
-(def TargetPhase
-  "A sequence of target plans, with an id for identifying the results."
-  {:result-id {schema/Any schema/Any}
-   :target-plans [TargetPlan]})
 
 (def PhaseResult
   "A phase result is the result of some set of operations."
@@ -178,25 +174,6 @@
      :failed-targets bad}))
 
 ;;; # Phases
-
-(defn-api execute-target-phase
-  "Execute plans, merging the result-id map into the result of each
-  plan-fn.  Write a result-exception map to the channel, ch."
-  {:sig [[BaseSession TargetPhase WritePort :- ReadPort]]}
-  [session {:keys [result-id target-plans] :as target-phase} ch]
-  (with-context {:result-id result-id}
-    (logging/debugf "execute-target-phase %s target plans" (count target-plans))
-    (let [c (chan)]
-      (execute-plans session target-plans c)
-      (go-try ch
-        (if-let [{:keys [results exception] :as r} (<! c)]
-          (let [r (update-in r [:results]
-                             (fn [results]
-                               (mapv #(merge result-id %) results)))
-                e (combine-exceptions
-                   [exception] "execute-target-phase failed" r)]
-            (>! ch (cond-> r e (assoc :exception e))))
-          (>! ch {:exception (ex-info "No result from execute-plans" {})}))))))
 
 (defn-sig remove-failed-targets
   "Remove target plans from `target-phase` if they are for one of `targets`."

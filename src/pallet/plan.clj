@@ -21,7 +21,8 @@
             user]]
    [pallet.stevedore :refer [with-script-language]]
    [pallet.user :refer [User]]
-   [pallet.utils.async :refer [ReadPort WritePort concat-chans reduce-results]]
+   [pallet.utils.async
+    :refer [ReadPort WritePort concat-chans go-try reduce-results]]
    [pallet.utils.multi :as multi
     :refer [add-method dispatch-every-fn dispatch-key-fn dispatch-map]]
    [schema.core :as schema :refer [maybe named optional-key validate]]
@@ -69,6 +70,11 @@
 (def TargetPlan
   {:target schema/Any
    :plan-fn (schema/=> WritePort TargetSession)})
+
+(def TargetPhase
+  "A sequence of target plans, with an id for identifying the results."
+  {:result-id {schema/Any schema/Any}
+   :target-plans [TargetPlan]})
 
 (def ^:internal AdornedPlanResult
   (assoc PlanResult schema/Keyword schema/Any))
@@ -243,6 +249,25 @@
          (execute-plans* session target-plans c)))
      c)
     (reduce-results c "execute-plans failed" ch)))
+
+(defn-api execute-target-phase
+  "Execute plans, merging the result-id map into the result of each
+  plan-fn.  Write a result-exception map to the channel, ch."
+  {:sig [[BaseSession TargetPhase WritePort :- ReadPort]]}
+  [session {:keys [result-id target-plans] :as target-phase} ch]
+  (with-context {:result-id result-id}
+    (debugf "execute-target-phase %s target plans" (count target-plans))
+    (let [c (chan)]
+      (execute-plans session target-plans c)
+      (go-try ch
+        (if-let [{:keys [results exception] :as r} (<! c)]
+          (let [r (update-in r [:results]
+                             (fn [results]
+                               (mapv #(merge result-id %) results)))
+                e (combine-exceptions
+                   [exception] "execute-target-phase failed" r)]
+            (>! ch (cond-> r e (assoc :exception e))))
+          (>! ch {:exception (ex-info "No result from execute-plans" {})}))))))
 
 ;;; # Exception reporting
 (defn-api plan-errors

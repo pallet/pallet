@@ -377,3 +377,98 @@
        Exception  #"defplan requires at least a session argument"
        (eval `(defplan ~'x [])))
       "Complains about defplan with empty arg vector"))
+
+(deftest execute-target-phase-test
+  (let [phase-x {:phase :x}
+        phase-y {:phase :y}]
+    (testing "with a target with two phases"
+      (let [x (plan-fn [session]
+                (exec-script* session "ls"))
+            y (plan-fn [session]
+                (exec-script* session "ls")
+                (exec-script* session "pwd"))
+            node {:id "id" :os-family :ubuntu :os-version "13.10"
+                  :packager :apt}
+            session (plan-session)]
+        (testing "lifting one phase"
+          (let [target-plan {:target node :plan-fn x}
+                {[result :as results] :results}
+                (sync (execute-target-phase
+                       session {:result-id phase-x
+                                :target-plans [target-plan]}))]
+            (is (= 1 (count results)) "Runs a single phase on a single node")
+            (is (= :x (:phase result)) "labels the phase in the results")
+            (is (= node (:target result)) "labels the target in the result")
+            (is (= 1 (count (:action-results result))) "Runs the plan action")
+            (is (= ["ls"] (:args (first (:action-results result))))
+                "invokes the correct phase")
+            (is (not (errors results)))))
+        (testing "with a second node"
+          (testing "lifting the other phase"
+            (let [node2 (assoc node :id "id2")
+                  target-plans [{:target node :plan-fn y}
+                                {:target node2 :plan-fn y}]
+                  {:keys [results]} (sync
+                                     (execute-target-phase
+                                      session
+                                      {:result-id phase-y
+                                       :target-plans target-plans}))]
+              (is (= 2 (count results)) "Runs a single phase on a both nodes")
+              (is (every? #(= :y (:phase %)) results)
+                  "labels the phase in the results")
+              (is (= #{node node2} (set (map :target results)))
+                  "labels the target in the results")
+              (is (every? #(= 2 (count (:action-results %))) results)
+                  "Runs the plan action")
+              (is (not (errors results))))))))
+    (testing "with a target with a phase that throws"
+      (let [e (ex-info "some error" {})
+            x (plan-fn [session]
+                (exec-script* session "ls")
+                (throw e))
+            node {:id "id" :os-family :ubuntu :os-version "13.10"
+                  :packager :apt}
+            session (plan-session)
+            target-plan {:target node :plan-fn x}]
+        (testing "lifting one phase"
+          (is (thrown-with-msg?
+               Exception #"execute-target-phase failed"
+               (sync
+                (execute-target-phase session {:result-id {:phase :x}
+                                               :target-plans [target-plan]}))))
+          (let [e (try
+                    (sync (execute-target-phase
+                           session {:result-id {:phase :x}
+                                    :target-plans [target-plan]}))
+                    (catch Exception e
+                      e))
+                data (ex-data e)
+                [result :as results] (:results data)]
+            (is (contains? data :results))
+            (is (= 1 (count results)) "Runs a single phase on a single node")
+            (is (= :x (:phase result)) "labels the phase in the result")
+            (is (= node (:target result)) "labels the target in the result")
+            (is (= 1 (count (:action-results result))) "Runs the plan action")
+            (is (= ["ls"] (:args (first (:action-results result))))
+                "invokes the correct phase")))))
+    (testing "with a target with a phase that throws a domain error"
+      (let [e (domain-info "some error" {})
+            x (plan-fn [session]
+                (exec-script* session "ls")
+                (throw e))
+            node {:id "id" :os-family :ubuntu :os-version "13.10"
+                  :packager :apt}
+            session (plan-session)
+            target-plan {:target node :plan-fn x}]
+        (testing "lifting one phase"
+          (let [{[result :as results] :results}
+                (sync (execute-target-phase
+                       session {:result-id phase-x
+                                :target-plans [target-plan]}))]
+            (is (= 1 (count results)) "Runs a single phase on a single node")
+            (is (= :x (:phase result)) "labels the phase in the result")
+            (is (= node (:target result)) "labels the target in the result")
+            (is (= 1 (count (:action-results result))) "Runs the plan action")
+            (is (= ["ls"] (:args (first (:action-results result))))
+                "invokes the correct phase")
+            (is (errors results))))))))
