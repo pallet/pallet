@@ -2,24 +2,28 @@
   "User for authentication."
   (:require
    [clojure.java.io :refer [file]]
+   [pallet.core.api-builder :refer [defn-api]]
    [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
+
+(def UserArgMap
+  {(optional-key :password) String
+   (optional-key :sudo-password) String
+   (optional-key :no-sudo) schema/Bool
+   (optional-key :sudo-user) String
+   (optional-key :temp-key) schema/Bool
+   (optional-key :private-key-path) String
+   (optional-key :public-key-path) String
+   (optional-key :private-key) (schema/either String bytes)
+   (optional-key :public-key) (schema/either String bytes)
+   (optional-key :passphrase) (schema/either String bytes)})
 
 (def User
   (schema/both
    (schema/pred (fn [{:keys [password private-key-path private-key]}]
                   (or password private-key private-key-path)))
-   {:username String
-    (optional-key :password) String
-    (optional-key :sudo-password) String
-    (optional-key :no-sudo) schema/Bool
-    (optional-key :sudo-user) String
-    (optional-key :temp-key) schema/Bool
-    (optional-key :private-key-path) String
-    (optional-key :public-key-path) String
-    (optional-key :private-key) (schema/either String bytes)
-    (optional-key :public-key) (schema/either String bytes)
-    (optional-key :passphrase) (schema/either String bytes)}))
+   (assoc UserArgMap
+     :username String)))
 
 (defn user?
   "Predicate to test for a valid user map."
@@ -43,7 +47,7 @@
     (str f)))
 
 ;; TODO remove :no-check when core-type makes fields optional in map->
-(defn make-user
+(defn-api make-user
   "Creates a User record with the given username and options. Generally used
    in conjunction with *admin-user* and with-admin-user, or passed
    to `lift` or `converge` as the named :user argument.
@@ -76,13 +80,29 @@
 
 `:no-sudo`
 : flag to not use sudo (e.g. when the user has root privileges)."
+  {:sig [[String UserArgMap :- User]]}
   [username {:keys [public-key-path private-key-path
                     public-key private-key
                     passphrase
                     password sudo-password no-sudo sudo-user]
              :as options}]
-  {:post [(validate User %)]}
   (assoc options :username username))
+
+(defn-api default-user
+  "The admin user is used for running remote admin commands that require
+   root permissions.  The default admin user is taken from the
+   pallet.admin.username property.  If not specified then the user.name property
+   is used. The admin user can also be specified in config.clj when running
+   tasks from the command line."
+  {:sig [[:- User]]}
+  []
+  (make-user
+   (let [username (or (. System getProperty "pallet.admin.username")
+                      (. System getProperty "user.name"))]
+     (assert username)
+     username)
+   {:private-key-path (default-private-key-path)
+    :public-key-path (default-public-key-path)}))
 
 (def
   ^{:doc "The admin user is used for running remote admin commands that require
@@ -91,14 +111,7 @@
    is used. The admin user can also be specified in config.clj when running
    tasks from the command line."
     :dynamic true}
-  *admin-user*
-  (make-user
-   (let [username (or (. System getProperty "pallet.admin.username")
-                      (. System getProperty "user.name"))]
-     (assert username)
-     username)
-   {:private-key-path (default-private-key-path)
-    :public-key-path (default-public-key-path)}))
+  *admin-user* (default-user))
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is

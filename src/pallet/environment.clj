@@ -187,7 +187,7 @@
                   (if-let [username (:username user)]
                     (assoc
                         env-map :user
-                        (make-user username user))
+                        (make-user username (dissoc user :username)))
                     env-map)
                   env-map)
         env-map (if-let [phases (:phases env-map)]
