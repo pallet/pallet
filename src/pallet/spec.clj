@@ -8,7 +8,7 @@ service."
    [pallet.map-merge :refer [merge-keys]]
    [pallet.middleware :as middleware]
    [pallet.node :as node]
-   [pallet.plan :refer [execute-plan*]]
+   [pallet.plan :refer [execute-plan* TargetPlan TargetPhase]]
    [pallet.session :as session
     :refer [extension set-extension update-extension]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]
@@ -207,6 +207,27 @@ specified in the `:extends` argument."
    {}
    predicate-spec-pairs))
 
+(def TargetSpec
+  "A target combined with a spec"
+  {:target {schema/Any schema/Any}
+   :spec ExtendedServerSpec})
+
+(defn target-with-specs
+  "Build a target from a target and a sequence of predicate, spec pairs.
+  The returned target will contain all specs where the predicate
+  returns true, merged in the order they are specified in the input
+  sequence."
+  [predicate-spec-pairs target]
+  {:pre [(every? #(and (sequential? %)
+                       (= 2 (count %))
+                       (fn? (first %))
+                       (map? (second %)))
+                 predicate-spec-pairs)
+         (validate [ExtendedServerSpec] (map second predicate-spec-pairs))]
+   :post [(validate TargetSpec %)]}
+  {:target target
+   :spec (spec-for-target predicate-spec-pairs target)})
+
 ;;; Look up a phase plan-fn
 (defn phase-plan
   "Return a plan-fn for `spec`, corresponding to the phase-spec map, `phase`."
@@ -253,3 +274,41 @@ specified in the `:extends` argument."
            [(conj phase-kws phase-kw)
             (assoc phase-map phase-kw phase-call)])))
      [[] {}] phase-calls)))
+
+;;; # Execution Targets
+(def PhaseSpec
+  {:phase schema/Keyword
+   (schema/optional-key :args) [schema/Any]})
+
+(defn phase-spec
+  "Return a phase spec map for a phase call.  A phase call is either a
+  phase keyword, or a sequence of phase keyword an arguments for the
+  phase function."
+  [phase]
+  {:pre [(schema/validate PhaseCall phase)]
+   :post [(schema/validate PhaseSpec %)]}
+  (let [args (phase-args phase)]
+    (cond-> {:phase (phase-kw phase)}
+            (seq args) (assoc :args args))))
+
+(defn target-plan
+  "Return a target plan map"
+  [{:keys [target spec] :as target-spec} phase-spec]
+  {:pre [(validate TargetSpec target-spec)
+         (validate PhaseSpec phase-spec)]
+   :post [(or (nil? %) (validate TargetPlan %))]}
+  (if-let [f (phase-plan spec phase-spec)]
+    {:target target
+     :plan-fn f}))
+
+(defn target-phase
+  "Return a target phase map"
+  [target-specs phase-spec]
+  {:pre [(validate [TargetSpec] target-specs)
+         (validate PhaseSpec phase-spec)]
+   :post [(validate TargetPhase %)]}
+  {:target-plans (->>
+                  target-specs
+                  (map #(target-plan % phase-spec))
+                  (remove nil?))
+   :result-id phase-spec})

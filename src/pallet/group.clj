@@ -28,16 +28,16 @@ Uses a TargetMap to describe a node with its group-spec info."
    [pallet.phase
     :refer [create-nodes-phase destroy-nodes-phase
             lift-phase lift-when-no-errors-phase lift-unfailed-targets-phase
-            parallel-phases phase-spec series-phases
-            target-phase target-plan target-with-specs targets-state
-            TargetSpec]]
+            parallel-phases series-phases targets-state]]
    [pallet.plan :refer [errors execute-target-phase TargetPhase]]
    [pallet.session :as session
     :refer [base-session? extension plan-state
             recorder target target-session? update-extension]]
    [pallet.spec :as spec
     :refer [default-phase-meta extend-specs merge-spec-algorithm merge-specs
-            phases-with-meta process-phase-calls set-targets targets PhaseCall]]
+            phase-spec phases-with-meta process-phase-calls set-targets
+            target-phase target-plan target-with-specs targets
+            PhaseCall TargetSpec]]
    [pallet.target-info :refer [admin-user]]
    [pallet.user :refer [*admin-user* User]]
    [pallet.utils :refer [maybe-update-in total-order-merge]]

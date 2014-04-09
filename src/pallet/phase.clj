@@ -1,4 +1,5 @@
 (ns pallet.phase
+  "API for running phases of plan functions."
   (:require
    [clojure.core.async :as async :refer [<! <!! >! put! chan close!]]
    [clojure.set :as set]
@@ -26,11 +27,6 @@
 
 ;;; TODO explicit middleware for tagging via plan-state
 
-(def TargetSpec
-  "A target combined with a spec"
-  {:target {schema/Any schema/Any}
-   :spec ExtendedServerSpec})
-
 (def PhaseResult
   "A phase result is the result of some set of operations."
   {(optional-key :exception) Throwable
@@ -38,60 +34,6 @@
    (optional-key :new-targets) [Target]
    (optional-key :old-targets) [Target]
    (optional-key :state) {schema/Keyword schema/Any}})
-
-;;; # Matching Nodes
-(defn target-with-specs
-  "Build a target from a target and a sequence of predicate, spec pairs.
-  The returned target will contain all specs where the predicate
-  returns true, merged in the order they are specified in the input
-  sequence."
-  [predicate-spec-pairs target]
-  {:pre [(every? #(and (sequential? %)
-                       (= 2 (count %))
-                       (fn? (first %))
-                       (map? (second %)))
-                 predicate-spec-pairs)
-         (validate [ExtendedServerSpec] (map second predicate-spec-pairs))]}
-  {:target target
-   :spec (spec-for-target predicate-spec-pairs target)})
-
-;;; # Execution Targets
-(def PhaseSpec
-  {:phase schema/Keyword
-   (schema/optional-key :args) [schema/Any]})
-
-(defn phase-spec
-  "Return a phase spec map for a phase call.  A phase call is either a
-  phase keyword, or a sequence of phase keyword an arguments for the
-  phase function."
-  [phase]
-  {:pre [(schema/validate PhaseCall phase)]
-   :post [(schema/validate PhaseSpec %)]}
-  (let [args (phase-args phase)]
-    (cond-> {:phase (phase-kw phase)}
-            (seq args) (assoc :args args))))
-
-(defn target-plan
-  "Return a target plan map"
-  [{:keys [target spec] :as target-spec} phase-spec]
-  {:pre [(validate TargetSpec target-spec)
-         (validate PhaseSpec phase-spec)]
-   :post [(or (nil? %) (validate TargetPlan %))]}
-  (if-let [f (phase-plan spec phase-spec)]
-    {:target target
-     :plan-fn f}))
-
-(defn target-phase
-  "Return a target phase map"
-  [target-specs phase-spec]
-  {:pre [(validate [TargetSpec] target-specs)
-         (validate PhaseSpec phase-spec)]
-   :post [(validate TargetPhase %)]}
-  {:target-plans (->>
-                  target-specs
-                  (map #(target-plan % phase-spec))
-                  (remove nil?))
-   :result-id phase-spec})
 
 ;;; # Running Phases
 
