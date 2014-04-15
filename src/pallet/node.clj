@@ -5,7 +5,7 @@
    [clojure.stacktrace :refer [print-cause-trace]]
    [taoensso.timbre :refer [debugf trace]]
    [pallet.compute.protocols :as impl]
-   [pallet.user :refer [User]]
+   [pallet.user :refer [User UserUnconstrained]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 ;;; TODO implement running?/terminated?/etc into a state flag
@@ -18,8 +18,8 @@
 (def NodeValues
   {(optional-key :compute-service) pallet.compute.protocols.ComputeService
    (optional-key :ssh-port) schema/Int
-   (optional-key :primary-ip) String
-   (optional-key :private-ip) String
+   (optional-key :primary-ip) (schema/maybe String)
+   (optional-key :private-ip) (schema/maybe String)
    (optional-key :is-64bit) schema/Bool
    (optional-key :arch) String
    (optional-key :hostname) String
@@ -29,7 +29,7 @@
    :os-family schema/Keyword
    (optional-key :os-version) String
    :packager schema/Keyword
-   (optional-key :image-user) User
+   (optional-key :image-user) UserUnconstrained
    (optional-key :user) User
    (optional-key :hardware) {schema/Keyword schema/Any}})
 

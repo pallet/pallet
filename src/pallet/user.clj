@@ -18,12 +18,16 @@
    (optional-key :public-key) (schema/either String bytes)
    (optional-key :passphrase) (schema/either String bytes)})
 
+(def UserUnconstrained
+  (assoc UserArgMap :username String))
+
 (def User
   (schema/both
-   (schema/pred (fn [{:keys [password private-key-path private-key]}]
-                  (or password private-key private-key-path)))
-   (assoc UserArgMap
-     :username String)))
+   (schema/named
+    (schema/pred (fn [{:keys [password private-key-path private-key]}]
+                   (or password private-key private-key-path)))
+    "has-credentials")
+   UserUnconstrained))
 
 (defn user?
   "Predicate to test for a valid user map."
