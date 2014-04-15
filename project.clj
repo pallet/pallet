@@ -30,7 +30,8 @@ unprecedented level of customization."
                  [clj-ssh "0.5.7"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.3.1"]
+                 [pallet-fsmop "0.3.1"
+                  :exclusions [org.clojure/tools.logging]]
                  [pallet-map-merge "0.1.0"]
                  [org.clojars.runa/clj-schema "0.9.4"]
                  [org.flatland/useful "0.10.3"]
