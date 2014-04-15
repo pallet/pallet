@@ -6,6 +6,7 @@
    [pallet.compute.protocols :as impl]
    [pallet.compute.implementation :as implementation]
    [pallet.core.protocols :as core-impl]
+   [pallet.kb :refer [packager-for-os]]
    [pallet.utils.async :refer [go-try]]
    [schema.core :as schema :refer [check maybe optional-key validate]]))
 
@@ -149,13 +150,19 @@ Provider specific options may also be passed."
 
 (defn create-nodes
   "Create nodes running in the compute service."
-  [compute node-spec user node-count options ch]
+  [compute {:keys [image] :as node-spec} user node-count options ch]
   {:pre [(map? node-spec)
          (map? (:image node-spec))
          (validate NodeSpec node-spec)
          (validate (maybe {schema/Keyword schema/Any}) options)]}
   (require-protocol impl/ComputeServiceNodeCreateDestroy compute 'create-nodes)
-  (impl/create-nodes compute node-spec user node-count options ch))
+  (let [node-spec (cond-> node-spec
+                          (not (:packager image))
+                          (assoc-in [:image :packager]
+                            (packager-for-os
+                             (:os-family image) (:os-version image))))]
+    (impl/create-nodes
+     compute node-spec user node-count options ch)))
 
 (defn destroy-nodes
   "Destroy the nodes running in the compute service. Writes arex-tuple
