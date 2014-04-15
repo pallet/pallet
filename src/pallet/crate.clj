@@ -311,9 +311,9 @@
 ;;; ## Settings
 (defn get-settings
   "Retrieve the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility. If passed a nil
-   `instance-id`, then `:default` is used"
+   the specification of specific instance of the facility."
   ([facility {:keys [instance-id default] :as options}]
+     {:pre [(or (nil? options) (map? options))]}
      (plan-state/get-settings
       (:plan-state (session)) (session/target-id (session)) facility options))
   ([facility]
@@ -321,8 +321,7 @@
 
 (defn get-node-settings
   "Retrieve the settings for the `facility` on the `node`. The instance-id
-   allows the specification of specific instance of the facility. If passed a
-   nil `instance-id`, then `:default` is used"
+   allows the specification of specific instance of the facility."
   ([node facility {:keys [instance-id default] :as options}]
      (plan-state/get-settings
       (:plan-state (session)) (node/id node) facility options))
@@ -331,9 +330,9 @@
 
 (defn assoc-settings
   "Set the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
+   the specification of specific instance of the facility."
   ([facility kv-pairs {:keys [instance-id] :as options}]
+     {:pre [(or (nil? kv-pairs) (map? kv-pairs))]}
      (session!
       (update-in
        (session) [:plan-state]
