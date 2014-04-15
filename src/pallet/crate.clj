@@ -10,8 +10,7 @@
    [pallet.argument :refer [delayed-fn]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
-   [pallet.core.session :as session]
-   [pallet.core.session :refer [session session!]]
+   [pallet.core.session :as session :refer [session session!]]
    [pallet.execute :as execute]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map compiler-exception local-env]]))
