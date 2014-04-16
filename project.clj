@@ -14,8 +14,7 @@ unprecedented level of customization."
 
   :dependencies [[org.clojure/clojure "1.6.0-beta2"]
                  [org.clojure/tools.logging "0.2.0"]
-                 [org.clojure/tools.macro "0.1.1"]
-                 ; [org.clojure/tools.cli "0.2.4"]
+                 [org.clojure/tools.macro "0.1.2"]
                  [org.clojure/algo.monads "0.1.0"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"
                   :exclusions [org.clojure/clojurescript]]
