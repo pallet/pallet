@@ -15,7 +15,7 @@ unprecedented level of customization."
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/core.incubator "0.1.0"]
                  [org.clojure/tools.logging "0.2.0"]
-                 [org.clojure/tools.macro "0.1.1"]
+                 [org.clojure/tools.macro "0.1.2"]
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/algo.monads "0.1.0"]
                  [com.palletops/chiba "0.2.0"]
