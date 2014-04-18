@@ -701,45 +701,46 @@ Uses a TargetMap to describe a node with its group-spec info."
           targets (map (partial group-with-environment environment) targets)
           lift-options (select-keys options lift-options)
           initial-plan-state (or plan-state {})
-          phases (or (seq phases)
-                     (apply total-order-merge
-                            (map
-                             #(get % :default-phases [:configure])
-                             (concat groups targets))))]
+          phases (vec
+                  (concat [:settings :bootstrap]
+                          (or (seq phases)
+                              (apply total-order-merge
+                                     (map
+                                      #(get % :default-phases [:configure])
+                                      (concat groups targets))))))]
       (debugf "converge* targets %s" (vec targets))
       (doseq [group groups] (validate GroupSpec group))
       (go-try ch
-        (>! ch
-            (let [session (session/create
-                           {:executor executor
-                            :plan-state (in-memory-plan-state
-                                         initial-plan-state)
-                            :user *admin-user*})
-                  nodes-set (all-group-nodes compute groups all-node-set)
-                  nodes-set (concat nodes-set targets)
-                  _ (when-not (or compute (seq nodes-set))
-                      (throw (ex-info
-                              "No source of nodes"
-                              {:error :no-nodes-and-no-compute-service})))
-                  c (chan)]
-              (series-phases
-               (concat
-                [(node-count-adjuster-phase session compute groups nodes-set)
-                 (known-targets-phase nodes-set)]
-                (map
-                 #(lift-target-specs-when-no-errors-phase
-                   session (phase-spec %))
-                 phases))
-               nil c)
+        (let [session (session/create
+                       {:executor executor
+                        :plan-state (in-memory-plan-state
+                                     initial-plan-state)
+                        :user *admin-user*})
+              nodes-set (all-group-nodes compute groups all-node-set)
+              nodes-set (concat nodes-set targets)
+              _ (when-not (or compute (seq nodes-set))
+                  (throw (ex-info
+                          "No source of nodes"
+                          {:error :no-nodes-and-no-compute-service})))
+              c (chan)]
+          (series-phases
+           (concat
+            [(node-count-adjuster-phase session compute groups nodes-set)
+             (known-targets-phase nodes-set)]
+            (map
+             #(lift-target-specs-when-no-errors-phase
+               session (phase-spec %))
+             phases))
+           nil c)
 
-              (let [{:keys [new-targets old-targets] :as r} (<! c)]
-                (>! ch (-> r
-                           (merge (targets-state r))
-                           (assoc
-                               :request-id (:request-id (context))
-                               ;; the following are for compat with 0.8
-                               :old-nodes old-targets
-                               :new-nodes new-targets))))))))))
+          (let [{:keys [new-targets old-targets] :as r} (<! c)]
+            (>! ch (-> r
+                       (merge (targets-state r))
+                       (assoc
+                           :request-id (:request-id (context))
+                           ;; the following are for compat with 0.8
+                           :old-nodes (seq old-targets)
+                           :new-nodes (seq new-targets))))))))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
