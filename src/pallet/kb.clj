@@ -19,6 +19,7 @@
       (derive :suse-base :linux)
       (derive :bsd-base :linux)
       (derive :gentoo-base :linux)
+      (derive :coreos :linux)
 
       ;; distibutions
       (derive :centos :rh-base)
@@ -67,4 +68,5 @@
   (case os-family
     :centos "wheel"
     :rhel "wheel"
+    :coreos "wheel"
     "adm"))
