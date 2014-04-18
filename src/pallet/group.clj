@@ -835,9 +835,12 @@ the admin-user on the nodes.
           targets (map (partial group-with-environment environment) targets)
           initial-plan-state (or plan-state {})
           lift-options (select-keys options lift-options)
-          phases (or (seq phases)
-                     (apply total-order-merge
-                            (map :default-phases (concat groups targets))))]
+          phases (vec
+                  (cons
+                   :bootstrap
+                   (or (seq phases)
+                       (apply total-order-merge
+                              (map :default-phases (concat groups targets))))))]
       (doseq [group groups] (validate GroupSpec group))
       (logging/trace "Lift ready to start")
       (go-try ch
