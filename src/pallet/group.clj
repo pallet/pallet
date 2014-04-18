@@ -45,7 +45,8 @@ Uses a TargetMap to describe a node with its group-spec info."
     :refer [channel? concat-chans exec-operation from-chan go-logged go-try
             reduce-results sync]]
    [pallet.utils.rex-map :refer [merge-rex-maps]]
-   [schema.core :as schema :refer [check required-key optional-key validate]])
+   [schema.core :as schema
+    :refer [check maybe optional-key required-key validate]])
   (:import clojure.lang.IFn))
 
 ;;; # Domain Model
@@ -99,7 +100,42 @@ Uses a TargetMap to describe a node with its group-spec info."
 
 (defn check-converge-options
   [m]
-  (validate ConvergeOptions m))
+  (validate (maybe ConvergeOptions) m))
+
+;;; ## Group Name Functions
+
+;;; We tag nodes with the group-name if possible, else fall back on
+;;; relying on the encoding of the group name into the node name.
+
+(def group-name-tag
+  "The name of the tag used to record the group name on the node."
+  "/pallet/group-name")
+
+(defn target-has-group-name?
+  "Return a predicate to check if a target node has the specified group name.
+  If the node is taggable, we check the group-name-tag, otherwise we
+  fall back onto checking the whether the node's base-name matches the
+  group name."
+  [node group-name]
+  {:pre [(node? node)]}
+  (if (node/taggable? node)
+    (= group-name (node/tag node group-name-tag))
+    (node/has-base-name? node group-name)))
+
+(defn target-in-group?
+  "Check if a node satisfies a group's node-filter."
+  {:internal true}
+  [node group]
+  {:pre [(node? node)
+         (validate GroupSpec group)]}
+  (debugf "node-in-group? target %s group %s" node group)
+  (debugf "node-in-group? target in group %s"
+          (target-has-group-name? node (name (:group-name group))))
+  ((:node-filter group) group node))
+
+(defn node-has-group-name?
+  [group target]
+  (target-has-group-name? target (name (:group-name group))))
 
 ;;; ## Group-spec
 
@@ -123,7 +159,7 @@ Uses a TargetMap to describe a node with its group-spec info."
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this group-spec
    - :node-filter    a predicate that tests if a node is a member of this
-                     group.
+                     group. Will be called with the group-spec and a node.
 
    - :removal-selection-fn a function that will be called to select
                            nodes for removal. Arguments are the number of
@@ -145,6 +181,7 @@ Uses a TargetMap to describe a node with its group-spec info."
      (maybe-update-in
       [:phases] phases-with-meta phases-meta default-phase-meta)
      (update-in [:default-phases] #(or default-phases % [:configure]))
+     (update-in [:node-filter] #(or % node-has-group-name?))
      (dissoc :extends :phases-meta)
      (assoc :group-name group-name)
      (vary-meta assoc :type ::group-spec))))
@@ -285,37 +322,6 @@ Uses a TargetMap to describe a node with its group-spec info."
    {}
    (targets session)))
 
-;;; # Group Name Functions
-
-;;; We tag nodes with the group-name if possible, else fall back on
-;;; relying on the encoding of the group name into the node name.
-
-(def group-name-tag
-  "The name of the tag used to record the group name on the node."
-  "/pallet/group-name")
-
-(defn target-has-group-name?
-  "Return a predicate to check if a target node has the specified group name.
-  If the node is taggable, we check the group-name-tag, otherwise we
-  fall back onto checking the whether the node's base-name matches the
-  group name."
-  [node group-name]
-  {:pre [(node? node)]}
-  (if (node/taggable? node)
-    (= group-name (node/tag node group-name-tag))
-    (node/has-base-name? node group-name)))
-
-(defn target-in-group?
-  "Check if a node satisfies a group's node-filter."
-  {:internal true}
-  [node group]
-  {:pre [(node? node)
-         (validate GroupSpec group)]}
-  (debugf "node-in-group? target %s group %s" node group)
-  (debugf "node-in-group? target in group %s"
-          (target-has-group-name? node (name (:group-name group))))
-  ((:node-filter group #(target-has-group-name? % (name (:group-name group))))
-   node))
 
 ;;; # Map Nodes to Groups Based on Group's Node-Filter
 (defn-api service-state
@@ -325,14 +331,7 @@ Uses a TargetMap to describe a node with its group-spec info."
   {:sig [[[Node] [GroupSpec] :- [TargetSpec]]]}
   [nodes groups]
   (tracef "service-state %s" (vec nodes))
-  (debugf "service-state local %s"
-          (mapv #(node/has-base-name? % "local") nodes))
-  (let [group-member? (fn [group]
-                        (let [group-name (name (:group-name group))]
-                          (:node-filter
-                           group
-                           (fn [target]
-                             (target-has-group-name? target group-name)))))
+  (let [group-member? (fn [group] #((:node-filter group) group %))
         predicate-spec-pairs (map (juxt group-member? identity) groups)
         _ (debugf "service-state p-s-p %s" (pr-str predicate-spec-pairs))
         target-specs (map #(target-with-specs predicate-spec-pairs %) nodes)]
