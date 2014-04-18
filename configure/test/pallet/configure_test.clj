@@ -131,16 +131,22 @@
       (is (compute-service :test) "from resource")
       (testing "config.clj"
         (spit pallet nl-form)
-        (is (= 1 (count (sync (nodes (compute-service :nl))))) "from config file")
-        (is (zero? (count (sync (nodes (compute-service :nl :node-list [])))))
+        (is (= 1
+               (count (:targets (sync (nodes (compute-service :nl))))))
+            "from config file")
+        (is (zero?
+             (count
+              (:targets (sync (nodes (compute-service :nl :node-list []))))))
             "override options")
         (.delete pallet))
       (testing "services/xx.clj"
         (spit service nl-service-form)
-        (is (= 1 (count (sync (nodes (compute-service :nl))))) "from services file")
+        (is (= 1 (count (sync (nodes (compute-service :nl)))))
+            "from services file")
         (testing "services/.DS_Store doesn't cause error"
           (spit ds_store "fred")
-          (is (= 1 (count (sync (nodes (compute-service :nl))))) "from services file")
+          (is (= 1 (count (sync (nodes (compute-service :nl)))))
+              "from services file")
           (.delete ds_store))
         (.delete service))
       (finally

@@ -20,7 +20,7 @@
    [pallet.environment :as environment]
    [pallet.user
     :refer [default-private-key-path default-public-key-path make-user]]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils :refer [maybe-update-in]]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
@@ -186,17 +186,18 @@
   [credentials]
   (let [options (->
                  credentials
-                 (update-in [:extensions]
+                 (maybe-update-in [:extensions]
                             #(if (string? %)
                                (map read-string (string/split % #" "))
                                %))
-                 (update-in [:node-list] #(if (string? %) (read-string %) %))
-                 (update-in [:environment] #(environment/eval-environment %)))]
+                 (maybe-update-in [:node-list]
+                                  #(if (string? %) (read-string %) %))
+                 (maybe-update-in [:environment]
+                                  #(environment/eval-environment %)))]
     (when-let [provider (:provider options)]
-      (apply
-       instantiate-provider
+      (instantiate-provider
        provider
-       (apply concat (filter second (dissoc options :provider)))))))
+       (into {} (filter second (dissoc options :provider)))))))
 
 (defn compute-service-from-config
   "Compute service from a defpallet configuration map and a service keyword."
@@ -400,7 +401,7 @@ with the service configuration in the configuration file."
                        (assoc admin-user
                          :private-key-path (default-private-key-path)
                          :public-key-path (default-public-key-path)))]
-      (make-user (:username admin-user) admin-user))))
+      (make-user (:username admin-user) (dissoc admin-user :username)))))
 
 (defn admin-user-from-config-file
   "Create an admin user form a configuration map."
