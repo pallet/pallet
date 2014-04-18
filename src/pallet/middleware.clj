@@ -3,7 +3,7 @@
   (:require
    [taoensso.timbre :as logging :refer [debugf]]
    [pallet.action-options :refer [with-action-options]]
-   [pallet.plan :as plan :refer [errors plan-fn]]
+   [pallet.plan :as plan :refer [plan-errors plan-fn]]
    [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
    [pallet.node :as node]))
@@ -40,7 +40,8 @@
     {:pre [(node/node? target)]}
     (when-not (tag/has-state-flag? target state-flag)
       (let [result (handler session target plan-fn)]
-        (tag/set-state-flag target state-flag)
+        (when-not (seq (plan-errors result))
+          (tag/set-state-flag target state-flag))
         result))))
 
 (defn execute-on-filtered
