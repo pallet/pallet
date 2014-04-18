@@ -31,7 +31,8 @@
    :packager schema/Keyword
    (optional-key :image-user) UserUnconstrained
    (optional-key :user) User
-   (optional-key :hardware) {schema/Keyword schema/Any}})
+   (optional-key :hardware) {schema/Keyword schema/Any}
+   (optional-key :provider-data) {schema/Keyword schema/Any}})
 
 (def Node
   "Schema for nodes"
