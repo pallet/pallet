@@ -10,10 +10,12 @@
    [pallet.plan :refer [defplan plan-fn]]
    [pallet.script.lib :refer [file config-root]]
    [pallet.settings :refer [assoc-settings get-settings update-settings]]
-   [pallet.session :refer [target target-session?]]
+   [pallet.session :refer [target target-session? TargetSession]]
    [pallet.spec :as spec]
    [pallet.stevedore :refer [fragment]]
-   [pallet.utils :as utils :refer [conj-distinct]]))
+   [pallet.utils :as utils :refer [conj-distinct]]
+   [schema.core :as schema
+    :refer [either maybe named one optional-key validate]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -21,9 +23,42 @@
 
 (def facility ::sudoers)
 
+(def Aliases
+  {schema/Keyword {schema/Keyword [String]}})
+
+(def DefaultsValue
+  (named (either schema/Keyword schema/Bool String) "defaults-value"))
+
+(def Defaults
+  {schema/Keyword
+   (either {(either String schema/Keyword)
+            (either DefaultsValue
+                    {schema/Keyword DefaultsValue})})})
+
+(def SpecKey
+  (named (either String schema/Keyword) "spec-key"))
+
+(def SpecKeyOrKeys
+  (named (either SpecKey [(one SpecKey "spec-key") SpecKey])
+         "spec-key-or-keys"))
+
+(def SpecValue
+  (named {(named SpecKeyOrKeys "spec-value-key")
+          (named (either schema/Keyword String schema/Bool
+                         [(either schema/Keyword String schema/Bool)]
+                         {schema/Any schema/Any}) "spec-value-value")}
+         "spec-value"))
+
+(def Specs
+  (named {(named SpecKeyOrKeys "specs-key")
+          (named (either SpecValue [SpecValue])
+                 "specs-value")}
+         "specs"))
+
 (defn default-specs
   [session]
-  {:pre [(target-session? session)]}
+  {:pre [(target-session? session)]
+   :post [(validate Specs %)]}
   (let [target (target session)
         admin-group (admin-group (os-family target) (os-version target))]
     (array-map
@@ -39,11 +74,21 @@
    :install-strategy :packages
    :packages ["sudo"]})
 
+(def Settings
+  {:sudoers-file String
+   :install-strategy schema/Keyword
+   :args [[(one Aliases "aliases")
+           (one Defaults "defaults")
+           (one Specs "specs")]]
+   (optional-key :packages) [String]
+   schema/Keyword schema/Any})
+
 (defplan settings
   [session settings & {:keys [instance-id] :as options}]
   {:pre [(target-session? session)]}
   (let [settings (merge (default-settings session) settings)]
     (logging/debugf "sudoers settings %s %s" instance-id settings)
+    (validate Settings settings)
     (assoc-settings session facility settings options)))
 
 (defplan install
@@ -201,7 +246,11 @@ specs [ { [\"user1\" \"user2\"]
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  [session aliases defaults specs & {:keys [instance-id] :as options}]
+  [session aliases defaults specs {:keys [instance-id] :as options}]
+  {:pre [(validate TargetSession session)
+         (validate Aliases aliases)
+         (validate Defaults defaults)
+         (validate Specs specs)]}
   (logging/debugf "sudoers %s" (get-settings session facility options))
   (update-settings
    session

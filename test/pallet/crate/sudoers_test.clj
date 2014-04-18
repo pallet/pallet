@@ -367,5 +367,6 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
                  :host :CDROM
                  ["/sbin/umount /CDROM"
                   "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"]
-                 {:tags :NOPASSWD})))
+                 {:tags :NOPASSWD}))
+          {})
          (sudoers/configure session {})))))
