@@ -34,7 +34,7 @@
                             action
                             (script-state/node-state @state (node/id node)))]
       (logging/debugf "metadata %s" (pr-str metadata))
-      (logging/debugf "value %s" (pr-str value))
+      (logging/tracef "value %s" (pr-str value))
       (logging/debugf "options %s" (pr-str (:options action)))
       (case (:action-type metadata :script)
         :script (let [{:keys [exit err out] :as result}
