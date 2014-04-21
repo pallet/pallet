@@ -34,12 +34,13 @@
    (filter second)
    (into {})))
 
-(defn authentication
-  "Return the user to use for authentication.  This is not necessarily the
-  admin user (e.g. when bootstrapping, it is the image user)."
+(defn credentials
+  "Return the credentials to use for authentication.  This is not
+  necessarily based on the admin user (e.g. when bootstrapping, it is
+  based on the image user)."
   [session]
   (let [creds (user->credentials (:user session))]
-    (logging/debugf "authentication %s" (into {} (obfuscated-passwords creds)))
+    (logging/debugf "credentials %s" (into {} (obfuscated-passwords creds)))
     creds))
 
 (defn endpoint
@@ -47,10 +48,10 @@
   (let [target-node (-> session :server :node)
         proxy (node/proxy target-node)]
     (if proxy
-      {:server (or (:host proxy "localhost"))
-       :port (:port proxy)}
-      {:server (node/node-address target-node)
-       :port (node/ssh-port target-node)})))
+      [{:server (or (:host proxy "localhost"))
+        :port (:port proxy)}]
+      [{:server (node/node-address target-node)
+       :port (node/ssh-port target-node)}])))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
@@ -82,24 +83,22 @@
                         {:use-system-ssh-agent nil}
                         {})})
 
+(defn- target [session]
+  (let [creds (credentials session)]
+    (mapv
+     (fn [endpoint]
+       {:endpoint endpoint
+        :credentials creds})
+     (endpoint session))))
+
 (defn get-connection [session]
-  (let [auth (authentication session)
-        agent-options (if (:temp-key (:user session))
-                        {:use-system-ssh-agent nil}
-                        {})]
-    (transport/open
-     ssh-connection
-     [{:endpoint (endpoint session)
-       :credentials (authentication session)}]
-     (connection-options session))))
+  (transport/open
+   ssh-connection
+   (target session)
+   (connection-options session)))
 
 (defn release-connection [session connection]
-  (transport/release
-   ssh-connection
-   [{:endpoint (endpoint session)
-     :credentials (authentication session)}]
-   (connection-options session)
-   connection))
+  (transport/release ssh-connection connection))
 
 (defn ^{:internal true} with-connection-exception-handler
   [e]
@@ -150,7 +149,9 @@
    [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
-  (let [endpoint (endpoint session)]
+  (let [target (target session)
+        endpoint (:endpoint (last target))
+        creds (:credentials (last target))]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
        "%s %s %s %s"
@@ -158,8 +159,7 @@
        (or (context-label action) "")
        (or (:summary options) ""))
       (with-connection session [connection]
-        (let [authentication (transport/authentication connection)
-              script (script-builder/build-script options script action)
+        (let [script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)
                             (:sudo-user (:user session)))
               tmpfile (ssh-mktemp
@@ -178,14 +178,13 @@
            connection script tmpfile
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
-          (let [clean-f (clean-logs authentication)
+          (let [clean-f (clean-logs creds)
                 cmd (script-builder/build-code session action tmpfile)
                 _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
                         cmd
-                        {:output-f (log-script-output
-                                    (:server endpoint) authentication)
+                        {:output-f (log-script-output (:server endpoint) creds)
                          :agent-forwarding (:ssh-agent-forwarding action)
                          :pty (:ssh-pty action true)})
                 [result session] (execute/parse-shell-result session result)
