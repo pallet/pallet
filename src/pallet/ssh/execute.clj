@@ -15,8 +15,7 @@
    [pallet.local.execute :as local]
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
-   [pallet.script.lib :as lib]
-   [pallet.script.lib
+   [pallet.script.lib :as lib
     :refer [chgrp chmod chown env exit mkdir path-group path-owner]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
@@ -27,13 +26,21 @@
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))
 
+(defn user->credentials
+  [user]
+  (->>
+   (select-keys user [:username :password :passphrase :private-key
+                      :private-key-path :public-key :public-key-path])
+   (filter second)
+   (into {})))
+
 (defn authentication
   "Return the user to use for authentication.  This is not necessarily the
   admin user (e.g. when bootstrapping, it is the image user)."
   [session]
-  (logging/debugf "authentication %s"
-                  (into {} (obfuscated-passwords (:user session))))
-  {:user (:user session)})
+  (let [creds (user->credentials (:user session))]
+    (logging/debugf "authentication %s" (into {} (obfuscated-passwords creds)))
+    creds))
 
 (defn endpoint
   [session]
@@ -69,15 +76,30 @@
          :err (:err result)
          :out (:out result)})))))
 
-(defn get-connection [session]
-  (transport/open
-   ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+(defn- connection-options [session]
+  {:max-tries 3
+   :ssh-agent-options (if (:temp-key (:user session))
+                        {:use-system-ssh-agent nil}
+                        {})})
 
-(defn release-connection [session]
+(defn get-connection [session]
+  (let [auth (authentication session)
+        agent-options (if (:temp-key (:user session))
+                        {:use-system-ssh-agent nil}
+                        {})]
+    (transport/open
+     ssh-connection
+     [{:endpoint (endpoint session)
+       :credentials (authentication session)}]
+     (connection-options session))))
+
+(defn release-connection [session connection]
   (transport/release
-   ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+   ssh-connection
+   [{:endpoint (endpoint session)
+     :credentials (authentication session)}]
+   (connection-options session)
+   connection))
 
 (defn ^{:internal true} with-connection-exception-handler
   [e]
@@ -99,13 +121,19 @@
         (cond
          (and (::retriable r) (pos? retries))
          (do
-           (release-connection session)
+
            (recur (dec retries)))
 
          (::retriable r) (throw (::exception r))
 
-         :else r)
-        r))))
+         :else (do
+                 (when (transport/open? connection)
+                   (release-connection session connection))
+                 r))
+        (do
+          (when (transport/open? connection)
+            (release-connection session connection))
+          r)))))
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
@@ -133,7 +161,7 @@
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)
-                            (-> authentication :user :sudo-user))
+                            (:sudo-user (:user session)))
               tmpfile (ssh-mktemp
                        connection "pallet" (:script-env action))]
 
@@ -150,14 +178,14 @@
            connection script tmpfile
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
-          (let [clean-f (clean-logs (:user authentication))
+          (let [clean-f (clean-logs authentication)
                 cmd (script-builder/build-code session action tmpfile)
                 _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
                         cmd
                         {:output-f (log-script-output
-                                    (:server endpoint) (:user authentication))
+                                    (:server endpoint) authentication)
                          :agent-forwarding (:ssh-agent-forwarding action)
                          :pty (:ssh-pty action true)})
                 [result session] (execute/parse-shell-result session result)
