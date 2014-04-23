@@ -8,7 +8,8 @@
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.core.session :refer [effective-user]]
+   [pallet.compute :refer [jump-hosts]]
+   [pallet.core.session :refer [admin-user effective-user]]
    [pallet.core.user :refer [effective-username obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
@@ -44,14 +45,22 @@
     creds))
 
 (defn endpoint
+  "Return endpoints"
   [session]
   (let [target-node (-> session :server :node)
-        proxy (node/proxy target-node)]
-    (if proxy
-      [{:server (or (:host proxy "localhost"))
-        :port (:port proxy)}]
-      [{:server (node/node-address target-node)
-       :port (node/ssh-port target-node)}])))
+        proxy (node/proxy target-node)
+        admin (admin-user session)
+        admin-creds (user->credentials admin)]
+    (concat
+     (mapv
+      (fn [endpoint]
+       (update-in endpoint [:credentials] #(or % admin-creds)))
+      (jump-hosts (node/compute-service target-node)))
+     (if proxy
+       [{:endpoint {:server (or (:host proxy "localhost"))
+                    :port (:port proxy)}}]
+       [{:endpoint {:server (node/node-address target-node)
+                    :port (node/ssh-port target-node)}}]))))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
@@ -79,16 +88,17 @@
 
 (defn- connection-options [session]
   {:max-tries 3
-   :ssh-agent-options (if (:temp-key (:user session))
-                        {:use-system-ssh-agent nil}
-                        {})})
+   :ssh-agent-options {:use-system-ssh-agent true}
+   ;; (if (:temp-key (:user session))
+   ;;   {:use-system-ssh-agent }
+   ;;   {})
+   })
 
 (defn- target [session]
   (let [creds (credentials session)]
     (mapv
      (fn [endpoint]
-       {:endpoint endpoint
-        :credentials creds})
+       (update-in endpoint [:credentials] #(or % creds)))
      (endpoint session))))
 
 (defn get-connection [session]
@@ -219,7 +229,7 @@
   [session connection file remote-name]
   (logging/infof
    "Transferring file %s from local to %s:%s"
-   file (:server (transport/endpoint connection)) remote-name)
+   file (:server (-> session target last :endpoint)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
     (let [  ; prefix (or (script-builder/prefix :sudo session nil) "")
           user (-> session :user :username)
@@ -290,7 +300,7 @@
   (assert (-> session :server) "Target server in session")
   (assert (-> session :server :node) "Target node in session")
   (with-connection session [connection]
-    (let [endpoint (transport/endpoint connection)]
+    (let [endpoint (-> session target last :endpoint)]
       (let [[file remote-name remote-md5-name] value]
         (logging/debugf
          "Remote file %s:%s from %s" (:server endpoint) remote-md5-name file)

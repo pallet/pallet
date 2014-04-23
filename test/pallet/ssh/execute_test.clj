@@ -20,7 +20,8 @@
 (deftest with-connection-test
   (let [session {:server {:node (make-localhost-node)
                           :image {:os-family :ubuntu}}
-                 :user *admin-user*}
+                 :user *admin-user*
+                 :environment {:user *admin-user*}}
         original-connection (atom nil)]
     (testing "default"
       (debugf "testing default")

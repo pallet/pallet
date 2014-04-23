@@ -2,6 +2,7 @@
   "Abstraction of the compute interface"
   (:require
    [pallet.compute.implementation :as implementation]
+   [pallet.compute.protocols :as protocols]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.versions :refer [as-version-vector]]))
 
@@ -106,7 +107,6 @@ Provider specific options may also be passed."
   (node-taggable? [compute node]
     "Predicate to test the availability of tags on a node."))
 
-
 ;; (defn nodes-by-tag [nodes]
 ;;   (reduce #(assoc %1
 ;;              (keyword (tag %2))
@@ -116,6 +116,13 @@ Provider specific options may also be passed."
 ;;   (reduce #(assoc %1
 ;;              (keyword (tag %2))
 ;;              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
+
+(defn jump-hosts
+  "Return a sequence of jump hosts for accessing nodes in a compute
+  service."
+  [compute]
+  (if (satisfies? protocols/JumpHosts compute)
+    (protocols/jump-hosts compute)))
 
 ;;; Hierarchies
 
