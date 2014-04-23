@@ -28,7 +28,7 @@
        (automated-admin-user username (:public-key-path user))))
   ([username & public-key-paths]
      (sudoers/install)
-     (user username :create-home true :shell :bash)
+     (user username :create-home true :shell :bash :password "*")
      (doseq [kp public-key-paths]
        (authorize-user-key username kp))
      (sudoers/sudoers
