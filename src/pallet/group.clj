@@ -701,13 +701,11 @@ Uses a TargetMap to describe a node with its group-spec info."
           targets (map (partial group-with-environment environment) targets)
           lift-options (select-keys options lift-options)
           initial-plan-state (or plan-state {})
-          phases (vec
-                  (concat [:settings :bootstrap]
-                          (or (seq phases)
-                              (apply total-order-merge
-                                     (map
-                                      #(get % :default-phases [:configure])
-                                      (concat groups targets))))))]
+          phases (or (seq phases)
+                     (apply total-order-merge
+                            (map
+                             #(get % :default-phases [:configure])
+                             (concat groups targets))))]
       (debugf "converge* targets %s" (vec targets))
       (doseq [group groups] (validate GroupSpec group))
       (go-try ch
