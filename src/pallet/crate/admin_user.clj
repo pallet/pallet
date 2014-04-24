@@ -215,91 +215,10 @@ user.
   [settings]
   (spec/server-spec
    {:phases {:settings (plan-fn [session]
-                         (debugf "with-automated-admin-user :settings")
                          (sudoers/settings session (:sudoers settings))
-                         (pallet.crate.automated-admin-user/settings
+                         (pallet.crate.admin-user/settings
                           session (:automated-admin-user settings))
                          (admin-user session (:admin-user settings)))
              :bootstrap (plan-fn [session]
                           (configure session
                                      (select-keys settings [:instance-id])))}}))
-
-;; (defn server-spec
-;;   [{:keys [username public-key-paths sudo create-user create-home]
-;;     :as options}]
-;;   (spec/server-spec
-;;    :phases {:bootstrap (plan-fn [session]
-;;                         (package-manager session :update)
-;;                         (create-admin session options))}))
-
-
-;; (defplan create-admin-user
-;;   "Builds a user for use in remote-admin automation. The user is given
-;;   permission to sudo without password, so that passwords don't have to appear
-;;   in scripts, etc."
-;;   ([session]
-;;      (let [user (session/user session)]
-;;        (debugf "create-admin-user for %s" (pr-str user))
-;;        (create-admin-user
-;;         session
-;;         (:username user)
-;;         (:public-key-path user))))
-;;   ([username]
-;;      (let [user (admin-user)]
-;;        (automated-admin-user username (:public-key-path user))))
-;;   ([username & public-key-paths]
-;;      (sudoers/install)
-;;      (user username :create-home true :shell :bash)
-;;      (doseq [kp public-key-paths]
-;;        (authorize-user-key username kp))
-;;      (sudoers/sudoers
-;;       {}
-;;       {:default {:env_keep "SSH_AUTH_SOCK"}}
-;;       {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
-
-
-
-;;   <<<<<<< HEAD
-;;   ([session username]
-;;      (let [user (session/user session)]
-;;        (create-admin-user session username (:public-key-path user))))
-;;   ([session username & public-key-paths]
-;;      (update-settings session
-;;                       facility {}
-;;                       update-in [:users]
-;;                       conj-distinct {:username username
-;;                                      :public-key-paths public-key-paths})
-;;      (apply sudoers/sudoers session (default-sudoers-args username))))
-
-;; (def
-;;   ^{:doc "Convenience server spec to add the current admin-user on bootstrap."}
-;;   with-automated-admin-user
-;;   (spec/server-spec
-;;    {:phases {:settings (plan-fn [session]
-;;                          (debugf "with-automated-admin-user :settings")
-;;                          (sudoers/settings session {})
-;;                          (settings session {})
-;;                          (create-admin-user session))
-;;              :bootstrap (plan-fn [session]
-;;                           (package-manager session :update)
-;;                           (configure session {}))}}))
-
-;; (defn server-spec
-;;   "Convenience server spec to add the current admin-user on bootstrap."
-;;   [options]
-;;   (spec/server-spec
-;;    {:phases {:settings (plan-fn [session]
-;;                          (debugf "with-automated-admin-user :settings")
-;;                          (sudoers/settings session {})
-;;                          (settings session {})
-;;                          (create-admin-user session))
-;;              :bootstrap (plan-fn [session]
-;;                           (package-manager session :update)
-;;                           (configure session {}))}}))
-;; =======
-
-;; (def with-automated-admin-user
-;;   (spec/server-spec
-;;    :phases {:bootstrap (plan-fn [session]
-;;                           (package-manager :update)
-;;                           (automated-admin-user))}))
