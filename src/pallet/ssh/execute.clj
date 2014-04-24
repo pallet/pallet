@@ -30,24 +30,25 @@
    (filter second)
    (into {})))
 
-(defn authentication
-  "Return the user to use for authentication.  This is not necessarily the
-  admin user (e.g. when bootstrapping, it is the image user)."
+(defn credentials
+  "Return the credentials to use for authentication.  This is not
+  necessarily based on the admin user (e.g. when bootstrapping, it is
+  based on the image user)."
   [user]
   (assert* (:username user)
            "SSH authentication requires a username.  User is %s" user)
   (let [creds (user->credentials user)]
-    (logging/debugf "authentication %s" (obfuscated-passwords creds))
+    (logging/debugf "credentials %s" (obfuscated-passwords creds))
     creds))
 
 (defn endpoint
   [target-node]
   (let [proxy (node/proxy target-node)]
     (if proxy
-      {:server (or (:host proxy "localhost"))
-       :port (:port proxy)}
-      {:server (node/node-address target-node)
-       :port (node/ssh-port target-node)})))
+      [{:server (or (:host proxy "localhost"))
+        :port (:port proxy)}]
+      [{:server (node/node-address target-node)
+        :port (node/ssh-port target-node)}])))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
@@ -75,11 +76,18 @@
            :err (:err result)
            :out (:out result)}))))))
 
+(defn- target [node user]
+  (let [creds (credentials user)]
+    (mapv
+     (fn [endpoint]
+       {:endpoint endpoint
+        :credentials creds})
+     (endpoint node))))
+
 (defn get-connection [ssh-connection node user]
   (transport/open
    ssh-connection
-   [{:endpoint (endpoint node)
-     :credentials (authentication user)}]
+   (target node user)
    {:max-tries 3}))
 
 (defn release-connection [ssh-connection connection]
@@ -132,7 +140,7 @@
   [ssh-connection node user {:keys [context] :as action} [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
-  (let [endpoint (endpoint node)]
+  (let [endpoint (:endpoint (last (target node user)))]
     (with-context {:target (:server endpoint)}
       (logging/infof
        "%s %s %s %s"
@@ -158,14 +166,13 @@
            connection script tmpfile
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
-          (let [clean-f (clean-logs (:user authentication))
+          (let [clean-f (clean-logs user)
                 cmd (script-builder/build-code user action tmpfile)
                 _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
                         cmd
-                        {:output-f (log-script-output
-                                    (:server endpoint) (:user authentication))
+                        {:output-f (log-script-output (:server endpoint) user)
                          :agent-forwarding (:ssh-agent-forwarding action)
                          :pty (:ssh-pty action true)})
                 ;; TODO fix this by putting the flags into the executor
