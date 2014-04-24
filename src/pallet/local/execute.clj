@@ -15,7 +15,7 @@
    [taoensso.timbre :as logging]))
 
 (def local-connection
-  (transport/open (transport/factory :local {}) nil nil nil))
+  (transport/open (transport/factory :local {}) nil nil))
 
 (defn verify-sh-return
   "Verify the return code of a sh execution"
