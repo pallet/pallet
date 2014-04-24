@@ -17,7 +17,8 @@
    (optional-key :script-env-fwd) [(schema/either schema/Keyword String)]
    (optional-key :script-prefix) schema/Keyword
    (optional-key :sudo-user) String
-   (optional-key :user) User})
+   (optional-key :user) User
+   (optional-key :action-id) schema/Keyword})
 
 (defn action-options
   "Return any action-options currently defined on the session."

@@ -4,7 +4,8 @@
    [pallet.core.executor.protocols :refer :all]))
 
 (defmulti action-result
-  "Compute the plan result for the plan action."
+  "Compute the plan result for the plan action.  This is an extension
+  mechanism, which is useful in testing, for example."
   (fn [target action]
     (-> action :action :action-symbol)))
 
@@ -12,9 +13,33 @@
   [action]
   (update-in action [:action] :action-symbol))
 
+(def ^:dynamic *plan-result-fns*
+  "A map of plan result functions for action ids"
+  {})
+
+(defmacro with-plan-result-fns
+  "Execute a block of code with prescribed plan result functions."
+  [m & body]
+  `(binding [*plan-result-fns* ~m]
+     ~@body))
+
+(defn plan-result-f
+  "Return a plan result function for an action id"
+  [action-id]
+  (if action-id
+    (action-id *plan-result-fns*)))
+
+(defn add-plan-result
+  [action]
+  (if-let [f (plan-result-f (-> action :options :action-id))]
+    (f action)
+    action))
+
 (defmethod action-result :default
   [target action]
-  (replace-action-with-symbol action))
+  (-> action
+      replace-action-with-symbol
+      add-plan-result))
 
 (deftype PlanActionExecutor [actions]
   ActionExecutor
