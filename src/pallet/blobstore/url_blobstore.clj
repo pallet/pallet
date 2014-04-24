@@ -2,17 +2,17 @@
   "A url based blobstore implementation."
   (:require
    [pallet.blobstore :as blobstore]
-   [pallet.blobstore.implementation :as implementation]))
+   [pallet.blobstore.implementation :as implementation]
+   [pallet.blobstore.protocols :as protocols]))
 
-(defrecord UrlBlobstore
-    [base-url]
-  pallet.blobstore/Blobstore
+(defrecord UrlBlobstore [base-url]
+  protocols/Blobstore
   (sign-blob-request
-   [blobstore container path request-map]
-   {:endpoint (format "%s/%s/%s" base-url container path)
-    :headers nil})
+    [blobstore container path request-map]
+    {:endpoint (format "%s/%s/%s" base-url container path)
+     :headers nil})
   (close
-   [blobstore]))
+    [blobstore]))
 
 (defmethod implementation/service :url-blobstore
   [provider {:keys [base-url]
