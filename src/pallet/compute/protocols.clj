@@ -70,3 +70,7 @@
   "Nodes names are made unique by the compute service, given a base name."
   (has-base-name? [node base-name]
     "Predicate for a node having the specified base name."))
+
+(defprotocol JumpHosts
+  "Provide a SPI for specifying jump-hosts"
+  (jump-hosts [compute]))

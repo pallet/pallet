@@ -230,6 +230,14 @@ Provider specific options may also be passed."
   [compute]
   (impl/service-properties compute))
 
+(defn jump-hosts
+  "Return a sequence of jump hosts for accessing nodes in a compute
+  service."
+  [compute]
+  (if (satisfies? impl/JumpHosts compute)
+    (impl/jump-hosts compute)))
+
+
 ;;; # Node spec
 (def ^{:doc "Vector of keywords recognised by node-spec"
        :private true}

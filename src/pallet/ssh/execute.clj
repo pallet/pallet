@@ -10,6 +10,7 @@
     :refer [clean-logs log-script-output]]
    [pallet.actions.impl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
+   [pallet.compute :refer [jump-hosts]]
    [pallet.core.script-builder :as script-builder]
    [pallet.local.execute :as local]
    [pallet.node :as node]
@@ -41,15 +42,6 @@
     (logging/debugf "credentials %s" (obfuscated-passwords creds))
     creds))
 
-(defn endpoint
-  [target-node]
-  (let [proxy (node/proxy target-node)]
-    (if proxy
-      [{:server (or (:host proxy "localhost"))
-        :port (:port proxy)}]
-      [{:server (node/node-address target-node)
-        :port (node/ssh-port target-node)}])))
-
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
@@ -78,17 +70,26 @@
 
 (defn- target [node user]
   (let [creds (credentials user)]
-    (mapv
-     (fn [endpoint]
-       {:endpoint endpoint
-        :credentials creds})
-     (endpoint node))))
+    (concat
+     (mapv
+      (fn [endpoint]
+        (update-in endpoint [:credentials] #(or % creds)))
+      (jump-hosts (node/compute-service node)))
+     (let [proxy (node/proxy node)]
+       (if proxy
+         [{:endpoint {:server (or (:host proxy "localhost"))
+                      :port (:port proxy)}
+           :credentials creds}]
+         [{:endpoint {:server (node/node-address node)
+                      :port (node/ssh-port node)}
+           :credentials creds}])))))
 
 (defn get-connection [ssh-connection node user]
   (transport/open
    ssh-connection
    (target node user)
-   {:max-tries 3}))
+   {:max-tries 3
+    :ssh-agent-options {:use-system-ssh-agent true}}))
 
 (defn release-connection [ssh-connection connection]
   (transport/release ssh-connection connection))
@@ -249,9 +250,7 @@
                    (first (string/split md5 #" "))
                    (first (string/split local-md5 #" ")) )
                 (ssh-upload user connection local-path remote-path)
-                (logging/infof
-                 "%s:%s is already up to date"
-                 (:server endpoint) remote-path))))
+                (logging/infof "%s is already up to date" remote-path))))
           (ssh-upload user connection local-path remote-path))))
     value))
 
