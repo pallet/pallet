@@ -9,7 +9,8 @@
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.ssh.execute
-    :refer [get-connection ssh-script-on-target with-connection]]
+    :refer [get-connection release-connection ssh-script-on-target
+            with-connection]]
    [pallet.transport :as transport]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -19,19 +20,28 @@
 (deftest with-connection-test
   (let [session {:server {:node (make-localhost-node)
                           :image {:os-family :ubuntu}}
-                 :user *admin-user*}]
+                 :user *admin-user*
+                 :environment {:user *admin-user*}}
+        original-connection (atom nil)]
     (testing "default"
+      (debugf "testing default")
       (with-connection session
         [connection]
-        (is connection)))
+        (is connection)
+        (reset! original-connection connection)))
     (testing "caching"
-      (let [original-connection (get-connection session)]
-        (with-connection session
-          [connection]
-          (is connection))
-        (is (= original-connection (get-connection session))
-            "connection cached")
-        (is (transport/open? (get-connection session)))))
+      (debugf "testing caching")
+      (is (= @original-connection (get-connection session))
+          "connection cached")
+      (release-connection session @original-connection)
+      (with-connection session
+        [connection]
+        (is connection)
+        (is (= @original-connection connection)
+            "connection cached"))
+      (is (= @original-connection (get-connection session))
+          "connection cached")
+      (is (transport/open? (get-connection session))))
     (testing "fail on general open-channel exception"
       (let [log-out
             (with-log-to-string []
@@ -91,6 +101,7 @@
     (testing "new session after :new-login-after-action"
       (with-script-for-node (:server session) nil
         (let [original-connection (get-connection session)]
+          (release-connection session original-connection)
           (ssh-script-on-target
            session {:node-value-path (keyword (name (gensym "nv")))}
            nil [{} "echo 1"])
@@ -101,11 +112,13 @@
            nil [{} "echo 1"])
           (is (not= original-connection (get-connection session)))
           (let [second-connection (get-connection session)]
+            (release-connection session second-connection)
             (ssh-script-on-target
              session {:node-value-path (keyword (name (gensym "nv")))}
              nil [{} "echo 1"])
-            (is (not= original-connection (get-connection session)))
-            (is (= second-connection (get-connection session)))))))
+            (let [c (get-connection session)]
+              (is (not= original-connection c))
+              (is (= second-connection c)))))))
     (testing "agent-forward"
       (with-script-for-node (:server session) nil
         (let [[r s] (ssh-script-on-target

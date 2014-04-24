@@ -272,9 +272,8 @@
       (with-log-to-string []
         (is (thrown-with-msg?
              Exception #".*Constraint failed.*"
-             (->
-              (build-actions/build-actions
-                  {} (remote-file "file1" :owner "user1")))))))
+             (build-actions/build-actions
+                 {} (remote-file "file1" :owner "user1"))))))
     (testing "no content specified (no verification)"
       (with-log-to-string []
         (is (=

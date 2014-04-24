@@ -4,6 +4,7 @@
    [clojure.test :refer :all]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.script.lib :refer [file user-home]]
+   [pallet.ssh.execute :refer [user->credentials]]
    [pallet.ssh.file-upload.sftp-upload :refer :all]
    [pallet.stevedore :refer [fragment]]
    [pallet.test-utils :refer [test-username
@@ -34,11 +35,14 @@
 
 (def ssh-connection (transport/factory :ssh {}))
 
+
+
 (deftest sftp-upload-file-test
   (let [endpoint {:server "127.0.0.1"}
-        auth {:user (assoc *admin-user* :username (test-username))}
+        auth (user->credentials (assoc *admin-user* :username (test-username)))
         content "test"
-        connection (transport/open ssh-connection endpoint auth {:max-tries 3})]
+        target [{:endpoint endpoint :credentials auth}]
+        connection (transport/open ssh-connection target {:max-tries 3})]
     (try
       (with-temp-file [local-f content]
         (let [target-f (tmpfile)]
@@ -47,13 +51,14 @@
           (is (= content (slurp target-f)))
           (.delete target-f)))
       (finally
-        (transport/release ssh-connection endpoint auth {:max-tries 3})))))
+        (transport/release ssh-connection connection)))))
 
 (deftest sftp-ensure-dir-test
   (let [endpoint {:server "127.0.0.1"}
-        auth {:user (assoc *admin-user* :username (test-username))}
+        auth (user->credentials (assoc *admin-user* :username (test-username)))
         content "test"
-        connection (transport/open ssh-connection endpoint auth {:max-tries 3})]
+        target [{:endpoint endpoint :credentials auth}]
+        connection (transport/open ssh-connection target {:max-tries 3})]
     (try
       (let [d (tmpdir)
             f (io/file d "user" "a")]
@@ -61,4 +66,4 @@
         (.isDirectory (.getParentFile f))
         (.delete (.getParentFile f)))
       (finally
-        (transport/release ssh-connection endpoint auth {:max-tries 3})))))
+        (transport/release ssh-connection connection)))))

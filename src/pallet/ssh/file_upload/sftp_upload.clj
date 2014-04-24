@@ -59,8 +59,7 @@
 (defn sftp-ensure-dir
   "Ensure directory exists"
   [connection target-path]
-  (debugf "sftp-ensure-dir %s:%s"
-          (:server (transport/endpoint connection)) target-path)
+  (debugf "sftp-ensure-dir %s" target-path)
   (let [dir (fragment @(dirname ~target-path))
         script (fragment
                 (chain-and
@@ -83,9 +82,7 @@
 (defn sftp-upload-file
   "Upload a file via SFTP"
   [connection local-path target-path]
-  (debugf "sftp-upload-file %s:%s from %s"
-          (:server (transport/endpoint connection))
-          target-path local-path)
+  (debugf "sftp-upload-file %s from %s" target-path local-path)
   (transport/send-stream
        connection
        (input-stream local-path)

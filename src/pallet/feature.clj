@@ -68,3 +68,7 @@
 (defn compute-service-properties
   "Feature for pallet.compute/ComputeServiceProperties."
   [] true)
+
+(defn jump-hosts-protocol
+  "Feature for pallet.compute.protocols/JumpHosts."
+  [] true)

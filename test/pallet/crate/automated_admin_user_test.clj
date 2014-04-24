@@ -22,7 +22,7 @@
             (build-actions/build-actions
              {:phase-context "automated-admin-user"}
              (sudoers/install)
-             (user "fred" :create-home true :shell :bash)
+             (user "fred" :create-home true :shell :bash :password "*")
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -41,7 +41,7 @@
             (build-actions/build-actions
              {:phase-context "automated-admin-user"}
              (sudoers/install)
-             (user "fred" :create-home true :shell :bash)
+             (user "fred" :create-home true :shell :bash :password "*")
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -61,7 +61,7 @@
             (build-actions/build-actions
              {:phase-context "automated-admin-user"}
              (sudoers/install)
-             (user "fred" :create-home true :shell :bash)
+             (user "fred" :create-home true :shell :bash :password "*")
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -77,11 +77,10 @@
   (testing "with default username"
     (let [user-name (. System getProperty "user.name")]
       (is (= (first
-
               (build-actions/build-actions
                {:phase-context "automated-admin-user"}
                (sudoers/install)
-               (user user-name :create-home true :shell :bash)
+               (user user-name :create-home true :shell :bash :password "*")
                (sudoers/sudoers
                 {}
                 {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -102,7 +101,7 @@
                   {:phase-context "automated-admin-user"
                    :environment {:user (make-user user-name)}}
                 (sudoers/install)
-                (user user-name :create-home true :shell :bash)
+                (user user-name :create-home true :shell :bash :password "*")
                 (sudoers/sudoers
                  {}
                  {:default {:env_keep "SSH_AUTH_SOCK"}}

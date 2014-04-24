@@ -8,15 +8,15 @@
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.core.session :refer [effective-user]]
+   [pallet.compute :refer [jump-hosts]]
+   [pallet.core.session :refer [admin-user effective-user]]
    [pallet.core.user :refer [effective-username obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
-   [pallet.script.lib :as lib]
-   [pallet.script.lib
+   [pallet.script.lib :as lib
     :refer [chgrp chmod chown env exit mkdir path-group path-owner]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
@@ -27,23 +27,40 @@
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))
 
-(defn authentication
-  "Return the user to use for authentication.  This is not necessarily the
-  admin user (e.g. when bootstrapping, it is the image user)."
+(defn user->credentials
+  [user]
+  (->>
+   (select-keys user [:username :password :passphrase :private-key
+                      :private-key-path :public-key :public-key-path])
+   (filter second)
+   (into {})))
+
+(defn credentials
+  "Return the credentials to use for authentication.  This is not
+  necessarily based on the admin user (e.g. when bootstrapping, it is
+  based on the image user)."
   [session]
-  (logging/debugf "authentication %s"
-                  (into {} (obfuscated-passwords (:user session))))
-  {:user (:user session)})
+  (let [creds (user->credentials (:user session))]
+    (logging/debugf "credentials %s" (into {} (obfuscated-passwords creds)))
+    creds))
 
 (defn endpoint
+  "Return endpoints"
   [session]
   (let [target-node (-> session :server :node)
-        proxy (node/proxy target-node)]
-    (if proxy
-      {:server (or (:host proxy "localhost"))
-       :port (:port proxy)}
-      {:server (node/node-address target-node)
-       :port (node/ssh-port target-node)})))
+        proxy (node/proxy target-node)
+        admin (admin-user session)
+        admin-creds (user->credentials admin)]
+    (concat
+     (mapv
+      (fn [endpoint]
+       (update-in endpoint [:credentials] #(or % admin-creds)))
+      (jump-hosts (node/compute-service target-node)))
+     (if proxy
+       [{:endpoint {:server (or (:host proxy "localhost"))
+                    :port (:port proxy)}}]
+       [{:endpoint {:server (node/node-address target-node)
+                    :port (node/ssh-port target-node)}}]))))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
@@ -69,15 +86,29 @@
          :err (:err result)
          :out (:out result)})))))
 
+(defn- connection-options [session]
+  {:max-tries 3
+   :ssh-agent-options {:use-system-ssh-agent true}
+   ;; (if (:temp-key (:user session))
+   ;;   {:use-system-ssh-agent }
+   ;;   {})
+   })
+
+(defn- target [session]
+  (let [creds (credentials session)]
+    (mapv
+     (fn [endpoint]
+       (update-in endpoint [:credentials] #(or % creds)))
+     (endpoint session))))
+
 (defn get-connection [session]
   (transport/open
-   ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+   ssh-connection
+   (target session)
+   (connection-options session)))
 
-(defn release-connection [session]
-  (transport/release
-   ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+(defn release-connection [session connection]
+  (transport/release ssh-connection connection))
 
 (defn ^{:internal true} with-connection-exception-handler
   [e]
@@ -99,13 +130,19 @@
         (cond
          (and (::retriable r) (pos? retries))
          (do
-           (release-connection session)
+
            (recur (dec retries)))
 
          (::retriable r) (throw (::exception r))
 
-         :else r)
-        r))))
+         :else (do
+                 (when (transport/open? connection)
+                   (release-connection session connection))
+                 r))
+        (do
+          (when (transport/open? connection)
+            (release-connection session connection))
+          r)))))
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
@@ -122,7 +159,9 @@
    [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
-  (let [endpoint (endpoint session)]
+  (let [target (target session)
+        endpoint (:endpoint (last target))
+        creds (:credentials (last target))]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
        "%s %s %s %s"
@@ -130,10 +169,9 @@
        (or (context-label action) "")
        (or (:summary options) ""))
       (with-connection session [connection]
-        (let [authentication (transport/authentication connection)
-              script (script-builder/build-script options script action)
+        (let [script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)
-                            (-> authentication :user :sudo-user))
+                            (:sudo-user (:user session)))
               tmpfile (ssh-mktemp
                        connection "pallet" (:script-env action))]
 
@@ -150,14 +188,13 @@
            connection script tmpfile
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
-          (let [clean-f (clean-logs (:user authentication))
+          (let [clean-f (clean-logs creds)
                 cmd (script-builder/build-code session action tmpfile)
                 _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
                         cmd
-                        {:output-f (log-script-output
-                                    (:server endpoint) (:user authentication))
+                        {:output-f (log-script-output (:server endpoint) creds)
                          :agent-forwarding (:ssh-agent-forwarding action)
                          :pty (:ssh-pty action true)})
                 [result session] (execute/parse-shell-result session result)
@@ -192,7 +229,7 @@
   [session connection file remote-name]
   (logging/infof
    "Transferring file %s from local to %s:%s"
-   file (:server (transport/endpoint connection)) remote-name)
+   file (:server (-> session target last :endpoint)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
     (let [  ; prefix (or (script-builder/prefix :sudo session nil) "")
           user (-> session :user :username)
@@ -263,7 +300,7 @@
   (assert (-> session :server) "Target server in session")
   (assert (-> session :server :node) "Target node in session")
   (with-connection session [connection]
-    (let [endpoint (transport/endpoint connection)]
+    (let [endpoint (-> session target last :endpoint)]
       (let [[file remote-name remote-md5-name] value]
         (logging/debugf
          "Remote file %s:%s from %s" (:server endpoint) remote-md5-name file)
