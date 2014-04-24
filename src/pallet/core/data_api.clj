@@ -1,17 +1,13 @@
 (ns pallet.core.data-api
   (:require
-   [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.compute :refer [service-properties]]
    [pallet.compute.node-list :refer [node-list]]
-   [pallet.executors :refer [action-plan-data]]
-   [pallet.node :as node :refer [node-map]]))
+   [pallet.core.executor.plan :refer [plan-executor]]
+   [pallet.group :refer [group-spec lift]]
+   [pallet.plan :refer [plan-fn]]))
 
 (defn service-map-from-compute [compute]
   (service-properties compute))
-
-(defn nodes [compute]
-  (for [node (pallet.compute/nodes compute)]
-   (node-map node)))
 
 (defn- mock-exec-plan
   "Creates mock provider with a mock node, and a mock group, and then lifts
@@ -22,7 +18,8 @@
         os-family (nth node 3)]
     (let [group (merge (group-spec group-name :image {:os-family os-family})
                        (when settings-phase
-                         {:phases {:settings (plan-fn (settings-phase))}}))]
+                         {:phases {:settings (plan-fn [session]
+                                               (settings-phase session))}}))]
       (lift [group]
             :phase pfn
             :environment
@@ -33,7 +30,7 @@
 
 (defn explain-plan [pfn node & {:keys [settings-phase]}]
   ;; build a node list with a node with the characteristics above
-  (let [op (mock-exec-plan action-plan-data pfn node
+  (let [op (mock-exec-plan (plan-executor) pfn node
                            :settings-phase settings-phase)]
     (taoensso.timbre/debugf "explain-plan %s" op)
     (mapcat :result (:results op))))
@@ -60,7 +57,7 @@
   key in the session)"
   [r]
   (let [target (:target r)
-        node (node-map (:node target))]
+        node (:node target)]
     (merge
      {:phase (:phase r)
       :group-name (:group-name target)
@@ -72,6 +69,6 @@
   structure with the results of the session"
   [{:keys [results new-nodes old-nodes] :as session}]
   (let [runs (map run-summary results)]
-    {:destroyed-nodes (seq (map #(node-map (:node %)) old-nodes))
-     :created-nodes (seq (map #(node-map (:node %)) new-nodes))
+    {:destroyed-nodes (seq (map #(:target %) old-nodes))
+     :created-nodes (seq (map #(:target %) new-nodes))
      :runs runs}))
