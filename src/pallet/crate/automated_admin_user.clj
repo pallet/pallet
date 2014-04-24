@@ -34,7 +34,8 @@
   [username]
   [{}
    {:default {:env_keep "SSH_AUTH_SOCK"}}
-   {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}])
+   {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+   {}])
 
 (defplan create-admin-user
   "Builds a user for use in remote-admin automation. The user is given

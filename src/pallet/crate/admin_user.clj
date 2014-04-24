@@ -1,8 +1,9 @@
 (ns pallet.crate.admin-user
   (:require
    [taoensso.timbre :refer [debugf]]
+   [com.palletops.api-builder.core :refer [assert*]]
    [pallet.action-options :refer [with-action-options]]
-   [pallet.actions :refer [directory exec-script package-manager user]]
+   [pallet.actions :refer [directory exec-script* package-manager user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
    [pallet.plan :refer [defplan plan-fn]]
@@ -46,10 +47,13 @@
   [session username create-user create-home user-options]
   (cond
    (= ::unspecified create-user)
-   (let [r (with-action-options session {:error-on-non-zero-exit false}
-             (exec-script session ("getent" passwd ~username)))]
+   (let [r (with-action-options session {:error-on-non-zero-exit false
+                                         :action-id ::getent}
+             (exec-script* session (fragment ("getent" passwd ~username))))]
      ;; if create-user not forced, only run if no existing user,
      ;; so we can run in the presence of pam_ldap users.
+     (assert* r "Action return should be a map %s" r)
+     (assert* (:exit r) "Action return should be a map with an :exit key: %s" r)
      (if (pos? (:exit r))
        (user session username (merge
                                {:create-home true :shell :bash}
@@ -150,8 +154,8 @@
    :create-home (either schema/Bool (eq ::unspecified))
    :create-user (either schema/Bool (eq ::unspecified))
    (optional-key :public-key-paths) [String]
-   (optional-key :public-keys) [String]
-   :user-options {schema/Keyword schema/Any}
+   (optional-key :public-keys) [(schema/either String bytes)]
+   (optional-key :user-options) {schema/Keyword schema/Any}
    (optional-key :sudoers-args) schema/Any})
 
 (defn admin-user
@@ -190,7 +194,7 @@ users are managed by, e.g.  LDAP, you may need to set this to false.
 user.
 "
   ([session] (admin-user session {}))
-  ([session {:keys [username public-key-paths sudo create-user
+  ([session {:keys [username public-key-paths public-keys sudo create-user
                     create-home user-options]
              :or {sudo true}
              :as options}]
@@ -198,7 +202,8 @@ user.
            defaults {:create-home ::unspecified
                      :create-user ::unspecified
                      :username (:username user)
-                     :public-key-paths [(:public-key-path user)]}
+                     :public-key-paths (if (not public-keys)
+                                           [(:public-key-path user)])}
            user-settings (merge defaults (dissoc options :sudo))]
        (validate UserSettings user-settings)
        (update-settings

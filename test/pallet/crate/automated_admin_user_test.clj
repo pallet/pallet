@@ -31,7 +31,8 @@
             session
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
-            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+            {})
            (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key
               session
@@ -53,7 +54,8 @@
             session
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
-            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+            {})
            (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key
               session
@@ -75,7 +77,8 @@
             session
             {}
             {:default {:env_keep "SSH_AUTH_SOCK"}}
-            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+            {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+            {})
            (with-context {:plan ["authorize-user-key"]}
              (ssh-key/authorize-key session "fred" "abc"))
            (sudoers/configure session {}))
@@ -96,7 +99,8 @@
               session
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
-              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+              {})
              (with-context {:plan ["authorize-user-key"]}
                (ssh-key/authorize-key
                 session
@@ -129,7 +133,8 @@
               session
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
-              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}
+              {})
              (with-context {:plan ["authorize-user-key"]}
                (ssh-key/authorize-key
                 session
