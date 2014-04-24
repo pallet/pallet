@@ -9,7 +9,7 @@
   "Return a compiler exception.  This is should be used to throw in
   macros defining top level forms, as clojure doesn't wrap these in
   Compiler$CompilerException."
-  ([form msg data]
+  ([form ^String msg data]
      (clojure.lang.Compiler$CompilerException.
       (.getName (io/file *file*))
       (or (-> form meta :line) 1)
@@ -46,7 +46,7 @@
                        (first exceptions))
              msg (fn [e]
                    (if (instance? Exception e)
-                     (let [m (.getMessage e)]
+                     (let [m (.getMessage ^Exception e)]
                        (if (string/blank? m)
                          (str e)
                          m))

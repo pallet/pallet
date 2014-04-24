@@ -15,7 +15,7 @@
 
 (defn update-in-both
   "Update a schema inside a (both) schema."
-  [both-schema index f & args]
+  [^schema.core.Both both-schema index f & args]
   {:pre [(integer? index)]}
   (apply schema/both
          (apply update-in (vec (.schemas both-schema)) [index] f args)))

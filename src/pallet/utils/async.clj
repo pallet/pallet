@@ -191,7 +191,7 @@
         ;; somewhere.
         (assert true "TODO - check that domain exceptions aren't lost")
         (if (instance? Exception e)
-          (throw (ex-info (.getMessage e) (ex-data e) e))
+          (throw (ex-info (.getMessage ^Exception e) (ex-data e) e))
           (throw (ex-info "sync failed" (ex-data e) e)))))
     r))
 

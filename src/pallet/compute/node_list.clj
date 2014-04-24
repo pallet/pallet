@@ -110,9 +110,9 @@ support."
     {:provider :node-list
      :nodes @node-list
      :environment environment})
-  pallet.compute.protocols.ComputeServiceNodeBaseName
+  pallet.compute.protocols/ComputeServiceNodeBaseName
   (matches-base-name? [_ node-name base-name]
-    (let [n (.lastIndexOf node-name "-")]
+    (let [n (.lastIndexOf ^String node-name "-")]
       (if (not (neg? n))
         (= base-name (subs node-name 0 n))))))
 

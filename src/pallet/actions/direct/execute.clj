@@ -38,7 +38,7 @@
   ;; TODO remove inst
   (comp
    (fn [s]
-     (doseq [l s]
+     (doseq [^String l s]
        (cond
         (not (status-line? l)) (logging/debugf "%s   <== %s" server l)
         (.endsWith l "FAIL") (logging/errorf "%s %s" server l)

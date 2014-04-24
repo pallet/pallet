@@ -28,7 +28,7 @@
     [md (DigestInputStream. str md)]))
 
 (defn ^String md5 [path]
-  (let [[^java.security.MessageDigest md s]
+  (let [[^java.security.MessageDigest md ^DigestInputStream s]
         (md5-digest-input-stream (input-stream path))
         buffer-size 1024
         buffer (make-array Byte/TYPE buffer-size)]
@@ -42,7 +42,7 @@
 (defn upload-dir
   "Return the upload directory for username. A :home at the start of the
   upload directory will be replaced by the user's home directory."
-  [upload-root username]
+  [^String upload-root username]
   (if (.startsWith upload-root ":home")
     (let [path-rest (subs upload-root 5)]
       (if (blank? path-rest)

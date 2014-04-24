@@ -49,7 +49,7 @@
 
 (defprotocol ComputeServiceNodeBaseName
   "Nodes names are made unique by the compute service, given a base name."
-  (matches-base-name? [compute node-name base-name]
+  (matches-base-name? [compute ^String node-name ^String base-name]
     "Predicate to test if the node-name has the given base-name."))
 
 (defprotocol NodeTagReader
