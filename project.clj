@@ -26,7 +26,7 @@ unprecedented level of customization."
                  [com.palletops/ssh-transport "0.5.1"]
                  [com.palletops/script-exec "0.4.0"
                   :exclusions [com.palletops/ssh-transport]]
-                 [com.palletops/stevedore "0.8.0-beta.6"]
+                 [com.palletops/stevedore "0.8.0-beta.7"]
                  [clj-ssh "0.5.7"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
