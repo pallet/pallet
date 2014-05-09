@@ -1,9 +1,11 @@
 (ns pallet.utils.multi-test
+  (:refer-clojure :exclude [defmulti defmethod])
   (:require
    [clojure.test :refer :all]
    [clojure.test.check :as tc]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
+   pallet.test-utils ; for thrown-cause-with-msg?
    [pallet.utils.multi :refer :all]))
 
 (defn gen-exclude [exclusions gen]
@@ -27,8 +29,8 @@
         (every? #(= (f dispatch-map [%]) (% vs ::default-val))
                 (concat kws (keys vs)))))))
 
-(defmulti kk (fn [kw m] kw) :default ::default)
-(defmethod kk ::default [kw m] (get m kw ::default-val))
+(clojure.core/defmulti kk (fn [kw m] kw) :default ::default)
+(clojure.core/defmethod kk ::default [kw m] (get m kw ::default-val))
 
 (def dispatch-key-fn-matches-defmulti
   (let [exclusions #{::default ::default-val}]
@@ -39,7 +41,7 @@
             f (dispatch-key-fn identity {:default ::default})]
         (every? #(= (f dispatch-map [%])
                     (kk % vs))
-                [concat kws (keys vs)])))))
+                (concat kws (keys vs)))))))
 
 (deftest dispatch-key-fn-test
   (testing "dispatch-key-fn"
@@ -181,3 +183,55 @@
     (is (= ::default-val (f :x)))
     (is (= :less-than-5 (f 1)))
     (is (= :contains-s (f "asdf")))))
+
+
+(defmulti xx (fn [x] #(isa? % x)))
+
+(defmethod xx :x
+  [_]
+  :a)
+
+(defmethod xx :y
+  [_]
+  :b)
+
+
+(deftest defmulti-test
+  (let [xxx (gensym "xxx")]
+    (is (thrown-cause-with-msg?
+         Exception
+         (re-pattern (str "Could not find defmulti " (name xxx)))
+         (eval `(defmethod ~xxx {} [])))
+        "error for defmethod on nonexistent defmulti."))
+  (is (= 2 (count @(-> #'xx meta :pallet.utils.multi/dispatch))))
+  (is (= :a (xx :x)))
+  (is (= :b (xx :y)))
+  (is (thrown-cause-with-msg?
+       Exception #"Dispatch failed in xx" (xx :z))
+      "Error for no matching dispatch."))
+
+(clojure.core/defmulti yy identity)
+
+(clojure.core/defmethod yy :x
+  [_]
+  :a)
+
+(clojure.core/defmethod yy :y
+  [_]
+  :b)
+
+(def matches-defmulti
+  (let [exclusions #{::default ::default-val}]
+    (prop/for-all [arg gen/keyword]
+                  (or
+                   (= ::thrown
+                      (try (xx arg) (catch Exception _ ::thrown))
+                      (try (yy arg) (catch Exception _ ::thrown)))
+                   (= (xx arg) (yy arg))))))
+
+
+(deftest defmulti-core-test
+  (testing "dispatches identically to defmulti"
+    (let [result (tc/quick-check 100 matches-defmulti)]
+      (is (nil? (:fail result)))
+      (is (:result result)))))

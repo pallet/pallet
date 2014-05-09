@@ -1,5 +1,13 @@
 (ns pallet.utils.multi
-  "Multi-method implementation details")
+  "Generalised multi-methods.
+
+Defines a defmulti and defmethod macros as something similar to the
+core defmethod/defmulti macros, except dispatch is via a general
+predicate rather than via isa?."
+  (:refer-clojure :exclude [defmulti defmethod])
+  (:require
+   [clojure.string :as string]
+   [pallet.exception :refer [compiler-exception]]))
 
 (defn dispatch-map
   "Return a dispatch map.  The map contains :dispatch-fn and :methods
@@ -39,6 +47,32 @@
                        "for dispatch value " value)
                   {:args args
                    :value value}))))))
+
+(defn dispatch-predicate
+  "Return a function, that will dispatch into a method map based on
+  the method key matching a predicate function.  The predicate
+  function is obtained by calling `dispatch-fn` with `args`.  A best
+  match for multiple matches is picked using `selector`, which
+  defaults to `first`.  If no match is found, then the method with
+  the `default` key value is used."
+  [dispatch-fn {:keys [default name selector]
+                :or {default :default
+                     selector first}}]
+  {:pre [(fn? dispatch-fn)]}
+  (fn dispatch-predicate [methods args]
+    (let [pred (apply dispatch-fn args)
+          method (->>
+                  methods
+                  (filter (comp pred key))
+                  selector)
+          f (or (and method (val method))
+                (get methods default))]
+      (if f
+        (apply f args)
+        (throw
+         (ex-info (str "Dispatch failed "
+                       (if name (str "in " name " ")))
+                  {:args args}))))))
 
 (defn dispatch-every-fn
   "Return a function, that will dispatch into a method map based on
@@ -131,3 +165,46 @@ may be sorted to pick the best match."
        (throw
         (clojure.lang.ArityException.
          actual# ~(clojure.core/name name))))))
+
+(defmacro defmulti
+  "Declare a multimethod with a predicate based dispatch function.
+  The `dispatch-fn` argument must be a function returning a single
+  argument predicate, which will be passed each method's
+  `dispatch-val`.  `selector`, if passed, will be used to pick amongst
+  multiple matches.  If no match is found using `dispatch-fn`, the the
+  method with the `default` key value is used.  This does not have
+  `defonce` semantics."
+  {:arglists '[[name docstring? attr-map? dispatch-fn
+                {:keys [default selector]}]]}
+  [name & args]
+  (let [{:keys [name dispatch options]} (name-with-attributes name args)
+        {:keys [selector]} options
+        args (first (filter vector? dispatch))
+        f (gensym "f")
+        m (gensym "m")]
+    `(let [~f (dispatch-predicate ~dispatch (merge ~options {:name '~name}))
+           ~m (dispatch-map ~f)]
+       ~(with-meta
+          `(defn ~name
+             {::dispatch (atom ~m)
+              :arglists '~[args]}
+             [& [~@args :as argv#]]
+             (check-arity ~name ~(count args) (count argv#))
+             (~f (:methods @(-> #'~name meta ::dispatch)) argv#))
+          (meta &form)))))
+
+(defmacro defmethod
+  "Declare a method for the `multifn` multi-method, associating it with the
+  `dispatch-val` for dispatching via the multi-method's `dispatch-fn`."
+  [multifn dispatch-val args & body]
+  (letfn [(sanitise [v] (string/replace (str v) #":" ""))]
+    (when-not (resolve multifn)
+      (throw (compiler-exception
+              &form (str "Could not find defmulti " multifn))))
+    `(swap!
+      (-> #'~multifn meta ::dispatch)
+      add-method
+      ~dispatch-val
+      ~(with-meta
+         `(fn [~@args] ~@body)
+         (meta &form)))))
