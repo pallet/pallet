@@ -5,8 +5,7 @@
    [pallet.script.lib :refer [exit]]
    [pallet.stevedore :refer [script]]))
 
-(defmacro ^{:requires [exit #'script string/join]}
-  testing-script
+(defmacro testing-script
   "Top level test form"
   [test-name & body]
   `(string/join

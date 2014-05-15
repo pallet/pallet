@@ -37,4 +37,6 @@
                            :exclusions [org.slf4j/slf4j-api]]
                           [org.jclouds.driver/jclouds-sshj "1.5.5"]]}
  :vmfest {:dependencies [[com.palletops/pallet-vmfest "0.3.0-alpha.5"]]}
- :pallet-lein {:plugins [[com.palletops/pallet-lein "0.8.0-alpha.1"]]}}
+ :pallet-lein {:plugins [[com.palletops/pallet-lein "0.8.0-alpha.1"]]}
+ :docudata {:docudata {:exclude-keys [:pallet.plan/dispatch
+                                      :pallet.compute/protocol]}}}

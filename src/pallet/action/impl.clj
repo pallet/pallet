@@ -9,8 +9,6 @@
 
   The `execution` specifies the execution model for the action.
 
-  Precedence is stored as a map, with :always-before and :always-after keys.
-
   Each implementation is represented as a map of metadata and function. The map
   is stored in a map in an atom on the ::impls key of the metadata of the
   action, keyed by the dispatch value. This allows for the implementation

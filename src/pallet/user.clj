@@ -4,6 +4,7 @@
    [clojure.java.io :refer [file]]
    [pallet.core.api-builder :refer [defn-api]]
    [pallet.utils :refer [first-existing-file maybe-update-in obfuscate]]
+   [pallet.utils.schema] ;; for explain on bytes
    [schema.core :as schema :refer [check required-key optional-key validate]]))
 
 (def UserArgMap
@@ -21,12 +22,14 @@
 (def UserUnconstrained
   (assoc UserArgMap :username String))
 
+(defn has-credentials?
+  "Check to see if some form of credential is specified."
+  [{:keys [password private-key-path private-key]}]
+  (or password private-key private-key-path))
+
 (def User
   (schema/both
-   (schema/named
-    (schema/pred (fn [{:keys [password private-key-path private-key]}]
-                   (or password private-key private-key-path)))
-    "has-credentials")
+   (schema/pred has-credentials? 'has-credentials?)
    UserUnconstrained))
 
 (defn user?

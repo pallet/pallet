@@ -19,3 +19,16 @@
   {:pre [(integer? index)]}
   (apply schema/both
          (apply update-in (vec (.schemas both-schema)) [index] f args)))
+
+
+;;; workaround for https://github.com/Prismatic/schema/issues/92
+(do
+  (defmacro extend-primitive [cast-sym class-sym class-explain]
+    `(extend-protocol schema.core/Schema
+       ~cast-sym
+       (walker [this#]
+         (schema.core/subschema-walker ~class-sym))
+       (explain [this#]
+         '~class-explain)))
+
+  (extend-primitive clojure.core$bytes (Class/forName "[B") bytes))

@@ -30,8 +30,7 @@
   [session & script]
   `(exec-script* ~session (stevedore/script ~@script)))
 
-(defmacro ^{:requires [#'checked-script]}
-  exec-checked-script
+(defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
   [session script-name & script]
@@ -655,8 +654,6 @@ only specified files or directories, use the :extract-files option.
     (package-source \"Partner\"
       :aptitude {:url \"http://archive.canonical.com/\"
                  :scopes [\"partner\"]})"
-  {:always-before #{package-manager package}
-   :execution :aggregated}
   [session name {:keys [] :as options}]
   (decl/package-source session name
                        (merge {:packager (packager (target session))})))

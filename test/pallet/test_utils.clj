@@ -57,9 +57,7 @@ list, Alan Dipert and MeikelBrandmeyer."
       (f)
       (finally (System/setOut out#)))))
 
-
-(defmacro ^{:requires [actions-impl/*script-location-info*]}
-  with-location-info
+(defmacro with-location-info
   "A scope for enabling or disabling location info"
   [b & body]
   `(binding [actions-impl/*script-location-info* ~b]
