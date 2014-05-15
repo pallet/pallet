@@ -17,7 +17,7 @@ unprecedented level of customization."
                  [org.clojure/algo.monads "0.1.0"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"
                   :exclusions [org.clojure/clojurescript]]
-                 [com.palletops/api-builder "0.1.3"]
+                 [com.palletops/api-builder "0.1.5"]
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/log-config "0.1.3"]
                  [com.palletops/pallet-common "0.4.0"]

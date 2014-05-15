@@ -5,6 +5,7 @@
    [clojure.string :as string]
    [com.palletops.api-builder :refer [def-defn def-fn]]
    [com.palletops.api-builder.core :refer [arg-and-ref assert*]]
+   [com.palletops.api-builder.stage :refer [add-sig-doc validate-optional-sig]]
    [pallet.core.api-builder :refer [defn-api defn-sig]]
    [pallet.core.context :refer [with-context with-context-update]]
    [pallet.core.executor :as executor]
@@ -381,7 +382,7 @@
   "Define a plan function. Assumes the first argument is a session map.
   Adds a plan context around the function body.  Adds checking for at
   least one (session) argument."
-  [add-plan-context check-plan-arguments])
+  [add-plan-context check-plan-arguments (validate-optional-sig) (add-sig-doc)])
 
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan

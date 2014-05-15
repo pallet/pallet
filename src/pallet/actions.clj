@@ -14,7 +14,7 @@
    [pallet.environment :refer [get-environment]]
    [pallet.plan :refer [defplan plan-context]]
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
-   [pallet.session :refer [target target-session?]]
+   [pallet.session :refer [target target-session? TargetSession]]
    [pallet.node :refer [primary-ip packager ssh-port]]
    [pallet.target-info :refer [admin-user]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
@@ -546,6 +546,16 @@ only specified files or directories, use the :extract-files option.
 ;;; # Packages
 (defalias package-source-changed-flag decl/package-source-changed-flag)
 
+(def PackageOptions
+  {(optional-key :action) schema/Keyword
+   (optional-key :y) schema/Bool
+   (optional-key :force) schema/Bool
+   (optional-key :purge) schema/Bool
+   (optional-key :priority) schema/Int
+   (optional-key :enable) schema/Bool
+   (optional-key :disable) schema/Bool
+   (optional-key :allow-unsigned) schema/Bool})
+
 (defplan packages
   "Install packages with common options.
 
@@ -560,9 +570,12 @@ only specified files or directories, use the :extract-files option.
 
        (packages session [\"git\" \"git-email\"])
        (packages session [\"git-core\" \"git-email\"] {:action :remove})"
+  {:sig [[TargetSession [String] :- schema/Any]
+         [TargetSession [String] PackageOptions :- schema/Any]]}
   ([session package-names {:keys [yum aptitude pacman brew] :as options}]
      (let [packager (packager (target session))]
-       (decl/packages session package-names options)))
+       (decl/packages
+        session package-names (assoc options :packager packager))))
   ([session package-names]
      (packages session package-names {})))
 
