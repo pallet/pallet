@@ -411,6 +411,25 @@
              (~f (:methods @(-> #'~name meta ::dispatch)) argv#))
           (meta &form)))))
 
+(defmacro defmethod-plan
+  {:api :plan}
+  [multifn dispatch-val args & body]
+  (letfn [(sanitise [v]
+            (string/replace (str v) #":" ""))]
+    (when-not (resolve multifn)
+      (throw (compiler-exception
+              &form (str "Could not find defmulti-plan " multifn))))
+    `(swap!
+      (-> #'~multifn meta ::dispatch)
+      add-method
+      ~dispatch-val
+      ~(with-meta
+         `(fn [~@args]
+            (plan-context
+                '~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
+              ~@body))
+         (meta &form)))))
+
 (defmacro defmulti-every
   "Declare a multimethod where method dispatch values have to match
   all of a sequence of predicates.  Each predicate will be called with the
@@ -442,7 +461,8 @@
              (~f (:methods @(-> #'~name meta ::dispatch)) argv#))
           (meta &form)))))
 
-(defmacro defmethod-plan
+
+(defmacro defmethod-every
   {:api :plan}
   [multifn dispatch-val args & body]
   (letfn [(sanitise [v]
@@ -455,8 +475,5 @@
       add-method
       ~dispatch-val
       ~(with-meta
-         `(fn [~@args]
-            (plan-context
-                '~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
-              ~@body))
+         `(fn [~@args] ~@body)
          (meta &form)))))

@@ -2,8 +2,9 @@
   (:require
    [clojure.test :refer :all]
    [pallet.kb :refer [os-hierarchy]]
-   [pallet.plan :refer [defmethod-plan]]
+   [pallet.plan :refer [defmethod-plan defmethod-every]]
    [pallet.test-utils]
+   [pallet.build-actions :refer [target-session]]
    [pallet.version-dispatch :refer :all]))
 
 (defmulti-version os-ver [os os-ver ver arg] os-hierarchy)
@@ -70,16 +71,62 @@
         (let [key2 {:os :debian :os-version [6]}]
           (is (= 1 (get (assoc m key2 1) key2 ::nil))))))))
 
+(defmulti-version xx [os os-version version])
+(defmethod-every xx {:os :ubuntu :os-version [13] :version [1]}
+  [os os-version version]
+  :a)
+
+(defmethod-every xx {:os :centos :os-version [5] :version [1]}
+  [os os-version version]
+  :b)
+
+
 (deftest defmulti-version-test
+  (is (thrown-cause-with-msg?
+         Exception
+         #"Invalid dispatch vector.*"
+         (eval `(defmulti-version ~(gensym "xxx") [])))
+      "error for defmulti-version with insufficient dispatch args.")
   (let [xxx (gensym "xxx")]
     (is (thrown-cause-with-msg?
          Exception
-         (re-pattern (str "Could not find defmulti-version " (name xxx)))
-         (eval `(defmethod-version ~xxx {} []))))))
+         (re-pattern (str "Could not find defmulti " (name xxx)))
+         (eval `(defmethod-version ~xxx {} [])))
+        "error for defmethod-version on nonexistent defmulti-version."))
+  (is (= :a (xx :ubuntu [13 04] [1 1])))
+  (is (= :b (xx :centos [5 1] [1 2])))
+  (is (thrown-cause-with-msg?
+       Exception #"Dispatch failed in xx" (xx :arch [1] [1]))
+      "Error for no matching dispatch."))
+
+(defmulti-version-plan yy [session version])
+(defmethod-plan yy {:os :ubuntu :os-version [13] :version [1]}
+  [session version]
+  :a)
+
+(defmethod-plan yy {:os :centos :os-version [5] :version [1]}
+  [session version]
+  :b)
 
 (deftest defmulti-version-plan-test
+  (is (thrown-cause-with-msg?
+       Exception
+       #"Invalid dispatch vector.*"
+       (eval `(defmulti-version-plan ~(gensym "xxx") [])))
+      "error for defmulti-version-plan with insufficient dispatch args.")
   (let [xxx (gensym "xxx")]
-    (is (thrown-cause-with-msg?
-         Exception
-         (re-pattern (str "Could not find defmulti-version " (name xxx)))
-         (eval `(defmethod-version-plan ~xxx {} []))))))
+    (is
+     (thrown-cause-with-msg?
+      Exception
+      (re-pattern (str "Could not find defmulti-plan " (name xxx)))
+      (eval `(defmethod-version-plan ~xxx {} [])))
+     "error for defmethod-version-plan on nonexistent defmulti-version-plan."))
+  (let [s (target-session {:target {:os-family :ubuntu :os-version "13.04"}})]
+    (is (= :a (yy s [1 1]))))
+  (let [s (target-session {:target {:os-family :centos :os-version "5.1"}})]
+    (is (= :b (yy s [1 2]))))
+  (is (thrown-cause-with-msg?
+       Exception #"Dispatch failed in yy"
+       (let [s (target-session {:target {:os-family :arch :os-version "1"}})]
+         (yy s [1])))
+      "Error for no matching dispatch."))

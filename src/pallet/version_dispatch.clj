@@ -18,7 +18,8 @@ data may provide a version."
     :refer [os-match-less version-spec-more-specific version-map]]
    [pallet.exception :refer [compiler-exception]]
    [pallet.node :refer [os-family os-version]]
-   [pallet.plan :refer [plan-context defmulti-every]]
+   [pallet.plan :refer [plan-context defmulti-every defmethod-plan]]
+   [pallet.session :refer [target]]
    [pallet.utils.multi :as multi]
    [pallet.versions :refer [as-version-vector version-matches? version-spec?]]))
 
@@ -87,6 +88,11 @@ refers to a software package version of some sort, on the specified `os` and
   (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
         hierarchy (:hierarchy options `os-hierarchy)
         attr (dissoc (meta name) [:file :line :ns])]
+    (when (< (count dispatch) 3)
+      (throw
+       (ex-info
+        "Invalid dispatch vector. Must start with os, os-version, and version arguments."
+        {:dispatch dispatch})))
     `(defmulti-every ~name
        ~@(if attr [attr])
        [(fn [k# [os# os-version# version#]]
@@ -97,74 +103,49 @@ refers to a software package version of some sort, on the specified `os` and
           (and (map? k#) (version-matches? version# (:version k#))))]
        {:selector #(multi-version-selector % ~hierarchy)})))
 
-
 (defmacro defmethod-version
-  "Adds a method to the specified multi-version function for the specified
-`dispatch-value`."
-  {:indent 3}
+  "Adds a method to the specified defmulti-version function for the specified
+  `dispatch-value`."
   [multi-version {:keys [os os-version version] :as dispatch-value}
    [& args] & body]
-  (let [v (resolve multi-version)]
-    (when-not v
-      (throw
-       (compiler-exception
-        &form
-        (str "Could not find defmulti-version " (name multi-version)) {})))
-    (let [{:keys [hierarchy methods]} (meta v)
-          h (var-get hierarchy)]
-      (when-not ((hierarchy-vals h) os)
-        (throw (Exception. (str os " is not part of the hierarchy"))))
-      `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-              (fn
-                ~(symbol
-                  (str (name os) "-" os-version "-" (string/join "" version)))
-                [~@args]
-                ~@body)))))
+  `(multi/defmethod ~multi-version ~dispatch-value [~@args] ~@body))
 
 (defmacro defmulti-version-plan
   "Defines a multi-version function used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."
-  {:indent 2}
-  [name [version & args]]
-  `(let [h# #'os-hierarchy
-         m# (atom {})]
-     (defn ~name
-       {:hierarchy h# :methods m#}
-       [~version ~@args]
-       (dispatch-version
-        '~name
-        (os-family)
-        (as-version-vector (os-version))
-        (as-version-vector ~version) [~@args] (var-get h#) @m#))))
+  {:arglists
+   '[[name [session version & args :as dispatch] & {:keys [hierarchy]}]]}
+  [name & args]
+  (let [{:keys [name dispatch options]} (multi/name-with-attributes name args)
+        hierarchy (:hierarchy options `os-hierarchy)
+        attr (dissoc (meta name) [:file :line :ns])]
+        (when (< (count dispatch) 2)
+      (throw
+       (ex-info
+        "Invalid dispatch vector. Must start with session and version arguments."
+        {:dispatch dispatch})))
+    `(defmulti-every ~name
+       ~@(if attr [attr])
+       [(fn [k# [session# version#]]
+          (and (map? k#)
+               (isa? ~hierarchy (os-family (target session#)) (:os k#))))
+        (fn [k# [session# version#]]
+          (and (map? k#)
+               (version-matches?
+                (as-version-vector (os-version (target session#)))
+                (:os-version k#))))
+        (fn [k# [session# version#]]
+          (and (map? k#) (version-matches? version# (:version k#))))]
+       {:selector #(multi-version-selector % ~hierarchy)})))
 
 (defmacro defmethod-version-plan
-  "Adds a method to the specified multi-version function for the specified
-`dispatch-value`."
-  {:indent 3}
+  "Adds a method to the specified defmulti-version function for the specified
+  `dispatch-value`."
   [multi-version {:keys [os os-version version] :as dispatch-value}
    [& args] & body]
-  (let [v (resolve multi-version)]
-    (when-not v
-      (throw
-       (compiler-exception
-        &form
-        (str "Could not find defmulti-version " (name multi-version)) {})))
-    (let [{:keys [hierarchy methods]} (meta v)
-          h (var-get hierarchy)]
-      (when-not ((hierarchy-vals h) os)
-        (throw (Exception. (str os " is not part of the hierarchy"))))
-      `(swap!
-        (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-        (fn ~(symbol
-              (str (name os) "-" os-version "-" (string/join "" version)))
-          [~@args]
-          (plan-context
-              ~(symbol
-                (str (name os) "-" os-version "-" (string/join "" version)))
-              {}
-            ~@body))))))
+  `(defmethod-plan ~multi-version ~dispatch-value [~@args] ~@body))
 
 (defn os-map
   "Construct an os version map. The keys should be maps with :os-family

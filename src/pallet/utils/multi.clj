@@ -93,8 +93,9 @@ may be sorted to pick the best match."
       (if f
         (apply f args)
         (throw
-         (ex-info (str "Dispatch failed "
-                       (if name (str "in " name " ")))
+         (ex-info (str "Dispatch failed"
+                       (if name (str " in " name))
+                       " for arguments " (pr-str args))
                   {:args args}))))))
 
 ;;; Anonymous multi-methods
