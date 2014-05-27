@@ -35,17 +35,14 @@
 (defn log-script-output
   "Return a function to log (multi-line) script output, removing passwords."
   [server user]
-  ;; TODO remove inst
-  (comp
-   (fn [s]
-     (doseq [^String l s]
-       (cond
-        (not (status-line? l)) (logging/debugf "%s   <== %s" server l)
-        (.endsWith l "FAIL") (logging/errorf "%s %s" server l)
-        :else (logging/infof "%s %s" server l))))
-   string/split-lines
-   (clean-logs user))
-  nil)
+  (fn [s]
+    (let [s (-> ((clean-logs user) s) string/split-lines)]
+      (doseq [^String l s]
+        (cond
+         (not (status-line? l)) (logging/debugf "%s   <== %s" server l)
+         (.endsWith l "FAIL") (logging/errorf "%s %s" server l)
+         :else (logging/infof "%s %s" server l))))
+    s))
 
 (defn script-error-map
   "Create an error map for a script execution"
