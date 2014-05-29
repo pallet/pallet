@@ -157,7 +157,8 @@
    (optional-path [:debug :script-comments]) any-value
    (optional-path [:debug :script-trace]) any-value
    (optional-path [:os-detect]) any-value
-   (optional-path [:all-node-set]) set?])
+   (optional-path [:all-node-set]) set?
+   (optional-path [:plan-state]) any-value])
 
 (def-map-schema converge-options-schema
   lift-options-schema
