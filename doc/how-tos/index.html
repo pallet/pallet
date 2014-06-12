@@ -23,7 +23,7 @@ section: documentation
             <!-- include news_summary.html -->
             <div class="row">
               <div class="span11 post_content">  
-                <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+                <h2><a href="{{site.base-url}}{{ post.url }}">{{ post.title }}</a></h2>
                 <p class="date"><small>{{ post.date | date: "%A, %d %B %Y"}}</small></p>
                 <p>{% if post.summary %}
                   {{post.summary}}
