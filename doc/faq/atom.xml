@@ -1,0 +1,28 @@
+---
+layout: nil
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+ <title>Pallet, DevOps for the JVM -- FAQ</title>
+ <link href="http://palletops.com/doc/faq/atom.xml" rel="self"/>
+ <link href="http://palletops.com/doc/faq"/>
+ <updated>{{ site.time | date_to_xmlschema }}</updated>
+ <id>http://{{ site.domain }}/doc/faq</id>
+ <author>
+   <name>Antoni Batchelli</name>
+   <email>tbatchelli@palletops.com</email>
+ </author>
+ {% for post in site.categories.faq limit:100 %}
+ <entry>
+   <title>{{ post.title }}</title>
+   <link href="http://palletops.com/{{ post.url }}"/>
+   <updated>{{ post.date | date_to_xmlschema }}</updated>
+   <id>http://{{ site.domain }}/{{ post.url }}</id>
+   <content type="html">{{ post.content | xml_escape }}</content>
+   <author>
+     <name>{{ post.author }}</name>
+     <uri>{{ post.author_url }}</uri>
+   </author>
+ </entry>
+ {% endfor %}
+</feed>

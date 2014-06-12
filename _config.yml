@@ -1,0 +1,53 @@
+# Jekyll
+permalink: /:categories/:title/
+exclude: [release.sh]
+markdown: redcarpet
+name: Pallet
+highlighter: pygments
+domain: palletops.com
+gems:
+  - jekyll-redirect-from
+baseurl: /pallet
+description: Pallet is a platform for agile and programmatic automation of 
+   infrastructure in the cloud, on server racks or directly on virtual machines. 
+navigation:
+- text: Overview
+  active: false
+  url: /pallet/doc/overview
+  sections: [overview]  
+- text: About
+  active: false
+  url: /about
+- text: Documentation
+  active: true
+  url: /pallet/doc
+  sections: [doc, documentation]
+- text: News
+  active: true
+  url: /news
+  sections: [news]
+- text: Blog
+  active: true
+  url: /blog
+  sections: [blog]
+- text: Code
+  active: true
+  url: https://github.com/pallet/pallet
+- text: Services
+  active: true
+  url: /services
+  sections: [services]
+- text: Support
+  active: true
+  url: /support
+  sections: [support]
+- text: Contact
+  active: true
+  url: /contact
+  sections: [contact]
+- text: Getting Started
+  active: false
+  url: /pallet/doc/getting-started
+- text: Community
+  active: false
+  url: /community

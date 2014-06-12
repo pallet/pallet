@@ -1,0 +1,46 @@
+{% if page.is_index %}{% assign content = post.content %}{% endif %}
+<div class="span11 content">
+  <div class="page-header">
+    {% if post.title %}
+      <h1 class="title">
+      {% if page.is_index %}
+        <a href="/{{ post.url }}">
+          {{ post.title }}
+        </a>
+      {% else %}
+        {{ post.title}}
+      {% endif %}
+      </h1>
+    {% endif %}
+  </div>
+  <div class="post_content">
+    {% if page.is_index %}
+       {% if post.summary %}
+         {{ post.summary }}
+       {% else %}
+         {{ content }}
+      {% endif %}
+    {% else %}
+      {{ content }}
+    {% endif %}
+  </div>
+
+  {% include share.html %}
+
+  <div class="row disqus-post-comments">
+    <div class="span11">
+      {% include disqus.html %}
+    </div>
+  </div>
+</div><!--content-->
+
+<div class="span5 sidebar">
+  <h4>Published on {{ post.date | date:'%d %B %Y' }}</h4>
+  {% for category in post.categories %}
+  <h6>{{ category }}</h6>
+  {% endfor %}
+  <br/>
+  <br/>
+  {% include banner-side.html %}
+  {% include twitter-widget.html %}
+</div>

@@ -1,0 +1,16 @@
+            {% for section in site.navigation %}
+              {% if section.active %}
+                {% assign active = nil %}
+                {% if section.sections contains post.section %}
+                   {% assign active = "active" %}
+                {% endif %}
+                {% if section.sections contains page.section %}
+                   {% assign active = "active" %}
+                {% endif %}
+                <li class="{{active}}">
+                  <a href="{{section.url}}">
+                    {{section.text}}
+                    </a>
+                </li>
+              {% endif %}
+            {% endfor %}

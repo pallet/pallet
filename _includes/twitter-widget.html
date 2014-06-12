@@ -1,0 +1,38 @@
+<div class="alert-message warning">
+  <p><strong>Get the news!</strong> Keep yourself up to date with the
+  latest Pallet news.</p>
+<a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @palletops</a>
+<script>!function(d,s,id){var
+  js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</div>
+
+<div class="twitter_widget">
+  <script src="http://widgets.twimg.com/j/2/widget.js"></script>
+  <script>
+new TWTR.Widget({
+  version: 2,
+  type: 'profile',
+  rpp: 4,
+  interval: 30000,
+  width: 'auto',
+  height: 300,
+  theme: {
+    shell: {
+      background: '#EEE',
+      color: '#404040'
+    },
+    tweets: {
+      background: '#EEE',
+      color: '#555',
+      links: '#00438A'
+    }
+  },
+  features: {
+    scrollbar: false,
+    loop: false,
+    live: false,
+    behavior: 'all'
+  }
+}).render().setUser('palletops').start();
+</script>
+</div>

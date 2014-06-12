@@ -1,0 +1,46 @@
+<div class="span11 content">
+  <div class="page-header">
+    <h1 class="title">
+      {{ post.title}}
+    </h1>
+  </div>
+  <div class="doc-tabs">
+    {% include reflinks.html %}
+  </div>
+  <div class="post_content">
+    {{ content }}
+  </div>
+  <div class="doc-tabs">
+    {% include reflinks.html %}
+  </div>
+  {% include broken-doc.html %}
+  {% include share.html %}
+  <div class="row disqus-post-comments">
+    <div class="span11">
+      {% include disqus.html %}
+    </div>
+  </div>
+</div><!--content-->
+
+<div class="span5 sidebar">
+  <h1>&nbsp;</h1>
+  {% if post.apiver %}
+    {% include docindex-ver.html %}
+  {% else %}
+    {% include docindex.html %}
+  {% endif %}
+  {% if post.apiver %}
+    <h3><a href="/doc/reference-{{post.apiver}}">Reference</a><br/></h3>
+  {% else %}
+    <h3><a href="/doc/reference">Reference</a><br/></h3>
+  {% endif %}
+  {% if post.apiver %}
+    {% include refindex-ver.html %}
+  {% else %}
+    {% include refindex.html %}
+  {% endif %}
+  <br/>
+  {% include banner-side.html %}
+  {% include twitter-widget.html %}
+  <br/>
+</div>

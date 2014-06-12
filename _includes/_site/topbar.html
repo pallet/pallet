@@ -1,0 +1,29 @@
+    <!-- Topbar
+    ================================================== -->
+    <div class="topbar" data-scrollspy="scrollspy" >
+      <div class="topbar-inner">
+        <div class="container">
+          <a class="brand" href="/">Pallet</a>
+          <ul class="nav">
+            {% include navigation.html %}
+<!--            <li {% if post.url == "/doc/overview" %}
+                class="active"
+                {% endif %}>
+              <a href="/doc/overview">Overview</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#news">Latest News</a></li>
+            <li><a href="/blog.html">Blog</a></li>
+            <li><a href="#getting-started">Getting Started</a></li>
+            <li><a href="#documentation">Documentation</a></li>
+            <li><a href="#community">Community</a></li> -->
+          </ul>
+
+          <form class="pull-right" method="get"
+                action="http://www.google.com/search" >
+            <input type="text" name="q"  maxlength="255"
+                   value="" placeholder="Search">
+            <input name="sitesearch" type="hidden" value="palletops.com">
+          </form>
+        </div>
+      </div>
+    </div>

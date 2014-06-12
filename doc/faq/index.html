@@ -1,0 +1,45 @@
+---
+layout: nil
+title: FAQ
+section: documentation
+---
+<!doctype html>
+<html lang="en">
+  {% assign atom = true %}
+  {% include head.html %}
+  <body>
+    {% include topbar.html %}
+    <div class="post">
+      <div class="container">
+        <div class="row">
+          <div class="span11 content">
+            <div class="page-header">
+              <h1 class="title"> {{ page.title }} </h1>
+            </div>
+            
+            {% for post in site.categories.faq %}
+            <ul>
+              <li><a href="#{{forloop.index}}"> {{ post.title }} </a></li>
+            </ul>
+            {% endfor %}
+            
+            {% for post in site.categories.faq %}
+            <h2><a name="{{ forloop.index }}"/>
+              <a href="{{ post.url }}">
+                {{ post.title }}</a></h2>
+            {{ post.content }}
+            {% endfor %}
+            
+          </div>
+          <div class="span5 sidebar">
+            <br>
+            <br>
+            <br>
+            {% include banner-side.html %}
+            {% include twitter-widget.html %}
+          </div>
+        </div> <!-- row -->
+      </div> <!-- container -->   
+      {% include foot.html %}
+  </body>
+</html>

@@ -1,0 +1,52 @@
+---
+layout: nil
+title: Documentation Changes
+section: news
+---
+<!doctype html>
+<html lang="en">
+  {% assign atom = true %}
+  {% include head.html %}
+  <body>
+    {% include topbar.html %}
+    <div class="post">
+      <div class="container">
+        <div class="row">
+          <div class="span11 content">
+            <div class="page-header">
+              <h1 class="title">
+                {{ page.title }}
+              </h1>
+            </div>
+
+            {% for post in site.categories.changes offset: 0 limit: 150 %}
+            <!-- include news_summary.html -->
+            <div class="row">
+              <div class="span11 post_content">  
+                <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+                <p class="date"><small>{{ post.date | date: "%A, %d %B %Y"}}</small></p>
+                <p>{% if post.summary %}
+                  {{post.summary}}
+                   {% else %}
+                  {{ post.content | strip_html | truncatewords: 50 }}
+                   {% endif %}</p>
+                <p><a class="pull-right" href="{{ post.url }}">
+                    Read the full article &rarr;</a>
+                </p>
+              </div>
+            </div>
+            {% endfor %}
+         
+           </div>
+          <div class="span5 sidebar">
+            <br>
+            <br>
+            <br>
+            {% include banner-side.html %}
+            {% include twitter-widget.html %}
+          </div>
+        </div> <!-- row -->
+      </div> <!-- container -->   
+      {% include foot.html %}
+  </body>
+</html>
