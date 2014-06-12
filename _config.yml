@@ -7,7 +7,7 @@ highlighter: pygments
 domain: palletops.com
 gems:
   - jekyll-redirect-from
-baseurl: /pallet
+base-url: /pallet
 description: Pallet is a platform for agile and programmatic automation of 
    infrastructure in the cloud, on server racks or directly on virtual machines. 
 navigation:
