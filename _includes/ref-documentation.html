@@ -30,9 +30,9 @@
     {% include docindex.html %}
   {% endif %}
   {% if post.apiver %}
-    <h3><a href="/doc/reference-{{post.apiver}}">Reference</a><br/></h3>
+    <h3><a href="{{site.base-url}}/doc/reference-{{post.apiver}}">Reference</a><br/></h3>
   {% else %}
-    <h3><a href="/doc/reference">Reference</a><br/></h3>
+    <h3><a href="{{site.base-url}}/doc/reference">Reference</a><br/></h3>
   {% endif %}
   {% if post.apiver %}
     {% include refindex-ver.html %}
