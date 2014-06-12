@@ -27,10 +27,10 @@
    (optional-key :run-state) (schema/enum
                               :running :stopped :suspended :terminated)
    (optional-key :proxy) Proxy
-   :os-family schema/Keyword
-   (optional-key :os-version) String
-   :packager schema/Keyword
-   (optional-key :image-user) UserUnconstrained
+   (optional-key :os-family) (schema/maybe schema/Keyword)
+   (optional-key :os-version) (schema/maybe String)
+   (optional-key :packager) (schema/maybe schema/Keyword)
+   (optional-key :image-user) (schema/maybe UserUnconstrained)
    (optional-key :user) User
    (optional-key :hardware) {schema/Keyword schema/Any}
    (optional-key :provider-data) {schema/Keyword schema/Any}
@@ -39,6 +39,17 @@
 (def Node
   "Schema for nodes"
   (assoc NodeValues :id String))
+
+(def ExecutableNode
+  "Schema for fully specified nodes"
+  (-> Node
+      (dissoc (optional-key :os-family)
+              (optional-key :os-version)
+              (optional-key :packager))
+      (assoc
+        :os-family schema/Keyword
+        :os-version String
+        :packager schema/Keyword)))
 
 (defn validate-node
   "Predicate to test whether an object implements the Node protocol"
