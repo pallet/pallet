@@ -30,6 +30,6 @@ unprecedented level of customization."
                  [pallet-map-merge "0.1.0"]
                  [prismatic/schema "0.2.1"]
                  [org.flatland/useful "0.10.3"]
-                 [commons-codec "1.4"]]
+                 [commons-codec "1.6"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
                         :resource-paths ^:replace []}})
