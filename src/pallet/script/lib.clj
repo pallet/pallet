@@ -491,7 +491,7 @@
         stevedore/map-to-arg-string)
    ~username))
 
-(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
+(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora :ubuntu}]
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
