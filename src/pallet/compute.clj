@@ -64,13 +64,15 @@
    schema/Keyword schema/Any})
 
 (def NodeSpec
-  {(optional-key :image) ImageSpec
-   (optional-key :location) LocationSpec
-   (optional-key :hardware) HardwareSpec
-   (optional-key :network) NetworkSpec
-   (optional-key :qos) QosSpec
-   (optional-key :provider) {schema/Keyword schema/Any}
-   schema/Keyword schema/Any})
+  (schema/named
+   {(optional-key :image) ImageSpec
+    (optional-key :location) LocationSpec
+    (optional-key :hardware) HardwareSpec
+    (optional-key :network) NetworkSpec
+    (optional-key :qos) QosSpec
+    (optional-key :provider) {schema/Keyword schema/Any}
+    schema/Keyword schema/Any}
+   'NodeSpec))
 
 (def NodeSpecMeta
   {:node-spec NodeSpec
