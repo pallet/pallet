@@ -1,29 +1,21 @@
 <h2>Index</h2>
-
 <ul>
-
-<li><a href='/pallet/doc/overview'>Overview</a></li>
-
-<li><a href='/pallet/doc/first-steps'>First Steps</a></li>
-
-<li><a href='/pallet/doc/crates'>Crates</a></li>
-
-<li><a href='/pallet/doc/how-tos'>How Tos</a></li>
+<li><a href='{{site.base-url}}/doc/overview'>Overview</a></li>
+<li><a href='{{site.base-url}}/doc/first-steps'>First Steps</a></li>
+<li><a href='{{site.base-url}}/doc/crates'>Crates</a></li>
+<li><a href='{{site.base-url}}/doc/how-tos'>How Tos</a></li>
 </ul>
 <h3>Pallet 0.7</h3>
 <ul>
-<li><a href='/pallet/doc/reference'>Reference Documentation</a></li>
-<li><a href='/pallet/api/0.7/index.html'>API Documentation</a></li>
-
-<li><a href='/pallet/marginalia/0.7/uberdoc.html'>Annotated Source</a></li>
+<li><a href='{{site.base-url}}/doc/reference'>Reference Documentation</a></li>
+<li><a href='{{site.base-url}}/api/0.7/index.html'>API Documentation</a></li>
 </ul>
 {% assign apivers = "0.8" | split: "|"  %}
 {% for apiver in apivers %}
 <h3>Pallet {{apiver}}</h3>
 <ul>
-<li><a href='/pallet/doc/reference-{{apiver}}'>Reference Documentation</a></li>
-<li><a href='/pallet/api/{{apiver}}/index.html'>API Documentation</a></li>
-<li><a href='/pallet/marginalia/{{apiver}}/uberdoc.html'>Annotated Source</a></li>
+<li><a href='{{site.base-url}}/doc/reference-{{apiver}}'>Reference Documentation</a></li>
+<li><a href='{{site.base-url}}/api/{{apiver}}/index.html'>API Documentation</a></li>
 </ul>
 {% endfor %}
 </ul>
