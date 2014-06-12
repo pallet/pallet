@@ -4,7 +4,7 @@
   (:require
    [clojure.core.async.impl.protocols :refer [Channel]]
    [clojure.core.async
-    :refer [<!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
+    :refer [<! <!! >! alts! alts!! chan close! go go-loop put! thread timeout]]
    [taoensso.timbre :refer [debugf errorf]]
    [pallet.exception :refer [combine-exceptions domain-error?]]
    [pallet.utils.rex-map :refer [merge-rex-maps]]))
@@ -171,13 +171,13 @@
   return to the to channel. Closes the to channel when the from
   channel closes."
   [from f to]
-  (go-try
-   (loop []
-     (let [x (<! from)]
-       (when-not (nil? x)
-         (>! to (f x))
-         (recur)))
-     (close! to))))
+  (go-try to
+    (loop []
+      (let [x (<! from)]
+        (when-not (nil? x)
+          (>! to (f x))
+          (recur))))
+    (close! to)))
 
 (defn deref-rex
   "Read a rex-map from the specified channel.  If there is an

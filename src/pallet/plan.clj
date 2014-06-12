@@ -1,7 +1,7 @@
 (ns pallet.plan
   "API for execution of pallet plan functions."
   (:require
-   [clojure.core.async :refer [chan go]]
+   [clojure.core.async :refer [<! >! chan go]]
    [clojure.string :as string]
    [com.palletops.api-builder :refer [def-defn def-fn]]
    [com.palletops.api-builder.core :refer [arg-and-ref assert*]]
