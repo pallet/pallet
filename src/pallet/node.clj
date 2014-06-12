@@ -4,6 +4,7 @@
   (:require
    [clojure.stacktrace :refer [print-cause-trace]]
    [taoensso.timbre :refer [debugf trace]]
+   [pallet.action-options :refer  [ActionOptions]]
    [pallet.compute.protocols :as impl]
    [pallet.user :refer [User UserUnconstrained]]
    [schema.core :as schema :refer [check required-key optional-key validate]]))
@@ -32,7 +33,8 @@
    (optional-key :image-user) UserUnconstrained
    (optional-key :user) User
    (optional-key :hardware) {schema/Keyword schema/Any}
-   (optional-key :provider-data) {schema/Keyword schema/Any}})
+   (optional-key :provider-data) {schema/Keyword schema/Any}
+   (optional-key :action-options) ActionOptions})
 
 (def Node
   "Schema for nodes"
@@ -175,6 +177,11 @@ keys may be present."
     (primary-ip node) (primary-ip node)
     :else (private-ip node)))
 
+(defn action-options
+  "Return any node specific action options."
+  [node]
+  {:pre [(node? node)]}
+  (:action-options node))
 
 ;;; # Functions that require a compute service in the node
 (defn taggable?

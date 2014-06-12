@@ -14,7 +14,7 @@
    [pallet.core.recorder.juxt :refer [juxt-recorder]]
    [pallet.exception
     :refer [combine-exceptions compiler-exception domain-error?]]
-   [pallet.node :refer [script-template validate-node]]
+   [pallet.node :as node :refer [script-template validate-node]]
    [pallet.script :refer [with-script-context]]
    [pallet.session :as session
     :refer [BaseSession TargetSession
@@ -95,7 +95,9 @@
          (validate Target target)]}
   (debugf "execute-action action %s" (pr-str action))
   (tracef "execute-action session %s" (pr-str session))
-  (let [executor (session/executor session)]
+  (let [executor (or
+                  (:executor (node/action-options target))
+                  (session/executor session))]
     (tracef "execute-action executor %s" (pr-str executor))
     (assert executor "No executor in session")
     (let [[rv e] (try

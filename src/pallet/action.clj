@@ -13,8 +13,9 @@
             make-action]]
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
+   [pallet.node :as node]
    [pallet.plan :refer [execute-action]]
-   [pallet.session :as session :refer [validate-target-session]]
+   [pallet.session :as session :refer [target validate-target-session]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.target-info :refer [admin-user]]
    [pallet.utils :refer [maybe-assoc multi-fn?]]))
@@ -52,7 +53,10 @@
   "Call the session executor for the action with argv."
   [session action argv]
   {:pre [(validate-target-session session)]}
-  (let [options (merge (:options action) (action-options session))
+  (let [options (merge
+                 (:options action)
+                 (:action-options (node/action-options (target session)))
+                 (action-options session))
         user (effective-user (admin-user session) options)
         options (update-in options [:user] merge user)]
     (debugf "effective-user %s %s %s" (admin-user session) options user)

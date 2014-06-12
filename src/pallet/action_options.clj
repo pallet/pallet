@@ -18,7 +18,11 @@
    (optional-key :script-prefix) schema/Keyword
    (optional-key :sudo-user) String
    (optional-key :user) User
-   (optional-key :action-id) schema/Keyword})
+   (optional-key :action-id) schema/Keyword
+   (optional-key :executor) schema/Any
+   (optional-key :file-uploader) schema/Any
+   (optional-key :file-checksum) schema/Any
+   (optional-key :file-backup) schema/Any})
 
 (defn action-options
   "Return any action-options currently defined on the session."
