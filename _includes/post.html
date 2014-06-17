@@ -1,5 +1,5 @@
 {% if page.is_index %}{% assign content = post.content %}{% endif %}
-<div class="span11 content">
+<div class="col-md-9 content">
   <div class="page-header">
     {% if post.title %}
       <h1 class="title">
@@ -27,14 +27,12 @@
 
   {% include share.html %}
 
-  <div class="row disqus-post-comments">
-    <div class="span11">
-      {% include disqus.html %}
-    </div>
+  <div class="disqus-post-comments">
+    {% include disqus.html %}
   </div>
 </div><!--content-->
 
-<div class="span5 sidebar">
+<div class="col-md-3 sidebar">
   <h4>Published on {{ post.date | date:'%d %B %Y' }}</h4>
   {% for category in post.categories %}
   <h6>{{ category }}</h6>

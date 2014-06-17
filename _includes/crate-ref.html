@@ -1,4 +1,4 @@
-<div class="span11 content">
+<div class="col-md-9 content">
   <div class="page-header">
     <h1 class="title">
       {{ post.title}}
@@ -9,17 +9,15 @@
   </div>
   {% include broken-doc.html %}
   {% include share.html %}
-  <div class="row disqus-post-comments">
-    <div class="span11">
-      {% include disqus.html %}
-    </div>
+  <div class="disqus-post-comments">
+  {% include disqus.html %}
   </div>
 </div><!--content-->
 
-<div class="span5 sidebar">
+<div class="col-md-3 sidebar">
   <h1>&nbsp;</h1>
   {% include docindex.html %}
-  <h3><a href="/doc/crates">Crates</a><br/></h3>
+  <h3><a href="{{site.baseurl}}/doc/crates">Crates</a><br/></h3>
   {% capture crates %}{% include crate-index.md %}{% endcapture %}
   {{ crates | markdownify }}
   <br/>

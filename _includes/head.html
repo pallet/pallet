@@ -4,25 +4,22 @@ Assign atom = true if this is an index page that has a corresponding atom page
 <head>
   <meta charset="utf-8" />
   <title>{% if page.title %}{{ page.title }} - {% endif %}{{ site.name }}</title>
-  <link rel="stylesheet" type="text/css" 
-        href="/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/css/pallet.css">
-  <link rel="stylesheet" href="/css/css.css">
-  <link rel="stylesheet" href="/css/highlight.css">
 
-  <script type="text/javascript">
+  <link rel="stylesheet" href="{{site.cdn}}/{{site.asset-ver}}/css/bootstrap.min.css">
+   <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-19685457-1']);
-  _gaq.push(['_trackPageview']);
+  <link rel="stylesheet" href="{{site.cdn}}/{{site.asset-ver}}/css/pallet.css">
+  <link rel="stylesheet" href="{{site.cdn}}/{{site.asset-ver}}/css/css.css">
+  <link rel="stylesheet" href="{{site.cdn}}/{{site.asset-ver}}/css/highlight.css">
 
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
+  {% comment %}
+  ensure proper rendering and touch zooming
+  {% endcomment %}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  </script>
+  {% include google-analytics.html %}
+  
   {% if atom == true %}
   <link rel="alternate" type="application/rss+xml" title="RSS"
         href="atom.xml">

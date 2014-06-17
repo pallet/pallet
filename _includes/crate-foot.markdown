@@ -2,7 +2,6 @@
 
 {% assign repos = {sonatype: "https://oss.sonatype.org/content/repositories/releases/", clojars: https://clojars.org/repo} %}
 
-
 <pre>
 :dependencies [[{{page.group-id}}/{{page.artifact-id}} "{{page.version}}"]]
 {% if "sonatype" == page.mvn-repo %}:repositories 

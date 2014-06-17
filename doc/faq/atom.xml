@@ -4,10 +4,10 @@ layout: nil
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
  <title>Pallet, DevOps for the JVM -- FAQ</title>
- <link href="http://palletops.com{{site.base-url}}/doc/faq/atom.xml" rel="self"/>
- <link href="http://palletops.com{{site.base-url}}/doc/faq"/>
+ <link href="http://palletops.com{{site.baseurl}}/doc/faq/atom.xml" rel="self"/>
+ <link href="http://palletops.com{{site.baseurl}}/doc/faq"/>
  <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>http://{{ site.domain }}{{site.base-url}}{{site.base-url}}/doc/faq</id>
+ <id>http://{{ site.domain }}{{site.baseurl}}{{site.baseurl}}/doc/faq</id>
  <author>
    <name>Antoni Batchelli</name>
    <email>tbatchelli@palletops.com</email>
@@ -15,9 +15,9 @@ layout: nil
  {% for post in site.categories.faq limit:100 %}
  <entry>
    <title>{{ post.title }}</title>
-   <link href="http://palletops.com{{site.base-url}}{{ post.url }}"/>
+   <link href="http://palletops.com{{site.baseurl}}{{ post.url }}"/>
    <updated>{{ post.date | date_to_xmlschema }}</updated>
-   <id>http://{{ site.domain }}{{site.base-url}}{{ post.url }}</id>
+   <id>http://{{ site.domain }}{{site.baseurl}}{{ post.url }}</id>
    <content type="html">{{ post.content | xml_escape }}</content>
    <author>
      <name>{{ post.author }}</name>

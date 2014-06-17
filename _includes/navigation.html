@@ -1,4 +1,4 @@
-            {% for section in site.navigation %}
+            {% for section in site.data.navigation %}
               {% if section.active %}
                 {% assign active = nil %}
                 {% if section.sections contains post.section %}

@@ -1,4 +1,4 @@
-<div class="span11 content">
+<div class="col-md-9 content">
   <div class="page-header">
     <h1 class="title">
       {{ post.title}}
@@ -15,14 +15,12 @@
   </div>
   {% include broken-doc.html %}
   {% include share.html %}
-  <div class="row disqus-post-comments">
-    <div class="span11">
-      {% include disqus.html %}
-    </div>
+  <div class="disqus-post-comments">
+    {% include disqus.html %}
   </div>
 </div><!--content-->
 
-<div class="span5 sidebar">
+<div class="col-md-3 sidebar">
   <h1>&nbsp;</h1>
   {% if post.apiver %}
     {% include docindex-ver.html %}
@@ -30,9 +28,9 @@
     {% include docindex.html %}
   {% endif %}
   {% if post.apiver %}
-    <h3><a href="{{site.base-url}}/doc/reference-{{post.apiver}}">Reference</a><br/></h3>
+    <h3><a href="{{site.baseurl}}/doc/reference-{{post.apiver}}">Reference</a><br/></h3>
   {% else %}
-    <h3><a href="{{site.base-url}}/doc/reference">Reference</a><br/></h3>
+    <h3><a href="{{site.baseurl}}/doc/reference">Reference</a><br/></h3>
   {% endif %}
   {% if post.apiver %}
     {% include refindex-ver.html %}

@@ -1,4 +1,4 @@
-<div class="span11 content">
+<div class="col-md-9 content">
   <div class="page-header">
     <h1 class="title">
       {{ post.title}}
@@ -12,13 +12,13 @@
   {% include broken-doc.html %}
   {% include share.html %}
   <div class="row disqus-post-comments">
-    <div class="span11">
+    <div class="col-md-9">
       {% include disqus.html %}
     </div>
   </div>
 </div><!--content-->
 
-<div class="span5 sidebar">
+<div class="col-md-3 sidebar">
   <h1>&nbsp;</h1>
   {% if post.apiver %}
     {% include docindex-ver.html %}
