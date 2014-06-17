@@ -28,7 +28,7 @@ To make things easier and to hide the pallet magic, we have created a web deploy
 which is an web application that will control the URL-Shortener deployement and configuration. Once you run the project,
 the deployer will be built and present you with the following interface:
 
-![exoscale deployer]({{ site.url }}/images/exoscale-1.png)
+![exoscale deployer]({{ site.cdn }}/{{site.asset-ver}}/images/exoscale-1.png)
 
 ### Use Case
 
