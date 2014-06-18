@@ -28,3 +28,4 @@ notifications:
 branches:
   only:
     - gh-pages-src
+    - gh-pages
