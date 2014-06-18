@@ -85,7 +85,7 @@ compute node's group-name (as returned by `pallet.compute/group-name`)
 to a server-spec.
 
 The group-spec is used to select the nodes targeted by a [`converge` or `lift`
-operation](/doc/reference/operations).
+operation]({{site.baseurl}}/doc/reference/operations).
 
 ``` clojure
   (require 'pallet.core)

@@ -58,7 +58,7 @@ multiple accounts for the same provider.
 
 To create a compute service object from this file, that you can pass to `lift`
 or `converge`, you use
-[`pallet.configure/compute-service`](/pallet/api/0.8/pallet.configure#var-compute-service).
+[`pallet.configure/compute-service`]({{site.baseurl}}/api/0.8/pallet.configure.html#var-compute-service).
 By default, the first provider entry will be used, and you can specify an
 alternative provider by passing the key to the function.
 
@@ -112,7 +112,7 @@ multiple other providers at once (eg. node-list and aws-ec2).
 
 The provider names pallet recognises (given the dependencies that have been
 configured) can be displayed with
-[pallet.compute/supported-providers](/pallet/api/0.8/pallet.compute#var-supported-providers)
+[pallet.compute/supported-providers]({{site.baseurl}}/api/0.8/pallet.compute.html#var-supported-providers)
 at the REPL:
 
 ``` clojure

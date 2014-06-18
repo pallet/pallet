@@ -12,8 +12,7 @@ designed to make small to midsize deployments simple.
 - [Reference Documentation]({{site.baseurl}}/doc/reference)
 - [How Tos]({{site.baseurl}}/doc/how-tos)
 - [Crates]({{site.baseurl}}/doc/crates)
-- [API Documentation]({{site.baseurl}}/pallet/api/0.7/index.html)
-- [Annotated Source]({{site.baseurl}}/pallet/marginalia/uberdoc.html)
+- [API Documentation]({{site.baseurl}}/api/0.7/index.html)
 
 {% comment %} // dont' add this back until we have updates 
 ## [Latest Documentation Changes]({{site.baseurl}}/doc/changes) <small><a href="{{site.baseurl}}/doc/changes/atom.xml">RSS</a></small>

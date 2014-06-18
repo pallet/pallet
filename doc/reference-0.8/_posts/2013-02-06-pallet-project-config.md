@@ -10,7 +10,7 @@ apiver: 0.8
 
 The `pallet.clj` project configuration file allows you to specify project
 infrastructure in a form that can be checked into your source repository.  The
-file describes the [group-specs and node-specs](/doc/reference/0.8/node-types)
+file describes the [group-specs and node-specs]({{site.baseurl}}/doc/reference/0.8/node-types)
 you wish to use with the project.  This allows a developer to check out your
 project, and run `lein pallet up`.
 
