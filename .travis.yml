@@ -22,3 +22,5 @@ after-success:
   - git push origin $target_branch 2>&1
 after-script:
   - rm -rf $ddir
+notifications:
+  irc: irc.freenode.org#pallet
