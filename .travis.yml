@@ -1,7 +1,8 @@
 language: ruby
 rvm:
   - 2.1.0
-install: true
+install:
+  - sudo pip install Pygments
 env:
   global:
     - secure: "4cYZDJvt5Y7qhGaiuZGCc8RSNKLsoFOidw+x8jGraPcg1UaSbWvR0kfev9Is8hpBuBLI6G3O7o3tz2gYhhBx9V5QaP0wbt9nLlTtcALCkRSa40iusT8qjX7iRs7KF5c7xXbyz63VWptygwCi/KRQZHuKTVZiEG9inqcLBJzdOoU="
