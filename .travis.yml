@@ -20,8 +20,8 @@ after_success:
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://${GH_TOKEN}:@github.com" > .git/credentials
   - git add -u .
-  - git config user.email "pbors@palletops.com"
-  - git config user.name "pbors"
+  - git config user.email "tbatchelli@acm.org"
+  - git config user.name "tbatchelli"
   - git commit -am "new-site-deployed" --allow-empty
   - git push origin $TARGET_BRANCH 2>&1
 after_script:
