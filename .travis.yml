@@ -14,7 +14,7 @@ script:
   - git clone https://github.com/$PROJECT.git --branch $TARGET_BRANCH --single-branch $DDIR
   - bundle install
   - bundle exec jekyll build --destination $DDIR
-after-success:
+after_success:
   - cd $DDIR
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://${GH_TOKEN}:@github.com" > .git/credentials
@@ -23,7 +23,7 @@ after-success:
   - git config user.name "pbors"
   - git commit -am "new-site-deployed" --allow-empty
   - git push origin $TARGET_BRANCH 2>&1
-after-script:
+after_script:
   - rm -rf $DDIR
 notifications:
   irc: irc.freenode.org#pallet
