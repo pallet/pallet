@@ -21,7 +21,7 @@ after_success:
   - cd $DDIR
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://${GH_TOKEN}:@github.com" > .git/credentials
-  - git add -u .
+  - git add -A .
   - git config user.email "tbatchelli@acm.org"
   - git config user.name "tbatchelli"
   - git commit -am "new-site-deployed" --allow-empty
