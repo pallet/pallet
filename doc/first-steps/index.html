@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+  
+<head>
+  <meta charset="utf-8" />
+  <title>First Steps with Pallet - PalletOps</title>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/bootstrap.min.css">
+   <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/pallet.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/css.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/highlight.css">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19685457-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+  </script>
+
+  
+  
+
+  
+    
+      <meta name="description" content="Quickstart instructions for creating a new Pallet project. Covers installation of lein and configuration of project.clj, and a primer on pallet clojure forms." />
+    
+  
+  <!-- begin olark code -->
+<script data-cfasync="false" type='text/javascript'>/*<![CDATA[*/window.olark||(function(c){var f=window,d=document,l=f.location.protocol=="https:"?"https:":"http:",z=c.name,r="load";var nt=function(){
+f[z]=function(){
+(a.s=a.s||[]).push(arguments)};var a=f[z]._={
+},q=c.methods.length;while(q--){(function(n){f[z][n]=function(){
+f[z]("call",n,arguments)}})(c.methods[q])}a.l=c.loader;a.i=nt;a.p={
+0:+new Date};a.P=function(u){
+a.p[u]=new Date-a.p[0]};function s(){
+a.P(r);f[z](r)}f.addEventListener?f.addEventListener(r,s,false):f.attachEvent("on"+r,s);var ld=function(){function p(hd){
+hd="head";return["<",hd,"></",hd,"><",i,' onl' + 'oad="var d=',g,";d.getElementsByTagName('head')[0].",j,"(d.",h,"('script')).",k,"='",l,"//",a.l,"'",'"',"></",i,">"].join("")}var i="body",m=d[i];if(!m){
+return setTimeout(ld,100)}a.P(1);var j="appendChild",h="createElement",k="src",n=d[h]("div"),v=n[j](d[h](z)),b=d[h]("iframe"),g="document",e="domain",o;n.style.display="none";m.insertBefore(n,m.firstChild).id=z;b.frameBorder="0";b.id=z+"-loader";if(/MSIE[ ]+6/.test(navigator.userAgent)){
+b.src="javascript:false"}b.allowTransparency="true";v[j](b);try{
+b.contentWindow[g].open()}catch(w){
+c[e]=d[e];o="javascript:var d="+g+".open();d.domain='"+d.domain+"';";b[k]=o+"void(0);"}try{
+var t=b.contentWindow[g];t.write(p());t.close()}catch(x){
+b[k]=o+'d.write("'+p().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};ld()};nt()})({
+loader: "static.olark.com/jsclient/loader0.js",name:"olark",methods:["configure","extend","declare","identify"]});
+/* custom configuration goes here (www.olark.com/documentation) */
+olark.identify('9249-736-10-9825');/*]]>*/</script><noscript><a href="https://www.olark.com/site/9249-736-10-9825/contact" title="Contact us" target="_blank">Questions? Feedback?</a> powered by <a href="http://www.olark.com?welcome" title="Olark live chat software">Olark live chat software</a></noscript>
+<!-- end olark code -->
+
+</head>
+
+  <body>
+    
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#topbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">PalletOps</a>
+    </div> <!-- /.navbar-toggle -->
+    <div class="collapse navbar-collapse" id="topbar-collapse">
+      <ul class="nav navbar-nav">
+	            
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+      </ul>
+   <form class="navbar-form navbar-right" role="search"
+      method="get" action="http://www.google.com/search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search"
+		 name="q" maxlength="255">
+	  <input name="sitesearch" type="hidden" value="palletops.com">
+        </div> <!-- /.form-group -->
+      </form> 
+    </div> <!-- /#topbar-collapse -->
+  </div> <!-- /.container -->
+</nav>
+
+    <div class="post">
+      <div class="container">
+        <div class="col-md-9 content">
+  <div class="page-header">
+    <h1 class="title">
+      First Steps with Pallet
+    </h1>
+  </div>
+  <div class="doc-tabs">
+    </div>
+  <div class="post_content">
+    <p>This guide walks you through provisioning and configuring your first
+compute node in the cloud. The estimated completion time is 5 minutes.</p>
+
+<h2>Requirements</h2>
+
+<ul>
+<li>A computer with: 
+
+<ul>
+<li>Linux, OSX or Windows with <a href="http://www.cygwin.com">CygWin</a></li>
+<li>Java 6 or 7 installed</li>
+<li>A Secure Shell (SSH) client</li>
+</ul></li>
+<li>An active account in <a href="http://aws.amazon.com">Amazon Web Services</a> (AWS)</li>
+</ul>
+
+<h2>Installing Leiningen</h2>
+
+<p>For this exercise you need <a href="http://github.com/technomancy/leiningen">Leiningen 2.x</a>, a build tool for
+Clojure. Follow the <a href="https://github.com/technomancy/leiningen#installation">instructions</a> provided by
+Leiningen to install it on your local machine.</p>
+
+<h2>Creating a new project</h2>
+
+<p>Use Leiningen to create a new Clojure project named <code>quickstart</code>:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bash<span class="nv">$ </span>lein new pallet quickstart
+Created new project in: quickstart
+bash<span class="nv">$ </span><span class="nb">cd </span>quickstart
+</code></pre></div>
+<p>The <code>quickstart</code> directory created by this command contains the
+scaffold of a project that uses Pallet.</p>
+
+<h2>Configuring the cloud credentials</h2>
+
+<p>In order for Pallet to use your AWS account you need to add your AWS
+credentials into the project&#39;s configuration. Use Leiningen to do so
+now:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bash<span class="nv">$ </span>lein pallet add-service aws aws-ec2 <span class="s2">&quot;your-aws-access-key&quot;</span> <span class="s2">&quot;your-aws-secret-key&quot;</span>
+</code></pre></div>
+<p>This command creates a <code>~/.pallet/services/aws.clj</code> file containing
+your AWS credentials. Pallet will use these credentials when
+interacting with AWS.</p>
+
+<h2>Starting a Read-Eval-Print Loop (REPL) and loading Pallet</h2>
+
+<p>The next steps will be done at Clojure&#39;s REPL. Start a REPL with
+Leiningen:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bash<span class="nv">$ </span>lein repl
+</code></pre></div>
+<p>Once you see the REPL&#39;s <code>user=&gt;</code> prompt, issue the following command
+to load Pallet:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (require &#39;pallet.api &#39;pallet.compute &#39;pallet.configure)
+nil
+</code></pre></div>
+<h2>Starting and configuring a cloud node</h2>
+
+<p>You are now ready to create your first AWS compute node. This section
+builds and destroys a compute node running Ubuntu version 12.04. To do
+so you first define a connection to AWS by entering the following at
+the REPL prompt:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (def aws (pallet.configure/compute-service :aws))
+#&#39;user/aws
+</code></pre></div>
+<p>Pallet will at this point verify if your credentials are correct by
+establishing a connection to AWS. If the connection fails, you will
+get an error message.</p>
+
+<p>Now we need to define what kind of node we want to build. A
+<code>group-spec</code> encapsulates this information. Define a group-spec named
+<code>mygroup</code> as follows:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt;
+(def my-group
+  (pallet.api/group-spec &quot;mygroup&quot;
+    :node-spec (pallet.api/node-spec
+                 :image {:os-family :ubuntu 
+                         :image-id &quot;us-east-1/ami-3c994355&quot;})))
+#&#39;user/my-group
+</code></pre></div>
+<p>This group spec contains a <code>node-spec</code> that describes the
+characteristics of the node to be built, in this case the AMI to use
+and the OS that this AMI runs.</p>
+
+<p>You can now instruct Pallet to create one of such nodes, by issuing:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (def s (pallet.api/converge {my-group 1} :compute aws))
+#&#39;user/s
+</code></pre></div>
+<p>This command will create a compute node using the
+<code>us-east-1/ami-3c994355</code> image (or AMI in AWS parlance) and named
+&quot;mygroup-1&quot;. You can build more than one node with the same
+configuration in the same way.</p>
+
+<p>The command above will also store in a variable <code>s</code> the results of
+this operation, which we usually call <em>the session</em>. To view this
+session use the function <code>explain-session</code> in <code>pallet.repl</code>. For
+example, to see what Pallet did in the during the previous command, do
+this:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (use &#39;pallet.repl)
+nil
+
+user=&gt; (explain-session s)
+nodes created: 1
+PHASES: 
+GROUPS: mygroup
+ACTIONS:
+nil
+</code></pre></div>
+<p>Now shut down this node issuing the same command as before, but change
+the <code>:count</code> value to zero (you can ignore the <code>:node-spec</code>):</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (def s (pallet.api/converge {my-group 0} :compute aws))
+#&#39;user/s
+
+user=&gt; (explain-session s)
+nodes destroyed: 1
+PHASES: 
+GROUPS: 
+ACTIONS:
+nil
+</code></pre></div>
+<h2>Authorizing yourself on the nodes</h2>
+
+<p>The command in the previous section created a node but it didn&#39;t
+perform any configuration of this node. Most notably, it did not
+configure the node to let you connect to it via Secure Shell.</p>
+
+<p>Pallet provides a way for you to log into the node by configuring the
+node&#39;s SSH server thereby authorizing your SSH credentials in it.</p>
+
+<p>The following commands update your <code>group-spec</code> with the SSH
+configuration and your authorization, and then builds one node based
+on this spec:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (use &#39;[pallet.crate.automated-admin-user :only [automated-admin-user]])
+nil
+
+user=&gt; (def my-group 
+  (pallet.api/group-spec &quot;mygroup&quot;
+    :node-spec (pallet.api/node-spec
+               :image {:os-family :ubuntu 
+                       :image-id &quot;us-east-1/ami-3c994355&quot;})
+    :phases {:bootstrap automated-admin-user}))
+#&#39;user/my-group
+
+user=&gt; (def s (pallet.api/converge {my-group 1} :compute aws))
+#&#39;user/s
+user=&gt; (explain-session s)
+nodes created: 1
+PHASES: bootstrap
+GROUPS: mygroup
+ACTIONS:
+  PHASE bootstrap:
+    GROUP mygroup:
+      NODE 54.197.215.167:
+        ACTION ON NODE:
+          CONTEXT: [automated-admin-user: install]: 
+          SCRIPT:
+          | #!/usr/bin/env bash
+          | set -h
+          | echo &#39;[automated-admin-user: install]: Packages...&#39;;
+          | {
+          | { debconf-set-selections &lt;&lt;EOF
+          | debconf debconf/frontend select noninteractive
+          | debconf debconf/frontend seen false
+          | EOF
+          | } &amp;&amp; enableStart() {
+...
+</code></pre></div>
+<p>The function <code>automated-admin-user</code> in the <code>:bootstrap</code> phase is the
+one that performs all the SSH configuration we described. By default
+it will authorize your local user&#39;s name and SSH credentials. Running
+this function during <code>:bootstrap</code> ensures this configuration step only
+takes place once per node, right after the node is first created.</p>
+
+<p>What you see as a result of the <code>explain-session</code> call is the scripts
+that Pallet executed on the node via SSH, and the result of such
+executions.</p>
+
+<p>From now on Pallet will only connect to your nodes using your local
+user&#39;s SSH credentials.</p>
+
+<h3>SSH credentials with a passphrase</h3>
+
+<p>If your SSH credentials are secured with a passphrase, you need to
+have an SSH agent running on your local machine. You must also make
+your SSH keys available to this agent. Pallet will then use this agent
+to securely connect to your nodes without needing to ask you for your
+passphrase.</p>
+
+<p>Consult your operating system manuals about configuring the SSH agent
+(enabled by default on Mac OSX and some Linux distributions). To
+permanently add your credentials to the SSH agent database issue the
+following at the shell:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bash<span class="nv">$ </span>ssh-add -K your-private-key-file
+</code></pre></div>
+<h3>Connecting to your node</h3>
+
+<p>You should now able to log into your new node via SSH and even use
+<code>sudo</code> to gain administrator privileges. Use the following command to
+find your node&#39;s IP address:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user =&gt; (show-nodes aws)
+===========================================================================================
+:group-name | :primary-ip    | :hostname        | :private-ip    | :os-family | :os-version
+=========================================================================================== 
+mygroup     | 54.197.215.167 | mygroup-bc6052ed | 10.215.119.164 | :ubuntu    | 12.04      
+===========================================================================================
+</code></pre></div>
+<p>And then issue the following command at the shell to log into your
+node:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bash<span class="nv">$ </span>ssh &lt;node<span class="err">&#39;</span>s primary-ip&gt;
+</code></pre></div>
+<p>Note that you should not need to provide any further information (e.g.
+password) in the command above.</p>
+
+<h2>Installing software on your nodes</h2>
+
+<p>Now that you (and Pallet) are authorized to log into the node, you may
+program Pallet to perform further software installation and
+configuration on your behalf.</p>
+
+<p>Pallet operates on nodes in <em>phases</em>. You may define and run as many
+phases as you need. For now we&#39;ll use the <code>:configure</code> phase, which is
+run by default.</p>
+
+<p>The following command will add additional code to install <code>curl</code>
+during the <code>:configure</code> phase, then updates the existing nodes with
+the new configuration using <code>lift</code> instead of <code>converge</code>:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">user=&gt; (use &#39;[pallet.actions :only [package]]
+            &#39;[pallet.api :only [plan-fn]])
+nil
+
+user=&gt; (def my-group
+ (pallet.api/group-spec &quot;mygroup&quot;
+   :node-spec (pallet.api/node-spec 
+                :image {:os-family :ubuntu 
+                        :image-id &quot;us-east-1/ami-3c994355&quot;})
+   :phases {:bootstrap automated-admin-user
+            :configure (plan-fn (package &quot;curl&quot;))}))
+#&#39;user/my-group
+
+user=&gt; (def s (pallet.api/lift [my-group] :compute aws))
+#&#39;user/s
+
+user=&gt; (explain-session s)
+PHASES: configure
+GROUPS: mygroup
+ACTIONS:
+  PHASE configure:
+    GROUP mygroup:
+      NODE 54.197.215.167:
+        ACTION ON NODE:
+          SCRIPT:
+          | #!/usr/bin/env bash
+          | set -h
+          | echo &#39;Packages...&#39;;
+          | {
+          | { debconf-set-selections &lt;&lt;EOF
+          | debconf debconf/frontend select noninteractive
+          | debconf debconf/frontend seen false
+          | EOF
+          | } &amp;&amp; enableStart() {
+          | rm /usr/sbin/policy-rc.d
+          | } &amp;&amp; apt-get -q -y install curl+ &amp;&amp; dpkg --get-selections
+          |  } || { echo &#39;#&gt; Packages : FAIL&#39;; exit 1;} &gt;&amp;2 
+          | echo &#39;#&gt; Packages : SUCCESS&#39;
+... 
+          | #&gt; Packages : SUCCESS
+nil
+</code></pre></div>
+<p>The results of calling <code>explain-session</code> are telling you that no nodes
+were created or destroyed, and about the operations Pallet has
+performed on the existing nodes to install curl.</p>
+
+<p>Proceed to verify that &#39;curl&#39; has been installed by logging into your
+node via SSH and issuing the following at the node&#39;s shell:</p>
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">~<span class="nv">$ </span>curl --version
+curl 7.22.0 <span class="o">(</span>x86_64-pc-linux-gnu<span class="o">)</span> libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 libidn/1.23 librtmp/2.3
+Protocols: dict file ftp ftps gopher http https imap imaps ldap pop3 pop3s rtmp rtsp smtp smtps telnet tftp 
+Features: GSS-Negotiate IDN IPv6 Largefile NTLM NTLM_WB SSL libz TLS-SRP 
+</code></pre></div>
+<h2>Next</h2>
+
+<p>Hopefully this has given you an overview of how to use Pallet from a REPL. </p>
+
+<p>To learn more refer to the following next steps:</p>
+
+<ul>
+<li><p>The generated &#39;quickstart&#39; project contains some template code for
+defining and using group-specs. Explore the <code>src</code> directory to find
+these templates.</p></li>
+<li><p>The <a href="http://palletops.com/doc/reference-0.8">Reference Documentation</a> provides detailed information
+about what you can do with Pallet and how it works.</p></li>
+<li><p>Pallet supports multiple infrastructure providers. Most of the
+public and private cloud providers are
+<a href="http://jclouds.apache.org/guides/providers/">supported</a> via <a href="http://jclouds.apache.org">Apache jclouds</a>.</p></li>
+<li><p>For development purposes Pallet also supports using VirtualBox as a
+mini-cloud provider. Check out <a href="https://github.com/pallet/pallet-vmfest">pallet-vmfest</a> to
+find out how to integrate VirtualBox into your workflow.</p></li>
+<li><p>To see more examples of using Pallet on other setups:
+<a href="https://github.com/pallet/example-deploy-webapp">deploy webapp example</a></p></li>
+<li><p>If you have any questions on using Pallet, please contacts us
+through <a href="http://groups.google.com/group/pallet-clj">Pallet&#39;s mailing list</a> or via IRC at
+<a href="http://webchat.freenode.net/?channels=#pallet">#pallet</a> on freenode.net.</p></li>
+</ul>
+
+  </div>
+  <div class="alert-message info block-message">
+  <p>
+    Is this document broken? Are there missing pieces? Is it unclear? Help
+    us fix it!
+    <a href="https://github.com/pallet/pallet.github.com/issues/new">
+      Report an issue</a>
+    or read up on <a href="/pallet/doc/how-to-help">how to provide a fix</a>.
+  </p>
+</div>
+
+
+  
+  <div class="row disqus-post-comments">
+    <div class="col-md-9">
+      
+    </div>
+  </div>
+</div><!--content-->
+
+<div class="col-md-3 sidebar">
+  <h1>&nbsp;</h1>
+  
+    <h2>Index</h2>
+<ul>
+<li><a href='/pallet/doc/overview'>Overview</a></li>
+<li><a href='/pallet/doc/first-steps'>First Steps</a></li>
+<li><a href='/pallet/doc/crates'>Crates</a></li>
+<li><a href='/pallet/doc/how-tos'>How Tos</a></li>
+</ul>
+<h3>Pallet 0.7</h3>
+<ul>
+<li><a href='/pallet/doc/reference'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.7/index.html'>API Documentation</a></li>
+</ul>
+
+
+<h3>Pallet 0.8</h3>
+<ul>
+<li><a href='/pallet/doc/reference-0.8'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.8/index.html'>API Documentation</a></li>
+</ul>
+
+</ul>
+
+  
+  <br/>
+  
+
+  <div class="alert-message warning">
+  <p><strong>Get the news!</strong> Keep yourself up to date with the
+  latest Pallet news.</p>
+<a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @palletops</a>
+<script>!function(d,s,id){var
+  js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</div>
+
+<div class="twitter_widget">
+  <script src="http://widgets.twimg.com/j/2/widget.js"></script>
+  <script>
+new TWTR.Widget({
+  version: 2,
+  type: 'profile',
+  rpp: 4,
+  interval: 30000,
+  width: 'auto',
+  height: 300,
+  theme: {
+    shell: {
+      background: '#EEE',
+      color: '#404040'
+    },
+    tweets: {
+      background: '#EEE',
+      color: '#555',
+      links: '#00438A'
+    }
+  },
+  features: {
+    scrollbar: false,
+    loop: false,
+    live: false,
+    behavior: 'all'
+  }
+}).render().setUser('palletops').start();
+</script>
+</div>
+
+</div>
+
+      </div>
+    </div>
+    <footer class="footer">
+  <div class="container">
+    
+
+    <div class="row">
+      <div class="col-md-5">
+        <h4>About</h4>
+            <p>Pallet is an open source DevOps library for the JVM,
+            built on Clojure, with native support for clusters, node
+              dependencies and agile development.</p>
+            <p></p>
+        <p>Infrastructure generously provided by:</p>
+        <p>
+          <a href="http://rackspace.com">
+            <img src="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/rackspace-logo.png"
+		 alt="Rackspace Logo"></img>
+            </a></p>
+      </div>
+      <div class="col-md-3 col-md-offset-1">
+        <h4>Site Map</h4>
+        <ul>
+                      
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+          </ul>
+      </div>
+      <div class="col-md-3">
+        <h4>Contact</h4>
+        <ul>
+        <li><a href="/contact">Contact Form</a></li>
+        <li><a href="/support">Get Support</a></li>
+        <li><a href="mailto:contact@palletops.com">email</a></li>
+        </ul>
+        <p/>
+        <a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-lang="en">Follow @palletops</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+      </div>
+    </div> <!-- row -->
+    <p class="pull-right"><a href="#"><br>Back to top</a></p>
+    <p>
+      <br>
+      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
+      Copyright &copy; 2012 Hugo Duncan and Antoni Batchelli
+    </p>
+  </div>
+  <script type="text/javascript">
+    function extlink(href) {
+      _gaq.push(['_trackEvent','extlink',href]);
+      return true;
+    };
+    (function(){
+    var links = document.getElementsByTagName('a');
+    var regex = new RegExp('^' + window.location.protocol + '//' + window.location.hostname);
+    for (var i = 0, linksLength = links.length; i < linksLength; i++) {
+      if ( ! links[i].href.match(regex) && links[i].href.substr(0,4) == "http") {
+         links[i].setAttribute(
+           'onClick',
+            "extlink('" + links[i].href + "')");}}})();
+  </script>
+</footer>
+
+  </body>
+</html>

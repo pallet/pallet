@@ -1,0 +1,1613 @@
+<!doctype html>
+<html lang="en">
+  
+<head>
+  <meta charset="utf-8" />
+  <title>Release Notes - PalletOps</title>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/bootstrap.min.css">
+   <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/pallet.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/css.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/highlight.css">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19685457-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+  </script>
+
+  
+  
+
+  
+    
+      <meta name="description" content="Release Notes for all the Pallet releases." />
+    
+  
+  <!-- begin olark code -->
+<script data-cfasync="false" type='text/javascript'>/*<![CDATA[*/window.olark||(function(c){var f=window,d=document,l=f.location.protocol=="https:"?"https:":"http:",z=c.name,r="load";var nt=function(){
+f[z]=function(){
+(a.s=a.s||[]).push(arguments)};var a=f[z]._={
+},q=c.methods.length;while(q--){(function(n){f[z][n]=function(){
+f[z]("call",n,arguments)}})(c.methods[q])}a.l=c.loader;a.i=nt;a.p={
+0:+new Date};a.P=function(u){
+a.p[u]=new Date-a.p[0]};function s(){
+a.P(r);f[z](r)}f.addEventListener?f.addEventListener(r,s,false):f.attachEvent("on"+r,s);var ld=function(){function p(hd){
+hd="head";return["<",hd,"></",hd,"><",i,' onl' + 'oad="var d=',g,";d.getElementsByTagName('head')[0].",j,"(d.",h,"('script')).",k,"='",l,"//",a.l,"'",'"',"></",i,">"].join("")}var i="body",m=d[i];if(!m){
+return setTimeout(ld,100)}a.P(1);var j="appendChild",h="createElement",k="src",n=d[h]("div"),v=n[j](d[h](z)),b=d[h]("iframe"),g="document",e="domain",o;n.style.display="none";m.insertBefore(n,m.firstChild).id=z;b.frameBorder="0";b.id=z+"-loader";if(/MSIE[ ]+6/.test(navigator.userAgent)){
+b.src="javascript:false"}b.allowTransparency="true";v[j](b);try{
+b.contentWindow[g].open()}catch(w){
+c[e]=d[e];o="javascript:var d="+g+".open();d.domain='"+d.domain+"';";b[k]=o+"void(0);"}try{
+var t=b.contentWindow[g];t.write(p());t.close()}catch(x){
+b[k]=o+'d.write("'+p().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};ld()};nt()})({
+loader: "static.olark.com/jsclient/loader0.js",name:"olark",methods:["configure","extend","declare","identify"]});
+/* custom configuration goes here (www.olark.com/documentation) */
+olark.identify('9249-736-10-9825');/*]]>*/</script><noscript><a href="https://www.olark.com/site/9249-736-10-9825/contact" title="Contact us" target="_blank">Questions? Feedback?</a> powered by <a href="http://www.olark.com?welcome" title="Olark live chat software">Olark live chat software</a></noscript>
+<!-- end olark code -->
+
+</head>
+
+  <body>
+    
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#topbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">PalletOps</a>
+    </div> <!-- /.navbar-toggle -->
+    <div class="collapse navbar-collapse" id="topbar-collapse">
+      <ul class="nav navbar-nav">
+	            
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+      </ul>
+   <form class="navbar-form navbar-right" role="search"
+      method="get" action="http://www.google.com/search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search"
+		 name="q" maxlength="255">
+	  <input name="sitesearch" type="hidden" value="palletops.com">
+        </div> <!-- /.form-group -->
+      </form> 
+    </div> <!-- /#topbar-collapse -->
+  </div> <!-- /.container -->
+</nav>
+
+    <div class="post">
+      <div class="container">
+        <div class="col-md-9 content">
+  <div class="page-header">
+    <h1 class="title">
+      Release Notes
+    </h1>
+  </div>
+  <div class="doc-tabs">
+    </div>
+  <div class="post_content">
+    <h2>0.6.6</h2>
+
+<h3>features</h3>
+
+<ul>
+<li><p>Add pallet.phase/check-session-thread
+This is a macro that can be used to add session checking in a session
+thread pipeline.</p></li>
+<li><p>Introduce :create-group, :destroy-group and :destroy-server phases
+When starting and stopping groups or nodes, it is useful to be able to
+run setup or tear-down functions.</p></li>
+<li><p>Make the merging of keys in a group-spec open
+Allow extensions of pallet to specify how other keys are merged by a
+group-spec.</p></li>
+<li><p>Add support for declarative hybrid provider definitions</p></li>
+<li><p>Add :provider-options to the environment, and pass to run-nodes</p></li>
+<li><p>Add :append option to user action (for adding groups)</p></li>
+</ul>
+
+<h3>fixes</h3>
+
+<ul>
+<li><p>Normalise the :node-set constructed by lift</p></li>
+<li><p>Add missing environment test for hybrid provider</p></li>
+<li><p>Make hybrid compute to properly merge the environments of all sub-services</p></li>
+<li><p>Fix use of group specific environment for top level pallet keys</p></li>
+<li><p>Fix removal of jclouds nodes that fail on bootstrap</p></li>
+<li><p>Filter logging of empty messages from scripts</p></li>
+<li><p>Refactor converge-node-counts
+Make it easier to add functions to start, and stop nodes.</p></li>
+<li><p>Add a combine-actions implementation for :nested-scope
+Only the last script of adjacent nested scopes was being returned. Fixes</p>
+
+<h1>97.</h1></li>
+</ul>
+
+<h2>0.6.5</h2>
+
+<h3>Features</h3>
+
+<ul>
+<li><p>Add cause to unexpected action execution exception</p></li>
+<li><p>Add hybrid provider
+The hybrid provider allows treating multiple cloud services as a single
+compute service</p></li>
+<li><p>Update to be jclouds 1.1.x compatible</p></li>
+<li><p>Add execute/local-script-expand and expand key paths supplied in the
+environment
+In order to allow ~ and environment variables in paths in config.clj,
+expand the paths in the shell using echo</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Fix password option for user action</p></li>
+<li><p>Fix missing require</p></li>
+<li><p>Fix lib/download-request to use call str on the endpoint
+When passed a uri, this was failing</p></li>
+<li><p>Switch to direct use of pallet.node namespace</p></li>
+<li><p>Fix deletion of failed nodes from jclouds run-nodes
+The wrong set of nodes was being removed.</p></li>
+</ul>
+
+<p>Addresses #95.</p>
+
+<ul>
+<li>Ensure issues with jclouds node startup are handled
+When jclouds has problems starting nodes, it throws a RunNodesException.
+This is now caught and processed. If there are no successful nodes, an
+exception is raised, otherwise processing continues with the successful
+nodes.</li>
+</ul>
+
+<p>This should fix #95.</p>
+
+<ul>
+<li><p>Merge branch &#39;feature/multiprovider&#39; into support/0.6.x</p></li>
+<li><p>Ensure vmfest failure to obtain IP or to bootstrap removes vm
+On failure to obtain an IP or to bootstrap, ensure that the vm that was
+being launched is destroyed. If the bootstrap fails, an exception is also
+now thrown.</p></li>
+<li><p>Add hybrid provider test</p></li>
+<li><p>Fix error handling when there is more than one action
+An error occuring when there were multipl types of actions would not
+cause an exception to be raised</p></li>
+<li><p>Add hybrid provider tests. Move Node to pallet.node namespace</p></li>
+<li><p>Add test-utils/redef for clojure 1.2/1.3 compatability</p></li>
+<li><p>Fix use of service specific environment in main-invoker
+The service specific environment wasn&#39;t being used by the task invoker</p></li>
+<li><p>Remove pallet.task.feedback from repl</p></li>
+<li><p>Remove use of clojure.contrib.strint</p></li>
+<li><p>Remove use of clojure.contrib.io</p></li>
+<li><p>Remove use of clojure.contrib.core</p></li>
+<li><p>Remove use of clojure.contrib.map-utils</p></li>
+<li><p>Remove use of clojure.contrib.pprint</p></li>
+<li><p>Remove use of clojure.contrib.jar</p></li>
+<li><p>Remove use of clojure.contrib.classpath and clojure.contrib.find-namespaces</p></li>
+<li><p>Remove use of clojure.contrib.string</p></li>
+<li><p>Remove use of clojure.contrib.seq</p></li>
+<li><p>Remove use of clojure.contrib.def</p></li>
+<li><p>Remove heynote</p></li>
+<li><p>Refactor the configuration loading into pallet.configure
+The configuration loading code is now separate from pallet.compute,
+pallet.blobstore and pallet.utils to make dependencies (and code) cleaner</p></li>
+<li><p>Switch to latest pallet-common</p></li>
+<li><p>Improve error reporting on failed ssh authentication</p></li>
+</ul>
+
+<h2>0.6.4</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Fix the automatic addition of :configure to the converge phase-list
+:configure was not being added if another phase was specified</li>
+</ul>
+
+<h2>0.6.3</h2>
+
+<h3>Features</h3>
+
+<ul>
+<li><p>Allow specification of a cookie in wait-for-http-status</p></li>
+<li><p>Add script.lib/selinux-bool to setsebool values
+The script guards the setsebool call with a check for an active selinux
+configuration.</p></li>
+<li><p>Add dirname script to pallet.script.lib</p></li>
+<li><p>Add :insecure option to lib/download-file and expose in remote-file
+It is useful to be able to ignore ssl certificates that do not validate</p></li>
+<li><p>Add a retry action
+<code>retry-until</code> repeats until a condition is true, or a maximum number of
+retries is reached.</p></li>
+<li><p>Add :if-stopped option to service action</p></li>
+<li><p>Add images to ComputeService protocol</p></li>
+<li><p>Add plugable error handling
+Adds the :execute-status-fn algorithm to the environment, which controls
+wether an error stops processing on a node. Adds the raise-on-error
+middleware, for raising an execption when an error occurs running a phase
+on a node</p></li>
+<li><p>Updates to allow pallet-task to take an :environment keyword arg.
+Updated pallet-task to allow additional keyword args (source compatible).
+Also updated converge/converge<em>cluster/destroy</em>cluster/lift tasks to
+accept (and prefer) the explicitly passed environment. If none is given,
+they fall back to looking for an :environment key in the project, as
+before.</p></li>
+<li><p>Allow explicit passing of initial build phases in live-test</p></li>
+<li><p>Ignore invalid ssl for jpackage utils download from github</p></li>
+<li><p>Add a get-target-settings overload for specifying default value</p></li>
+<li><p>Add with-ssh-tunnel macro.
+Allows for performing actions on remote nodes from clojure on the pallet machine.</p></li>
+<li><p>Add ImageManager protocol to vmfest provider</p></li>
+<li><p>Add vmfest/has-image?
+Enable checking for the presence of a specific vmfest image</p></li>
+<li><p>Add publish-image to vmfest provider</p></li>
+<li><p>Add vmfest task
+Allow the running of scripts to set up local vmfest environments</p></li>
+<li><p>Add a task to list images</p></li>
+<li><p>Switch to tools.logging and logback via slf4j</p></li>
+<li><p>Upgrade to latest clj-ssh</p></li>
+<li><p>Upgrade to latest pallet-common</p></li>
+<li><p>Upgrade to latest parent pom</p></li>
+<li><p>Upgrade to stevedore 0.7.0</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Update logging of errors
+Ensure only the error message is logged, not the whole result</p></li>
+<li><p>Add logging of all errors from running a phase</p></li>
+<li><p>Fix script hostname function for the case with no arguments</p></li>
+<li><p>Fix rsync to use the admin user defined in the session
+The rsync action was using the global admin-user</p></li>
+<li><p>Cleanup plan-for-server environment merge expression</p></li>
+<li><p>Add other node-spec keys to vmfest template matching</p></li>
+<li><p>Add warning on port forwading failure</p></li>
+<li><p>Add test for delayed argument evaluation in action plan</p></li>
+<li><p>Work around tools.logging bug with non-literal format strings</p></li>
+<li><p>Set namespace for vmfest-script</p></li>
+<li><p>Fix :if-flag in action.service/service and and init-script-path</p></li>
+<li><p>Fix major leak of ssh connections</p></li>
+<li><p>Check remote md5 before transferring local files
+To prevent multiple uploads of unchanged local content when using
+remote-file with a :local-file source, add a comparison of the local
+content md5 with the remote-file&#39;s md5</p></li>
+<li><p>Use nodes from the :node-set to compute :all-nodes
+When no compute service is available, take :all-nodes from the nodes
+specified in :node-set</p></li>
+<li><p>Ensure all exceptions from actions are caught
+When executing actions, ensure unexpected exceptions are caught for
+handling in the middleware pipeline.</p></li>
+<li><p>Add check for /etc/selinux to selinux-file-type script function
+Try harder to determine whether the target is selinux capable</p></li>
+<li><p>Make jsch use daemon threads
+jsch seems to be leaking threads, which prevented a clean shutdown of
+lein tasks.</p></li>
+</ul>
+
+<h2>0.6.2</h2>
+
+<h3>Features</h3>
+
+<ul>
+<li><p>Add settings functions to parameters
+In order to simplify the use of the :settings phase, adds
+assoc-target-settings, update-target-settings, get-target-settings and
+get-node-settings.</p></li>
+<li><p>Add canonical-path and selinux-file-type to script.lib</p></li>
+<li><p>Enable :local-file and remote-file options in action.remote-directory
+Also adds an :unpack :jar option</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Fixed the closing parentheses at the end of pallet.core/group-spec example</p></li>
+<li><p>Ensure environment from group-spec is evaluated if required</p></li>
+<li><p>Cache the value of pallet version</p></li>
+<li><p>Improve clarity of converge-cluster/build-args</p></li>
+<li><p>Be more aggressive about forcing futures</p></li>
+<li><p>Fix remote-file with :blob source</p></li>
+</ul>
+
+<h2>0.6.1</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Identify script output with server address
+In order to provide clear provenance of script output when executing with
+parallel phases, we attach the server address</p></li>
+<li><p>Use hard links for md5 temporary checks
+The symbolic link ended up pointing to the wrong location</p></li>
+<li><p>Add normalisation of downloaded md5 files
+Normalise downloaded md5 files to include the filename to verify, as used
+by ubuntu md5sum.</p></li>
+<li><p>Fix parallel phase execution
+Need to ensure all futures are generated before any deref.</p></li>
+<li><p>Fix md5sum-verify to avoid leaving the caller in a different directory</p></li>
+<li><p>Fix recursive setting of ownership in directory and remote-directory</p></li>
+<li><p>Add ability to single quote script.lib/sed-file expressions</p></li>
+<li><p>Fix package manager specific filesystem paths</p></li>
+<li><p>Fix action.user/user :group option for ubuntu, etc</p></li>
+<li><p>Fix :enable option for pallet.action.service/service</p></li>
+<li><p>Ensure groups are set up before users in pallet.action.user</p></li>
+<li><p>Fix lib/sed-file for string experession with no restriction</p></li>
+</ul>
+
+<h2>0.6.0</h2>
+
+<h3>Features</h3>
+
+<p>Update to jclouds 1.0.0.</p>
+
+<h2>0.5.1</h2>
+
+<h3>Features</h3>
+
+<ul>
+<li><p>Add core/destroy-cluster and destroy-cluster task</p></li>
+<li><p>Add converge-cluster task</p></li>
+<li><p>Update pallet.action.user/user to handle login group
+:group can be passed a group name to set the login group.</p></li>
+</ul>
+
+<p>:groups now accepts a sequence of group names.</p>
+
+<p>usermod now specialised on rh derivatives.</p>
+
+<ul>
+<li>Add pallet.script.lib/has-command? to check availablity of command on path
+Uses hash, instead of checking with which.  This is a lighter weight,
+builtin, so is more portable. Some which&#39;s apparently always return a
+zero status too.</li>
+</ul>
+
+<p>download-file and pallet.crate.network-service are updated to use this.</p>
+
+<ul>
+<li><p>Add :node-set-selector option to pallet.core
+Add the ability to partition the nodes for lifting, based on a function
+passed as an option. Currently implemented partitioning functions are
+core/all-node-set-selector and core/new-node-set-selector.</p></li>
+<li><p>Change default environment merge to deep-merge
+User defined keys are deep merged by default, to allow them to be built
+from cluster and lift/converge environments.</p></li>
+<li><p>Add core/converge-cluster and lift-cluster
+Add&#39;s the ability to lift or converge one or more clusters.  Environment
+specified on the cluster-spec is propogated to it&#39;s groups.</p></li>
+<li><p>Automatically run the :settings phase on lift or converge
+In order to allow easy access to configuration metadata, run the
+:settings phase before each lift or converge. The settings phase is
+intended to be non side-affecting.</p></li>
+<li><p>Add core/cluster-spec and add roles to server-spec and group-spec
+Allows specification of a cluster made up of heterogeneous groups.  Roles
+allow the cluster to be queried for nodes providing specified roles,
+using session/groups-with-role and session/nodes-with-role</p></li>
+<li><p>Add overload for etc-init to /etc/rc.d on arch</p></li>
+<li><p>Add support for pacman-db-upgrade in package/minimal-packages</p></li>
+<li><p>Add base-distribution to compute and session
+Enable uniform treatment of all derived distributions. E.g. fedora,
+centos, rhel are all based on rh.</p></li>
+<li><p>Add debian squeeze to live test images</p></li>
+<li><p>Add pallet.test.session-type for vbox headless/gui selection
+When debugging boot issues, it is useful to be able to see the console</p></li>
+<li><p>Add action/environmnet for controlling environment variables
+Adds an environment/system-environment that is used to write
+/etc/environment on debian based distros, and /etc/profile.d/xx on redhat
+based distros</p></li>
+<li><p>Add ~/.pallet/services/* as a source of service configuration
+In order to allow the distribution of service defintions, enable service
+definition in files in ~/.pallet/services. Add an &#39;add-service&#39; task that
+can be used to create service definitions from the command line.</p></li>
+<li><p>Add support for post beta-9c jclouds snapshot
+HardwareImpl, ImageImpl and NodeMetadataImpl all gain an extra tags
+argument in their constructors</p></li>
+<li><p>Add remote-exec, and streaming of output for sh-script</p></li>
+<li><p>Add ability to not use a pty for ssh on fedora
+Fedora seems to drop a few characters at the start of an ssh shell
+connection when run with a pty.</p></li>
+</ul>
+
+<p>Add an option map to execute/remote-sudo-cmd arguments. Allow
+  specification of whether to use a pty or not.</p>
+
+<ul>
+<li><p>Allow dependecies between action calls
+In order to have fine grained control over execution order, allow the
+specification of :always-before and :always-after on an action
+definition, and the specification of :always-before and :always-after and
+an :action-id on the action call (via the with-precedence macro).</p></li>
+<li><p>Add a :rh image list to live-test
+Provides a means for testing across redhat variants.</p></li>
+<li><p>Add fedora support
+Add script function specialisations for fedora, and add fedora 14 to live
+tests</p></li>
+<li><p>Allow specification of precedence on an action invocation
+In order to override default precedence rules, allow specification of
+precedence on an action call.</p></li>
+<li><p>Add merging of :environment from cake/<em>project</em>
+In order to provide an identical environment under a cake task and from a
+cake repl or swank server, merge :environment from cake/<em>project</em> in
+compute-service-from-config and compute-service-from-settings</p></li>
+</ul>
+
+<h3>Fixes and Improvements</h3>
+
+<ul>
+<li><p>Fix a race in shutting down vmfest nodes</p></li>
+<li><p>Improved pallet.execute logging, and checking of blank server address</p></li>
+<li><p>Include exception message when provider fails to load</p></li>
+<li><p>Fix network-service to use ~lib/exit</p></li>
+<li><p>Remove use of pty on arch bootstrap for vmfest</p></li>
+<li><p>Add warning for failed require of compute provider</p></li>
+<li><p>Fix package/minimal-packages for new stevedore script convention</p></li>
+<li><p>Change package/add-rpm to be non-aggregated
+Allow use of rpm-bin in more general situations. Execution sequence can
+now be controlled via with-precedence.</p></li>
+<li><p>Modify log message for os-family computed from template</p></li>
+<li><p>Add default installonlypkgs list for yum
+When specifying installonlypkgs, the defaults should be added back in
+(these include the kernel packages).</p></li>
+<li><p>Fix script.lib/user-home for os-x</p></li>
+<li><p>Disable package repos before enabling package repos
+In yum package commands, disable repos before enabling, to allow
+disabling all repos, then explicitly enabling a list</p></li>
+<li><p>Fix merge of group specific environment on converge of new nodes</p></li>
+<li><p>Fix use of :tag in pallet.environment/session-with-environment</p></li>
+<li><p>Remove deprecation warning in vmfest</p></li>
+<li><p>Add backward compatability to vmfest for group-name as tag</p></li>
+<li><p>Fix vmfest 64bit and os-family detection</p></li>
+<li><p>Fix for fedora to use yum</p></li>
+</ul>
+
+<h2>0.5.0</h2>
+
+<h3>Features</h3>
+
+<ul>
+<li><p>Switch to release versions of pallet-common and stevedore</p></li>
+<li><p>Factor out thread-expr, stevedore and pallet-common</p></li>
+<li><p>Conj-ing identity onto the comprehension is unnecessary, as reduce simply
+returns the original value (arg, in this case) if handed an empty list.</p></li>
+<li><p>More efficient implementation of for-&gt;, without the need to call reverse on
+the list comprehension.
+we now reduce with an initial value of arg and the #(%2 %1) function
+-- (reduce #(%2 %1) arg function-sequence) ends up acting exactly like a
+call to comp with a reversed sequence.</p></li>
+<li><p>Update to pallet-pom 0.4.3</p></li>
+<li><p>Seperate repository manipulation actions into separate namespaces</p></li>
+<li><p>Update to jclouds beta-9c</p></li>
+<li><p>Add pallet.stevedore/empty?
+This expands to the -z test.</p></li>
+<li><p>Fix log messages for apply-phase</p></li>
+<li><p>Fix incorrect switch of phase to task</p></li>
+<li><p>Add outputput of partial results from ssh command
+In order to improve the feedback of commands running over ssh, log output
+as it becomes available</p></li>
+<li><p>Deprecate pallet.target
+Replaced with pallet.compute/admin-group and pallet.session/admin-group</p></li>
+<li><p>Make deprecation messages consistent, and add :deprecated metadata</p></li>
+<li><p>Rename request to session. pallet.request-map becomes pallet.session.</p></li>
+<li><p>Rename pallet.resource.* to pallet.action.*
+Rename resource to action. Set up forwarding from the pallet.resource
+names.</p></li>
+</ul>
+
+<p>pallet.resource.network-service becomes the first core crate at
+  pallet.crate.network-service.</p>
+
+<p>pallet.resoruce.format becomes the first core configuration file
+  formatter at pallet.config-file.format.</p>
+
+<p>pallet.resource.resource-when is renamed pallet.action.conditional</p>
+
+<ul>
+<li>Refactor script fns into pallet.script.lib and make script fns use unquote
+In order to remove the possibility of accidentally using a script
+function, they must now be invoked using unquote. The use of unquote is a
+reminder that clojure namespace resolution is in effect:
+ (stevedore/script (~lib/rm file))</li>
+</ul>
+
+<p>The script functions have been factored out of pallet.resource.* into
+  pallet.script.lib in order to improve the seperation of the target script
+  generation.</p>
+
+<ul>
+<li><p>Add tests for pallet.phase, fix issues, update compatability</p></li>
+<li><p>Add pallet.resource as a compatability namespace</p></li>
+<li><p>Refactored execution of actions to allow partial override by middleware
+Allow middleware to override executor functions for specific :action-type
+and :location combinations</p></li>
+<li><p>Change resource to action and simplify code
+To make the code clear pallet.resource is refactored into pallet.action,
+pallet.action-plan, and pallet.phase.</p></li>
+</ul>
+
+<p>The action-plan can now handle nested scopes.</p>
+
+<p>The action creation macros have been renamed, and new macros for defining
+  unnamed actions are introduced.</p>
+
+<ul>
+<li>resource/defresource     action/action</li>
+<li>resource/defresource     action/def-bash-action</li>
+<li>resource/defaggregated   action/def-aggregated-action</li>
+</ul>
+
+<p>For testing, test-utils/build-resources is replaced by
+  build-actions/build-actions.</p>
+
+<ul>
+<li><p>Fix naming that should refer to group-set rather than node-set</p></li>
+<li><p>Add :qos to node-spec to allow quality of service options
+Allows the grouping of template options for quality of service related
+options such as spot price or enabling monitoring</p></li>
+<li><p>Add pallet.compute/service as the preferred compute service instantiation
+function
+Provides a single function to access the different compute service
+instantiation functions in pallet.</p></li>
+<li><p>Switch environment to use :groups, and deprecate :tags</p></li>
+<li><p>Add blobstore mapping for changed jclouds provider names</p></li>
+<li><p>Keep track of futures started by pallet
+It is useful to be able to control the futures started by pallet for node
+count adjustments and for executing phases, e.g. to cancel pending
+operations, etc.</p></li>
+<li><p>Fix node-spec mapping for converge with multiple targets</p></li>
+<li><p>Use symbolic names for vmfest extradata tags</p></li>
+<li><p>Remove request from pallet.compute.ComputeService interface</p></li>
+<li><p>Change default to parallel lift and converge</p></li>
+<li><p>Switch to pallet-pom 0.4.1 and enlive 1.0</p></li>
+<li><p>Update to jclouds 1.0-beta-9b</p></li>
+<li><p>Introduced group-spec and server-spec
+Refactored to separate domain concepts for group-spec and server-spec.
+Renamed group-node to server.</p></li>
+<li><p>Refactored lift* and converge*
+Ensure that all functions called in lift<em>, converge</em>, and lift-nodes
+follow the request map state pattern.</p></li>
+<li><p>Refactor pallet.core
+Improve naming consistency and reduce complexity of processing the input
+node-set.</p></li>
+</ul>
+
+<p>To improve encapsulation of the request map when accessed in crates
+  pallet.request-map has been extended to cover a couple of missing
+  functions, and some template functions have been altered to take a
+  request map rather than a node-spec.</p>
+
+<p>This changes the keys in the request map used to specify the current
+  target.</p>
+
+<p>Added a top level node-spec function for creating node spec&#39;s (to replace
+  make-node eventually).</p>
+
+<p>An effort has been made to preserve backward compatability.</p>
+
+<ul>
+<li><p>Unified scriptfn optional args to be keyword argument pairs</p></li>
+<li><p>namespaced lookup of first element of a form in a stevedore script expression</p></li>
+</ul>
+
+<p>This makes script functions behave similarly to ordinary clojure functions
+  and methods.  The first element of a form now has to resolve to a script
+  function, unless it is a string or a keyword implemented by pallet.stevedore.</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text">  (file/rm ~path :force true)
+  (&quot;rm&quot; -f ~path)
+</code></pre></div>
+<h2>0.4.18</h2>
+
+<h3>Changes</h3>
+
+<ul>
+<li>Ensure :target-packager is removed after producing resources
+The :target-packager key is not overwritten if it exists, so needs to be
+removed after every node in order for it to be set correctly when using
+nodes with mixed os&#39;s.</li>
+</ul>
+
+<h2>0.4.17</h2>
+
+<h3>Changes</h3>
+
+<ul>
+<li>More efficient implementation of for-&gt;, without the need to call reverse on
+the list comprehension.
+we now reduce with an initial value of arg and the #(%2 %1) function
+-- (reduce #(%2 %1) arg function-sequence) ends up acting exactly like a
+call to comp with a reversed sequence.</li>
+</ul>
+
+<p>Conj-ing identity onto the comprehension is unnecessary, as reduce simply
+  returns the original value (arg, in this case) if handed an empty list.</p>
+
+<ul>
+<li><p>Add a package-manager-option for installonlypkgs on yum
+installonlypkgs allows a list of packages that should be installed,
+rather than upgraded (i.e. old versions are not removed)</p></li>
+<li><p>Add functions to access and manipulate the images list in live-test
+In order to allow users of live-test to add their own image lists,
+provide pallet.live-test/add-image-list./start-release.sh 0.4.15 0.4.16
+For this to work, the images to be used can not be bound at compile time,
+so the pallet.live-test/images function is added.</p></li>
+</ul>
+
+<h2>0.4.16</h2>
+
+<h3>Changes</h3>
+
+<ul>
+<li><p>Improve robustness of classpath discovery in presence of corrupt jars
+If a jar on the classpath can not be read for some reason, we should not
+give up, but just ignore that jar file</p></li>
+<li><p>Ensure all output is read when an ssh shell closes</p></li>
+<li><p>Provide better control of ssh ouput reading
+Move to clj-ssh 0.2.4, which provides a larger default piped stream
+buffer (and allows override of the buffer size).</p></li>
+</ul>
+
+<p>Allow override of ssh output buffer size with an atom
+  (pallet.execute/ssh-output-buffer-size).</p>
+
+<p>Allow override of ssh output polling period with an atom
+  (pallet.execute/ssh-output-poll-period).</p>
+
+<ul>
+<li>Fix a bug that would cause Pallet to not find compute service in
+config.clj when invoked through lein or cake</li>
+</ul>
+
+<h2>0.4.15</h2>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>Pallet can not find compute service in config.clj when invoked through lein or cake</li>
+</ul>
+
+<h3>Changes</h3>
+
+<ul>
+<li><p>Update jpackage functions to use jpackage-utils-compat-el5-0.0.1-1
+Add a compatability package to allow jpackge to work with it&#39;s own
+jpackage-utils</p></li>
+<li><p>Add pallet.package/add-rpm to install rpm files</p></li>
+<li><p>Add :disable option update-package-list for yum
+Allow for specification of exactly which repos will be updated.</p></li>
+</ul>
+
+<p>The log message now also includes the options passed to package-manager</p>
+
+<ul>
+<li>Add pallet.thread-arg/arg-&gt; for exposing the threaded argument</li>
+</ul>
+
+<h2>0.4.14</h2>
+
+<h3>Changes</h3>
+
+<ul>
+<li><p>Add logging of unexpected exceptions in pallet-task</p></li>
+<li><p>Alter logging format for ssh output to prepend newline
+The incremental ssh output was difficult to read without a leading
+newline</p></li>
+<li><p>Add output of partial results from ssh command
+In order to improve the feedback of commands running over ssh, log output
+as it becomes available</p></li>
+<li><p>Change pre and after phase names to be namespaced
+To prevent collisions between the pre and after phase names with user
+defined phase names, make the pre and after phase names namespaced with
+pallet.resource</p></li>
+<li><p>Rerun phase function after the pre and main phases
+In order for the parameters from running the pre phase to be available in
+the main phase, call the phase function again after executing the
+pre-phase. Similarly for the main-phase and the after-phase</p></li>
+<li><p>Update to clj-ssh 0.2.3</p></li>
+<li><p>add-jpackage sets the jpackage repos to disabled by default
+Add the jpackage repo list to the :jpackage-repos target parameters. Add
+package-manager-update-jpackage to update the jpackage repos.</p></li>
+<li><p>Updated implementation of for-&gt;, with support for destructuring.
+The existing implementation of for-&gt; supported the binding of a single
+variable to a single sequence. The updated implementation here makes use
+of clojure.core/for to build up a sequence of functions;
+((apply comp functionseq) arg) is then used to thread the argument among
+the sequences. Each item in the resulting sequence is dealt with in
+order.</p></li>
+<li><p>Update pallet.resource.filesystem/mount to check if a filesystem is mounted
+before attempting to mount it again. Also update it to accept an :fs-type
+arg to set the filesystem type. Updated and added unit tests.</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Ensure pallet.config/service is used if no service specified on command
+line</p></li>
+<li><p>Ensure :configure is called for lift if invoked with no phases</p></li>
+<li><p>Fix pallet.stevedore unquote splicing of empty sequences</p></li>
+<li><p>Update pallet.thread-expr/for-&gt; to handle multiple body forms and empty
+sequences</p></li>
+<li><p>Add resource for the pallet version via pallet.core/version</p></li>
+</ul>
+
+<h2>0.4.13</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Fix issues with cross-node configuration
+When using delayed arguments or the post phase, to access parameters set
+in a phase, there were several issues that masked the parameters. This
+also adds tests for these use cases.</li>
+</ul>
+
+<h2>0.4.12</h2>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>has an issue with propogation of parameters between phases.</li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Build and execute phases one by one
+Fix a regression that prevented execution time additions to parameters
+from being propogated to the next phase. This re-enables use case such as
+ssh-key/record-key</p></li>
+<li><p>Add exclusion of log4j.xml from jar (was in pallet-pom)</p></li>
+</ul>
+
+<h2>0.4.11</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Pass any :environment key in project.clj to the converge and lif tasks
+In order to allow environment definitions in project.clj, and to enable
+environments to be supplied by the cake context feature, the :environment
+key values from project.clj are passed to the converge and lift commands
+invoked by the converge and lift tasks (used by the lein and cake
+plugins)</p></li>
+<li><p>Add logging of pallet version
+To ease identification of pallet versions in the log files, add debug
+level logging of the pallet version on every lift and converge</p></li>
+<li><p>Fix loading of providers to work with custom classloaders
+Custom classloaders as used by cake, tomcat, etc, would break the loading
+of the pallet compute providers.</p></li>
+</ul>
+
+<p>Fixes #57</p>
+
+<ul>
+<li>Add an exclusion of clojure to the enlive dependency</li>
+</ul>
+
+<h2>0.4.10</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Switch from jclouds/node-tag (removed in beta 9), and fix use of
+:environment at the service level</li>
+</ul>
+
+<h2>0.4.9</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Filter for running nodes in compute/run-nodes for jclouds
+In order to work around an issue 501 in jclouds, the return value of
+org.jclouds.compute/run-nodes is now filtered for running nodes.  This
+should prevent the occasional hang, where pallet would try to ssh into a
+terminated node.</p></li>
+<li><p>Switch to pallet-pom 0.4.1 and enlive 1.0</p></li>
+</ul>
+
+<h2>0.4.8</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Use the node image spec to construct the virtualbox machine definition
+In order to allow control of the vmfest hardware and network
+configuration, use the image template to overide the vmfest defaults. At
+present it uses
+:min-cores, :min-ram and :bridged-network.</p></li>
+<li><p>Add release scripts</p></li>
+<li><p>Fix the lookup of symbols in the :algorithms key of the nvironment
+When evaluating an environment, say from config.clj, then the values
+under the
+:arguments key should be resolved to vars.</p></li>
+<li><p>map-to-arg-string: quote arguments
+Handle arguments with spaces like:
+(pallet.resource.user/user &quot;nexus&quot; :comment &quot;Sonatype Nexus system user&quot;)</p></li>
+</ul>
+
+<h2>0.4.7</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li><p>Documentation fixes for provider dependencies and :services</p></li>
+<li><p>Make core/parallel-adjust-node-counts public</p></li>
+<li><p>Make compute/vmfest use the :sudo-password option for the user</p></li>
+</ul>
+
+<h2>0.4.6</h2>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li>Add a :proxy entry to the environment for specifying a proxy for use by
+remote-file
+When running in environments that have a proxy available, specifying the
+:proxy key of the environment as a url string will allow remote-file to
+use the proxy.</li>
+</ul>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure">  <span class="ss">:environment</span> <span class="p">{</span><span class="ss">:proxy</span> <span class="s">&quot;http://192.168.2.37:3128&quot;</span><span class="p">}</span>
+</code></pre></div>
+<h2>0.4.5</h2>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li><p>Add a parallel converge, and a lift that applies phases in series,
+and nodes in parallel.</p></li>
+<li><p>Make identical node creation parallel in vmfest</p></li>
+<li><p>Use environment to select converge and lift algorithms
+Allow selection of parallel or serial execution using the environment.
+The keys used are:</p>
+
+<ul>
+<li><code>[:algorithms :lift-fn]</code></li>
+<li><code>[:algorithms :converge-fn]</code></li>
+<li><code>[:algorithms :vmfest :create-nodes-fn]</code></li>
+</ul></li>
+</ul>
+
+<p>The choice of :converge-fn functions:
+  - pallet.core/serial-adjust-node-counts
+  - pallet.core/parallel-adjust-node-counts</p>
+
+<p>The choice of :lift-fn functions:
+  - pallet.core/sequential-lift
+  - pallet.core/parallel-lift</p>
+
+<p>The choice of :create-nodes functions:
+  - pallet.compute.vmfest/serial-create-nodes
+  - pallet.core/parallel-create-nodes</p>
+
+<ul>
+<li>Add parallel execution of live-tests
+Parallel execution is off by default. It can be enabled with the
+pallet.live-test.parallel system property.  Live tests need to
+pallet.live-test/test-for to enable this.</li>
+</ul>
+
+<h2>0.4.4</h2>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li>Add an environment concept
+The environment concept allows passing of external data to pallet, and
+allows project, service, or command line overrides of pallet algorithms
+and domain data objects.</li>
+</ul>
+
+<p>The :environment key is recognised by lift and converge, in the
+  config.clj file at the global and service scope. A project specific
+  environment maybe be specified in pallet.config/environment.</p>
+
+<h2>0.4.3</h2>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Remove extra keys from request in converge and lift tasks</li>
+</ul>
+
+<p>lein and cake plugins were triggering the new keyword argument checking in
+  lift and converge</p>
+
+<h2>0.4.2</h2>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li>Speeds up creating and destroying virtualbox vms using vmfest.</li>
+</ul>
+
+<p>Replace use of manager/as-map in pallet/compute/vmfest.clj with faster
+  alternative</p>
+
+<h2>0.4.1</h2>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li><p>This targets vmfest 0.2.1, adding support for virtualbox 4.0.2.</p></li>
+<li><p>Adds handling of inaccessible virtual box machines</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Fixes handling of the case where a new machine fails to get an IP address
+assigned</li>
+</ul>
+
+<h2>0.4.0</h2>
+
+<h3>General</h3>
+
+<p>The pallet crates have been moved into the pallet-crates project.</p>
+
+<p>This release introduces the ~/.pallet/config.clj configuration file.</p>
+
+<p>maven-settings is now an optional dependency. This means that to use
+settings.xml to store pallet configuration, you need to add
+org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+dependency was causing conflicts with lein.</p>
+
+<p>There is also preliminary support for virtualbox via vmfest.</p>
+
+<h3>Lein and cake</h3>
+
+<ul>
+<li><p>Fix reporting of unexpected error stack traces in pallet.main</p></li>
+<li><p>Fix pallet.main/report-unexpected-exception, and add test for it</p></li>
+</ul>
+
+<h3>Fixes</h3>
+
+<ul>
+<li>Fix bug in pallet.script/add-to-scripts
+The add-to-scripts function was referencing <em>scripts</em>, which was
+incorrect since it is called by an alter-var-root invoctation on
+<em>scripts</em>.</li>
+</ul>
+
+<p>Change pallet.scripts/<em>scripts</em> to pallet.script/scripts, and make it an atom</p>
+
+<p>Added extra tests and logging around script template selection for
+  generation of the bootstrap script.</p>
+
+<p>Added a condition/raise when jclouds returns OsFamily/UNRECOGNISED on the
+  image to be used for a new node.</p>
+
+<ul>
+<li><p>Improve exception message in stevedore/emit-infix</p></li>
+<li><p>Fix md5-verify script implementation on ubuntu</p></li>
+<li><p>Use --status for md5sum-verify on debian</p></li>
+<li><p>Add repositories to pom to make sure parent pom can be found</p></li>
+<li><p>Fix option argument processing for add-epel</p></li>
+<li><p>Ensure package-source is executed before either package-manager or package</p></li>
+<li><p>fix pallet.template/path-components for windows</p></li>
+<li><p>Add test for propogation of :parameters supplied to lift</p></li>
+<li><p>Remove the -n option for sudo on debian</p></li>
+<li><p>Fix execute/remote-sudo</p></li>
+<li><p>Fix a bug that prevented converge from reducing an existing node count to a
+smaller, non-zero number of nodes</p></li>
+<li><p>Remove -n option in sudo-no-password for mac</p></li>
+<li><p>Fix jpackage-utils install priority. Remove duplicate package requests</p></li>
+<li><p>Remove superfluous spaces produced by stevedore/script</p></li>
+<li><p>Ensure correct treatment in stevedore for single statement if blocks
+containing newlines</p></li>
+<li><p>Correct quoting of checked-commands failure message</p></li>
+<li><p>Allow pallet-version to be nil, to solve issue when compiling before
+resource generation</p></li>
+<li><p>Fix pacmans purge test</p></li>
+<li><p>purge-package (pacman): also remove all (possibly modified) config files</p></li>
+<li><p>Fix forwaring of all provider options from config, and ensure that provider
+specific jclouds endpoint option is used</p></li>
+<li><p>Fix pallet.thread-expr/if-&gt; for case with no else expression</p></li>
+<li><p>fix infinite recursion when pallet.main is invoked without command line
+arguments</p></li>
+</ul>
+
+<h3>Enhancements</h3>
+
+<ul>
+<li><p>Add a timeout to vmfest/wait-for-ip</p></li>
+<li><p>Make minimal-packages update coreutils and sudo on ubuntu</p></li>
+<li><p>Fix pallet.resource.package/minimal-packages</p></li>
+<li><p>Shortcut execution of empty phases</p></li>
+<li><p>Add pallet.resource.network-service/wait-for-port-response
+wait-for-port-response is a function to wait for a port to a return a
+response matching a given regex when sent a specific message.</p></li>
+<li><p>Add checking of argument keywords to lift and converge</p></li>
+<li><p>Add add-debian-backports to pallet.resource.package and process :enable
+options in adjust-packages for aptitude</p></li>
+<li><p>Add :proxy option to pallet.resource.file/download-file</p></li>
+<li><p>Add the ability to configure the package manager
+Add :configure option to pallet.resource.package/package-manager. The
+only option at the moment is :proxy, which accepts a url for the http
+proxy that should be used by the package manager</p></li>
+<li><p>Add :upgrade action to pallet.resource.package/package-manager
+In order to upgrade all installed packages, the :upgrade action is now
+accepted by pallet.resource.package/package-manager. This is implemented
+via the upgrade-all-packages script function.</p></li>
+<li><p>Added pallet.live-test for running tests with actual nodes</p></li>
+</ul>
+
+<p>Add pallet.test.image-list to select images to use for testing
+  When running the live tests, it is useful to be able to specify which
+  images to use.  The pallet.test.image-list can be used to specify this.
+  The list of images is made available to the tests in
+  pallet.live-test/<em>images</em>.  The pallet.live-test/exclude-images and
+  pallet.live-test/filter-images can be used to special case tests, or
+  filter unsupported images.</p>
+
+<ul>
+<li><p>Add pallet.resource.network-service with functions for waiting on the state
+of network services</p></li>
+<li><p>Add alias as a special form in stevedore
+Use alias to define command aliases:
+(script (alias ls (ls -l)))</p></li>
+<li><p>Add pallet.debug with print-request and log-request.
+Add initial helper functions for debugging. print-request and log-request
+can be inserted into a crate to show the intermediate request map.</p></li>
+<li><p>Add the form causing an invalid request map to condition message in
+pallet.resource/phase.
+In order to help debugging, when an invalid request map is detected in a
+phase, a condition is raised and the form that returned the invalid map
+will be included in the condition&#39;s message.</p></li>
+<li><p>Add the :endpoint option to compute/compute-service-from-map.</p></li>
+<li><p>List packages after install/remove.
+Ensure feedback on the state of packages after each package operation.</p></li>
+<li><p>Add simple validation of the the request map to resource/phase</p></li>
+<li><p>Add :no-sudo to the image specification, increase standoff while waiting
+for ip</p></li>
+<li><p>Add an :add-scope action to pallet.resource.package/package-manager that
+can be used with debian or ubuntu</p></li>
+<li><p>Add compile and tests phase executions for clojure-maven-plugin</p></li>
+<li><p>Add marginalia and autodoc output directory targets</p></li>
+<li><p>Change jclouds service implementation to use a provider specifc default
+extension list, which will try to use pallet&#39;s no-op ssh client for the
+stub service</p></li>
+<li><p>Change compute-service-from-map so that the :extensions and :node-list key
+values are read using read-string only when the values are strings</p></li>
+<li><p>Add an overload to find-var-with-require for a single namespace qualified
+symbol argument</p></li>
+<li><p>Update pallet.main/-main to factor out pallet-task.
+pallet-task returns an integer suitable for System/exit, but never calls
+System/exit.  This simplifies lein interactive and cake integration.</p></li>
+<li><p>make package/add-rpmforge an aggregate resource :always-before
+package-manager</p></li>
+<li><p>Add pkg- prefixed path functions, for locations of files managed by the
+package manager Package managers such as brew do not install files in the
+base system locations</p></li>
+<li><p>Add pallet.thread-expr/let-with-arg-&gt; to allow a let in the middle of a
+threaded expression In pallet crates, it is often useful to access an
+element of the request in the middle of a threaded expression, and
+let-with-arg-&gt; provides access to the request, and allows you to make
+lexical scoped assignments.</p></li>
+<li><p>Add per package enabling/disabling of repositories (yum only) Package
+operations are grouped by enabled/disabled repositories and are ordererd
+by a priority</p></li>
+<li><p>add pallet.execute/local-checked-script</p></li>
+<li><p>Add pallet.core/version based on a maven filtered resource</p></li>
+<li><p>Allow documentation string and metadata on pallet.script/defscript
+definitions</p></li>
+<li><p>Do not complain about pallet.script/<em>template</em> being unbound until trying
+to use a defined script multimethod</p></li>
+<li><p>Use (seq <em>template</em>) for appropriate logging output of script template</p></li>
+<li><p>Make maven-settings an optional dependency This means that to use
+settings.xml to store pallet configuration, you need to add
+org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+dependency was causing conflicts with lein.</p></li>
+<li><p>Add the vmfest compute provider from the vmfest branch</p></li>
+<li><p>Update remote-sudo to use the user :password if present, and to use
+sudo-cmd-for to generate the sudo command prefix.</p></li>
+<li><p>Improve robustness of stevedore statement generation</p></li>
+<li><p>Add :services key for config.clj and deprecate :providers</p></li>
+<li><p>Add pallet.resource.format/name-values for formatting name value pairs</p></li>
+<li><p>Attempt to use wget if curl not available</p></li>
+<li><p>stop ls complaining about no version files when limiting the number of
+versions of a file</p></li>
+<li><p>Add pallet.parameter/get-for-service</p></li>
+<li><p>Add execute/local-script for running local shell script commands</p></li>
+<li><p>Add stevedore/directory?</p></li>
+<li><p>Add warn-on-undefined-phase to warn if requested phase is not defined on
+any target tag. Fixes #43</p></li>
+<li><p>Explicitly remove :blobstore from jclouds compute service options</p></li>
+<li><p>Simplify nodes-in-tag to not rely on the target node</p></li>
+<li><p>Make package/add-epel aggregated and force it before any package-manager
+commands</p></li>
+<li><p>Allow specification of node-list nodes as data vectors</p></li>
+<li><p>Remove default usage of compute provider as blob provider.</p></li>
+<li><p>Add :endpoint to config.clj, and pallet.endpoint to settings.xml</p></li>
+<li><p>Updates for new repository location. Removal of superfluous config in pom
+(supplied by pallet-pom).</p></li>
+<li><p>Add configure-service overload for rhel based distros</p></li>
+<li><p>Added the start of crate writing guidelines</p></li>
+<li><p>add pallet.request-map/os-version</p></li>
+<li><p>Add specialisation for sudo for centos 5.3, to remove the -n option</p></li>
+<li><p>remove src/demo.clj - now in the pallet-examples basic project</p></li>
+<li><p>Enable script specialisation on OS version. Add os-version to Node. Add
+:os-version to image. Add a combined os-family and os-version to
+script-template.</p></li>
+<li><p>refactor script template generation to resource/script-template</p></li>
+<li><p>Add jclouds-snapshot profile.</p></li>
+<li><p>Add assert for non-nil request in pallet.resource/invoke-resource</p></li>
+<li><p>Propogate config map to request in tasks</p></li>
+<li><p>add explicit maven-jar-plugin version</p></li>
+<li><p>change lift and converge to take keyword arguments</p></li>
+<li><p>Updated to use template as a map, and for new Hardware in jclouds nodes</p></li>
+<li><p>Change maven settings keys to match jclouds</p></li>
+</ul>
+
+<h2>0.3.0</h2>
+
+<h3>Known Issues</h3>
+
+<p>pallet.thread-expr/if-&gt; incorrectly returns nil if there is no else expression.</p>
+
+<p>pallet.main/-main goes into an infinite recursion if called without arguments.</p>
+
+<h3>General</h3>
+
+<p>Now using <a href="http://jclouds.org/">jclouds</a> beta 8.</p>
+
+<p>There is now a node-list provider. Useful when working with a fixed set of pre-existing
+nodes.</p>
+
+<p>The provider credentials can now be configured in ~/.pallet/config.clj, or
+by defining pallet.config/service or by setting the java system property
+pallet.config.service to the qualified name of a clojure var.</p>
+
+<p>The admin-user can now be configured in config.clj or project.clj, or by defining
+pallet.config/admin-user.</p>
+
+<p><a href="https://github.com/davidsantiago/cake-pallet">Cake plugin for Pallet</a> from David Santiago.</p>
+
+<p>The project.clj file has been removed to prevent mismatch with pom.xml</p>
+
+<p>In general, support for RHEL based distros (centos, amzn-linux) should now be
+much better.</p>
+
+<h3>Lein and Cake tasks</h3>
+
+<p>The pallet-lein plugin for lein is now released to version 0.2.0.  It includes
+passing of project.clj to the tasks</p>
+
+<p>The command line options have changed to use the same terminology as elsewhere;
+povider, identity and credential. Added blobstore-provider, blobstore-identity
+and blobstore-credential options.</p>
+
+<p>The <code>-P provider</code> option can be used to select the provider credentials to be used
+from settings.xml or config.clj.</p>
+
+<p>The task interface has changed, and now takes a first argument which is a request
+map, containing :compute, :blobstore and :user keys, which are set by
+pallet.main-invoker.</p>
+
+<p>Added blobstore credentials.</p>
+
+<p>Added containers task, to list blobstore (eg S3, CloudFiles) containers.</p>
+
+<p>Added tomcat task to do simple tomcat deploy without any configuration.</p>
+
+<p>Added to-blob task to enable upload of files to a blobstore.</p>
+
+<h3>New Crates</h3>
+
+<p>squeak, etc-hosts, postgresql (thanks David Santiago)</p>
+
+<h3>Enhancements</h3>
+
+<p>pallet.compute:
+  Added compute/private-ip, compute/hostname
+  Abstracted jclouds usage to a protocol for improved testing</p>
+
+<p>pallet.core:
+  ensure :target-packager is set on bootstrap</p>
+
+<p>pallet.resource:
+  added :always-before metadata to allow resource dependencies.</p>
+
+<p>pallet.resource.package:
+  packages now installed in single command.</p>
+
+<p>pallet.resource.remote-file:
+  An :unpack :unzip option added</p>
+
+<p>pallet.resource.file:
+  defines make-temp-file script function.</p>
+
+<p>pallet.stevedore:
+  now does unquote splicing.</p>
+
+<p>pallet.thread-expr:
+  new apply-map-&gt;</p>
+
+<p>pallet.crate.etc-default:
+  a path can now be specified, allowing use elsewhere in the filesystem</p>
+
+<h3>Fixes</h3>
+
+<p>pallet.resource.file:
+  sed will regenerate the file md5, unless :no-md5 is specified</p>
+
+<p>pallet.resource.remote-file:
+  prevent md5 file generation when :no-versioning supplied</p>
+
+<p>pallet.resource.service:
+  Installing init scripts with init now works on rhel based machines.</p>
+
+<p>pallet.resource.stevedore:
+  Improved hashlib from <a href="https://github.com/charles-dyfis-net/pallet/commit/8e5e1df53476aedd9d32f525cf0241f8a3763269">Charles Duffy</a></p>
+
+<p>pallet.resource.user:
+  Fix translation of :user true to -r for rhel based distros.</p>
+
+<p>Java crate:
+  for sun java, add partner repository for ubuntu</p>
+
+<p>tomcat crate:
+  runs on centos and amzn-linux
+  fixed users database</p>
+
+<p>haproxy crate:
+  runs on centos and amzn-linux</p>
+
+<p>hudson crate:
+  runs on centos and amzn-linux
+  fixed for case of security disabled</p>
+
+<p>zookeeper crate:
+  now runs on centos and amzn-linux, on ec2</p>
+
+  </div>
+  <div class="alert-message info block-message">
+  <p>
+    Is this document broken? Are there missing pieces? Is it unclear? Help
+    us fix it!
+    <a href="https://github.com/pallet/pallet.github.com/issues/new">
+      Report an issue</a>
+    or read up on <a href="/pallet/doc/how-to-help">how to provide a fix</a>.
+  </p>
+</div>
+
+
+  
+  <div class="row disqus-post-comments">
+    <div class="col-md-9">
+      
+    </div>
+  </div>
+</div><!--content-->
+
+<div class="col-md-3 sidebar">
+  <h1>&nbsp;</h1>
+  
+    <h2>Index</h2>
+<ul>
+<li><a href='/pallet/doc/overview'>Overview</a></li>
+<li><a href='/pallet/doc/first-steps'>First Steps</a></li>
+<li><a href='/pallet/doc/crates'>Crates</a></li>
+<li><a href='/pallet/doc/how-tos'>How Tos</a></li>
+</ul>
+<h3>Pallet 0.7</h3>
+<ul>
+<li><a href='/pallet/doc/reference'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.7/index.html'>API Documentation</a></li>
+</ul>
+
+
+<h3>Pallet 0.8</h3>
+<ul>
+<li><a href='/pallet/doc/reference-0.8'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.8/index.html'>API Documentation</a></li>
+</ul>
+
+</ul>
+
+  
+  <br/>
+  
+
+  <div class="alert-message warning">
+  <p><strong>Get the news!</strong> Keep yourself up to date with the
+  latest Pallet news.</p>
+<a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @palletops</a>
+<script>!function(d,s,id){var
+  js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</div>
+
+<div class="twitter_widget">
+  <script src="http://widgets.twimg.com/j/2/widget.js"></script>
+  <script>
+new TWTR.Widget({
+  version: 2,
+  type: 'profile',
+  rpp: 4,
+  interval: 30000,
+  width: 'auto',
+  height: 300,
+  theme: {
+    shell: {
+      background: '#EEE',
+      color: '#404040'
+    },
+    tweets: {
+      background: '#EEE',
+      color: '#555',
+      links: '#00438A'
+    }
+  },
+  features: {
+    scrollbar: false,
+    loop: false,
+    live: false,
+    behavior: 'all'
+  }
+}).render().setUser('palletops').start();
+</script>
+</div>
+
+</div>
+
+      </div>
+    </div>
+    <footer class="footer">
+  <div class="container">
+    
+
+    <div class="row">
+      <div class="col-md-5">
+        <h4>About</h4>
+            <p>Pallet is an open source DevOps library for the JVM,
+            built on Clojure, with native support for clusters, node
+              dependencies and agile development.</p>
+            <p></p>
+        <p>Infrastructure generously provided by:</p>
+        <p>
+          <a href="http://rackspace.com">
+            <img src="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/rackspace-logo.png"
+		 alt="Rackspace Logo"></img>
+            </a></p>
+      </div>
+      <div class="col-md-3 col-md-offset-1">
+        <h4>Site Map</h4>
+        <ul>
+                      
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+          </ul>
+      </div>
+      <div class="col-md-3">
+        <h4>Contact</h4>
+        <ul>
+        <li><a href="/contact">Contact Form</a></li>
+        <li><a href="/support">Get Support</a></li>
+        <li><a href="mailto:contact@palletops.com">email</a></li>
+        </ul>
+        <p/>
+        <a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-lang="en">Follow @palletops</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+      </div>
+    </div> <!-- row -->
+    <p class="pull-right"><a href="#"><br>Back to top</a></p>
+    <p>
+      <br>
+      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
+      Copyright &copy; 2012 Hugo Duncan and Antoni Batchelli
+    </p>
+  </div>
+  <script type="text/javascript">
+    function extlink(href) {
+      _gaq.push(['_trackEvent','extlink',href]);
+      return true;
+    };
+    (function(){
+    var links = document.getElementsByTagName('a');
+    var regex = new RegExp('^' + window.location.protocol + '//' + window.location.hostname);
+    for (var i = 0, linksLength = links.length; i < linksLength; i++) {
+      if ( ! links[i].href.match(regex) && links[i].href.substr(0,4) == "http") {
+         links[i].setAttribute(
+           'onClick',
+            "extlink('" + links[i].href + "')");}}})();
+  </script>
+</footer>
+
+  </body>
+</html>

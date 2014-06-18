@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+  
+<head>
+  <meta charset="utf-8" />
+  <title>Logging - PalletOps</title>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/bootstrap.min.css">
+   <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/pallet.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/css.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/highlight.css">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19685457-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+  </script>
+
+  
+  
+
+  
+    
+      <meta name="description" content="Pallet reference documentation for logging configuration" />
+    
+  
+  <!-- begin olark code -->
+<script data-cfasync="false" type='text/javascript'>/*<![CDATA[*/window.olark||(function(c){var f=window,d=document,l=f.location.protocol=="https:"?"https:":"http:",z=c.name,r="load";var nt=function(){
+f[z]=function(){
+(a.s=a.s||[]).push(arguments)};var a=f[z]._={
+},q=c.methods.length;while(q--){(function(n){f[z][n]=function(){
+f[z]("call",n,arguments)}})(c.methods[q])}a.l=c.loader;a.i=nt;a.p={
+0:+new Date};a.P=function(u){
+a.p[u]=new Date-a.p[0]};function s(){
+a.P(r);f[z](r)}f.addEventListener?f.addEventListener(r,s,false):f.attachEvent("on"+r,s);var ld=function(){function p(hd){
+hd="head";return["<",hd,"></",hd,"><",i,' onl' + 'oad="var d=',g,";d.getElementsByTagName('head')[0].",j,"(d.",h,"('script')).",k,"='",l,"//",a.l,"'",'"',"></",i,">"].join("")}var i="body",m=d[i];if(!m){
+return setTimeout(ld,100)}a.P(1);var j="appendChild",h="createElement",k="src",n=d[h]("div"),v=n[j](d[h](z)),b=d[h]("iframe"),g="document",e="domain",o;n.style.display="none";m.insertBefore(n,m.firstChild).id=z;b.frameBorder="0";b.id=z+"-loader";if(/MSIE[ ]+6/.test(navigator.userAgent)){
+b.src="javascript:false"}b.allowTransparency="true";v[j](b);try{
+b.contentWindow[g].open()}catch(w){
+c[e]=d[e];o="javascript:var d="+g+".open();d.domain='"+d.domain+"';";b[k]=o+"void(0);"}try{
+var t=b.contentWindow[g];t.write(p());t.close()}catch(x){
+b[k]=o+'d.write("'+p().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};ld()};nt()})({
+loader: "static.olark.com/jsclient/loader0.js",name:"olark",methods:["configure","extend","declare","identify"]});
+/* custom configuration goes here (www.olark.com/documentation) */
+olark.identify('9249-736-10-9825');/*]]>*/</script><noscript><a href="https://www.olark.com/site/9249-736-10-9825/contact" title="Contact us" target="_blank">Questions? Feedback?</a> powered by <a href="http://www.olark.com?welcome" title="Olark live chat software">Olark live chat software</a></noscript>
+<!-- end olark code -->
+
+</head>
+
+  <body>
+    
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#topbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">PalletOps</a>
+    </div> <!-- /.navbar-toggle -->
+    <div class="collapse navbar-collapse" id="topbar-collapse">
+      <ul class="nav navbar-nav">
+	            
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+      </ul>
+   <form class="navbar-form navbar-right" role="search"
+      method="get" action="http://www.google.com/search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search"
+		 name="q" maxlength="255">
+	  <input name="sitesearch" type="hidden" value="palletops.com">
+        </div> <!-- /.form-group -->
+      </form> 
+    </div> <!-- /#topbar-collapse -->
+  </div> <!-- /.container -->
+</nav>
+
+    <div class="post">
+      <div class="container">
+        <div class="col-md-9 content">
+  <div class="page-header">
+    <h1 class="title">
+      Logging
+    </h1>
+  </div>
+  <div class="doc-tabs">
+      <p>
+    
+      <a href="/pallet/doc/reference">Reference Index</a>
+    
+    
+      
+        
+      
+        
+      
+        
+          &#xb7; <a href="/pallet/doc/reference/script">Scripts</a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          &#xb7; <a href="/pallet/doc/reference/glossary">Glossary</a>
+        
+      
+        
+      
+        
+      
+        
+      
+    
+  </p>
+
+  </div>
+  <div class="post_content">
+    <p>Pallet uses <a href="http://clojure.github.com/tools.logging">clojure.tools.logging</a> for
+its logging. This supports multiple logging implementations. Pallet is most
+often run using <a href="http://logback.qos.ch/">logback</a> as the logging implementation,
+via the <a href="http://slf4j.org">slf4j</a> API support in <code>tools.logging</code>. It is also
+known to work with <a href="http://logging.apache.org/log4j">log4j</a>.</p>
+
+<h2>Logback</h2>
+
+<p>Logback is configured using a logback.xml file on the classpath. By default, it will log to standard out.</p>
+
+<h2>Dependencies</h2>
+
+<h3>Slf4j</h3>
+
+<p>To enable use of logback, a slf4j dependency needs to be added to your project.</p>
+
+<p>If you are using lein or cake, then add the following to <code>:dependencies</code> in
+your <code>project.clj</code> file.</p>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">[</span><span class="nv">org.slf4j/slf4j-api</span> <span class="s">&quot;1.6.1&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>If you are using maven, then add the following to the <code>&lt;dependencies&gt;</code> section of your <code>pom.xml</code>.</p>
+<div class="highlight"><pre><code class="language-xml" data-lang="xml">      <span class="nt">&lt;dependency&gt;</span>
+        <span class="nt">&lt;groupId&gt;</span>org.slf4j<span class="nt">&lt;/groupId&gt;</span>
+        <span class="nt">&lt;artifactId&gt;</span>slf4j-api<span class="nt">&lt;/artifactId&gt;</span>
+        <span class="nt">&lt;version&gt;</span>1.6.1<span class="nt">&lt;/version&gt;</span>
+      <span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>
+<h3>Logback</h3>
+
+<p>To use logback with slf4j, add the following to <code>project.clj</code>.</p>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">[</span><span class="nv">ch.qos.logback/logback-core</span> <span class="s">&quot;1.0.0&quot;</span><span class="p">]</span>
+<span class="p">[</span><span class="nv">ch.qos.logback/logback-classic</span> <span class="s">&quot;1.0.0&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>For maven users:</p>
+<div class="highlight"><pre><code class="language-xml" data-lang="xml">      <span class="nt">&lt;dependency&gt;</span>
+        <span class="nt">&lt;groupId&gt;</span>ch.qos.logback<span class="nt">&lt;/groupId&gt;</span>
+        <span class="nt">&lt;artifactId&gt;</span>logback-core<span class="nt">&lt;/artifactId&gt;</span>
+        <span class="nt">&lt;version&gt;</span>1.0.0<span class="nt">&lt;/version&gt;</span>
+      <span class="nt">&lt;/dependency&gt;</span>
+      <span class="nt">&lt;dependency&gt;</span>
+        <span class="nt">&lt;groupId&gt;</span>ch.qos.logback<span class="nt">&lt;/groupId&gt;</span>
+        <span class="nt">&lt;artifactId&gt;</span>logback-classic<span class="nt">&lt;/artifactId&gt;</span>
+        <span class="nt">&lt;version&gt;</span>1.0.0<span class="nt">&lt;/version&gt;</span>
+      <span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>
+<h2>Example configuration</h2>
+
+<p>An example <code>logback.xml</code> configuration file, that can be placed in your
+project&#39;s src or resources directory:</p>
+<div class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="nt">&lt;configuration</span> <span class="na">scan=</span><span class="s">&quot;true&quot;</span> <span class="na">scanPeriod=</span><span class="s">&quot;1 seconds&quot;</span> <span class="na">debug=</span><span class="s">&quot;false&quot;</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;CONSOLE&quot;</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.ConsoleAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;encoder&gt;</span>
+      <span class="nt">&lt;pattern&gt;</span>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n<span class="nt">&lt;/pattern&gt;</span>
+    <span class="nt">&lt;/encoder&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;COMPUTEFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.RollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;file&gt;</span>logs/jclouds-compute.log<span class="nt">&lt;/file&gt;</span>
+    <span class="nt">&lt;rollingPolicy</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.TimeBasedRollingPolicy&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;fileNamePattern&gt;</span>logs/old/jclouds-compute.%d{yyyy-MM-dd}.log<span class="nt">&lt;/fileNamePattern&gt;</span>
+      <span class="nt">&lt;maxHistory&gt;</span>3<span class="nt">&lt;/maxHistory&gt;</span>
+    <span class="nt">&lt;/rollingPolicy&gt;</span>
+    <span class="nt">&lt;encoder&gt;</span>
+      <span class="nt">&lt;pattern&gt;</span>%date %level [%thread] %logger{10} [%file:%line] %msg%n<span class="nt">&lt;/pattern&gt;</span>
+    <span class="nt">&lt;/encoder&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;WIREFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.RollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;file&gt;</span>logs/jclouds-wire.log<span class="nt">&lt;/file&gt;</span>
+    <span class="nt">&lt;rollingPolicy</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.TimeBasedRollingPolicy&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;fileNamePattern&gt;</span>logs/old/jclouds-wire.%d{yyyy-MM-dd}.log<span class="nt">&lt;/fileNamePattern&gt;</span>
+      <span class="nt">&lt;maxHistory&gt;</span>3<span class="nt">&lt;/maxHistory&gt;</span>
+    <span class="nt">&lt;/rollingPolicy&gt;</span>
+    <span class="nt">&lt;encoder&gt;</span>
+      <span class="nt">&lt;pattern&gt;</span>%date %level [%thread] %logger{10} [%file:%line] %msg%n<span class="nt">&lt;/pattern&gt;</span>
+    <span class="nt">&lt;/encoder&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;PALLETFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.RollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;file&gt;</span>logs/pallet.log<span class="nt">&lt;/file&gt;</span>
+    <span class="nt">&lt;rollingPolicy</span> <span class="na">class=</span><span class="s">&quot;ch.qos.logback.core.rolling.TimeBasedRollingPolicy&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;fileNamePattern&gt;</span>logs/old/pallet.%d{yyyy-MM-dd}.log<span class="nt">&lt;/fileNamePattern&gt;</span>
+      <span class="nt">&lt;maxHistory&gt;</span>3<span class="nt">&lt;/maxHistory&gt;</span>
+    <span class="nt">&lt;/rollingPolicy&gt;</span>
+    <span class="nt">&lt;encoder&gt;</span>
+      <span class="nt">&lt;pattern&gt;</span>%date %level [%thread] %logger{10} %msg%n<span class="nt">&lt;/pattern&gt;</span>
+    <span class="nt">&lt;/encoder&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;logger</span> <span class="na">name=</span><span class="s">&quot;jclouds.headers&quot;</span> <span class="na">level=</span><span class="s">&quot;WARN&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;WIREFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/logger&gt;</span>
+
+  <span class="nt">&lt;logger</span> <span class="na">name=</span><span class="s">&quot;jclouds.wire&quot;</span> <span class="na">level=</span><span class="s">&quot;WARN&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;WIREFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/logger&gt;</span>
+
+  <span class="nt">&lt;logger</span> <span class="na">name=</span><span class="s">&quot;jclouds.compute&quot;</span> <span class="na">level=</span><span class="s">&quot;WARN&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;COMPUTEFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/logger&gt;</span>
+
+  <span class="nt">&lt;logger</span> <span class="na">name=</span><span class="s">&quot;jclouds.ssh&quot;</span> <span class="na">level=</span><span class="s">&quot;WARN&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;COMPUTEFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/logger&gt;</span>
+
+  <span class="nt">&lt;logger</span> <span class="na">name=</span><span class="s">&quot;pallet&quot;</span> <span class="na">level=</span><span class="s">&quot;DEBUG&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;PALLETFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/logger&gt;</span>
+
+  <span class="nt">&lt;root</span> <span class="na">level=</span><span class="s">&quot;INFO&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;CONSOLE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/root&gt;</span>
+
+<span class="nt">&lt;/configuration&gt;</span>
+</code></pre></div>
+<h1>Log4j</h1>
+
+<p>log4j is configured using a <code>log4j.xml</code> or <code>log4j.properties</code> file on the classpath
+(the xml file has more functionality than the properties file).</p>
+
+<h2>Dependencies</h2>
+
+<h3>Log4j</h3>
+
+<p>The log4j dependency needs to be added to your project.</p>
+
+<p>If you are using lein or cake, then add the following to :dependencies in your project.clj file.</p>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">[</span><span class="nv">log4j/log4j</span> <span class="s">&quot;1.2.14&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>If you are using maven, then add the following to the <code>&lt;dependencies&gt;</code> section of your pom.xml.</p>
+<div class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>log4j<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>log4j<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.2.14<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;optional&gt;</span>true<span class="nt">&lt;/optional&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>
+<h3>Log4j under Slf4j</h3>
+
+<p>To use log4j under slf4j, you will need the following in your <code>project.clj</code>:</p>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">[</span><span class="nv">org.slf4j/slf4j-api</span> <span class="s">&quot;1.6.4&quot;</span><span class="p">]</span>
+<span class="p">[</span><span class="nv">org.slf4j/slf4f-log4j12</span> <span class="s">&quot;1.6.4&quot;</span><span class="p">]</span>
+</code></pre></div>
+<h2>Example configuration</h2>
+
+<p>An example <code>log4j.xml</code> configuration file, that can be placed in your project&#39;s
+src or resources directory.</p>
+<div class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;</span>
+<span class="cp">&lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;</span>
+
+<span class="nt">&lt;log4j:configuration</span> <span class="na">xmlns:log4j=</span><span class="s">&quot;http://jakarta.apache.org/log4j/&quot;</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;console&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.ConsoleAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Target&quot;</span> <span class="na">value=</span><span class="s">&quot;System.out&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Threshold&quot;</span> <span class="na">value=</span><span class="s">&quot;INFO&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;layout</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.PatternLayout&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;ConversionPattern&quot;</span> <span class="na">value=</span><span class="s">&quot;%-5p %c{1} - %m%n&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;/layout&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;COMPUTEFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.DailyRollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;File&quot;</span> <span class="na">value=</span><span class="s">&quot;logs/jclouds-compute.log&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Append&quot;</span> <span class="na">value=</span><span class="s">&quot;true&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;DatePattern&quot;</span> <span class="na">value=</span><span class="s">&quot;&#39;.&#39;yyyy-MM-dd&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Threshold&quot;</span> <span class="na">value=</span><span class="s">&quot;TRACE&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;layout</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.PatternLayout&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;ConversionPattern&quot;</span> <span class="na">value=</span><span class="s">&quot;%d %-5p [%c] (%t) %m%n&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/layout&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;WIREFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.DailyRollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;File&quot;</span> <span class="na">value=</span><span class="s">&quot;logs/jclouds-wire.log&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Append&quot;</span> <span class="na">value=</span><span class="s">&quot;true&quot;</span> <span class="nt">/&gt;</span>
+
+    <span class="c">&lt;!-- Rollover at midnight each day --&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;DatePattern&quot;</span> <span class="na">value=</span><span class="s">&quot;&#39;.&#39;yyyy-MM-dd&quot;</span> <span class="nt">/&gt;</span>
+
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Threshold&quot;</span> <span class="na">value=</span><span class="s">&quot;TRACE&quot;</span> <span class="nt">/&gt;</span>
+
+    <span class="nt">&lt;layout</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.PatternLayout&quot;</span><span class="nt">&gt;</span>
+      <span class="c">&lt;!-- The default pattern: Date Priority [Category] Message\n --&gt;</span>
+      <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;ConversionPattern&quot;</span> <span class="na">value=</span><span class="s">&quot;%d %-5p [%c] (%t) %m%n&quot;</span> <span class="nt">/&gt;</span>
+
+      <span class="c">&lt;!--</span>
+<span class="c">          The full pattern: Date MS Priority [Category]</span>
+<span class="c">          (Thread:NDC) Message\n &lt;param name=&quot;ConversionPattern&quot;</span>
+<span class="c">          value=&quot;%d %-5r %-5p [%c] (%t:%x) %m%n&quot;/&gt;</span>
+<span class="c">      --&gt;</span>
+    <span class="nt">&lt;/layout&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;PALLETFILE&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.DailyRollingFileAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;File&quot;</span> <span class="na">value=</span><span class="s">&quot;logs/pallet.log&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Append&quot;</span> <span class="na">value=</span><span class="s">&quot;true&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;DatePattern&quot;</span> <span class="na">value=</span><span class="s">&quot;&#39;.&#39;yyyy-MM-dd&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;Threshold&quot;</span> <span class="na">value=</span><span class="s">&quot;TRACE&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;layout</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.PatternLayout&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&quot;ConversionPattern&quot;</span> <span class="na">value=</span><span class="s">&quot;%d %-5p [%c] (%t) %m%n&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/layout&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;ASYNCCOMPUTE&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.AsyncAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;COMPUTEFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;appender</span> <span class="na">name=</span><span class="s">&quot;ASYNCWIRE&quot;</span> <span class="na">class=</span><span class="s">&quot;org.apache.log4j.AsyncAppender&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;WIREFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/appender&gt;</span>
+
+  <span class="nt">&lt;category</span> <span class="na">name=</span><span class="s">&quot;jclouds.headers&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value=</span><span class="s">&quot;WARN&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;ASYNCWIRE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/category&gt;</span>
+
+  <span class="nt">&lt;category</span> <span class="na">name=</span><span class="s">&quot;jclouds.wire&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value=</span><span class="s">&quot;WARN&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;ASYNCWIRE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/category&gt;</span>
+
+  <span class="nt">&lt;category</span> <span class="na">name=</span><span class="s">&quot;jclouds.compute&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value=</span><span class="s">&quot;INFO&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;ASYNCCOMPUTE&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;console&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/category&gt;</span>
+
+  <span class="nt">&lt;category</span> <span class="na">name=</span><span class="s">&quot;pallet&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value=</span><span class="s">&quot;INFO&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;PALLETFILE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/category&gt;</span>
+
+  <span class="nt">&lt;category</span> <span class="na">name=</span><span class="s">&quot;jclouds.ssh&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value=</span><span class="s">&quot;WARN&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;ASYNCCOMPUTE&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/category&gt;</span>
+
+  <span class="nt">&lt;root&gt;</span>
+    <span class="nt">&lt;priority</span> <span class="na">value =</span><span class="s">&quot;info&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;appender-ref</span> <span class="na">ref=</span><span class="s">&quot;console&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/root&gt;</span>
+
+<span class="nt">&lt;/log4j:configuration&gt;</span>
+</code></pre></div>
+  </div>
+  <div class="doc-tabs">
+      <p>
+    
+      <a href="/pallet/doc/reference">Reference Index</a>
+    
+    
+      
+        
+      
+        
+      
+        
+          &#xb7; <a href="/pallet/doc/reference/script">Scripts</a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          &#xb7; <a href="/pallet/doc/reference/glossary">Glossary</a>
+        
+      
+        
+      
+        
+      
+        
+      
+    
+  </p>
+
+  </div>
+  <div class="alert-message info block-message">
+  <p>
+    Is this document broken? Are there missing pieces? Is it unclear? Help
+    us fix it!
+    <a href="https://github.com/pallet/pallet.github.com/issues/new">
+      Report an issue</a>
+    or read up on <a href="/pallet/doc/how-to-help">how to provide a fix</a>.
+  </p>
+</div>
+
+
+  
+  <div class="disqus-post-comments">
+    
+  </div>
+</div><!--content-->
+
+<div class="col-md-3 sidebar">
+  <h1>&nbsp;</h1>
+  
+    <h2>Index</h2>
+<ul>
+<li><a href='/pallet/doc/overview'>Overview</a></li>
+<li><a href='/pallet/doc/first-steps'>First Steps</a></li>
+<li><a href='/pallet/doc/crates'>Crates</a></li>
+<li><a href='/pallet/doc/how-tos'>How Tos</a></li>
+</ul>
+<h3>Pallet 0.7</h3>
+<ul>
+<li><a href='/pallet/doc/reference'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.7/index.html'>API Documentation</a></li>
+</ul>
+
+
+<h3>Pallet 0.8</h3>
+<ul>
+<li><a href='/pallet/doc/reference-0.8'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.8/index.html'>API Documentation</a></li>
+</ul>
+
+</ul>
+
+  
+  
+    <h3><a href="/pallet/doc/reference">Reference</a><br/></h3>
+  
+  
+    <ul>
+<li><a href='/pallet/doc/reference/providers'>Talking to the cloud</a></li>
+
+<li><a href='/pallet/doc/reference/node-push'>Talking to nodes</a></li>
+
+<li><a href='/pallet/doc/reference/node-types'>Groups, Servers and Node Specs</a></li>
+
+<li><a href='/pallet/doc/reference/phases'>Phases</a></li>
+
+<li><a href='/pallet/doc/reference/operations'>Operations</a></li>
+
+<li><a href='/pallet/doc/reference/crates'>Crates</a></li>
+
+<li><a href='/pallet/doc/reference/actions'>Actions</a></li>
+
+<li><a href='/pallet/doc/reference/session'>Session</a></li>
+
+<li><a href='/pallet/doc/reference/environment'>Environment</a></li>
+
+<li><a href='/pallet/doc/reference/script'>Shell Script</a></li>
+
+<li><a href='/pallet/doc/reference/logging'>Logging</a></li>
+
+<li><a href='/pallet/doc/reference/glossary'>Glossary</a></li>
+</ul>
+
+  
+  <br/>
+  <div class="alert-message warning">
+  <p><strong>Get the news!</strong> Keep yourself up to date with the
+  latest Pallet news.</p>
+<a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @palletops</a>
+<script>!function(d,s,id){var
+  js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</div>
+
+<div class="twitter_widget">
+  <script src="http://widgets.twimg.com/j/2/widget.js"></script>
+  <script>
+new TWTR.Widget({
+  version: 2,
+  type: 'profile',
+  rpp: 4,
+  interval: 30000,
+  width: 'auto',
+  height: 300,
+  theme: {
+    shell: {
+      background: '#EEE',
+      color: '#404040'
+    },
+    tweets: {
+      background: '#EEE',
+      color: '#555',
+      links: '#00438A'
+    }
+  },
+  features: {
+    scrollbar: false,
+    loop: false,
+    live: false,
+    behavior: 'all'
+  }
+}).render().setUser('palletops').start();
+</script>
+</div>
+
+  <br/>
+</div>
+
+      </div>
+    </div>
+    <footer class="footer">
+  <div class="container">
+    
+
+    <div class="row">
+      <div class="col-md-5">
+        <h4>About</h4>
+            <p>Pallet is an open source DevOps library for the JVM,
+            built on Clojure, with native support for clusters, node
+              dependencies and agile development.</p>
+            <p></p>
+        <p>Infrastructure generously provided by:</p>
+        <p>
+          <a href="http://rackspace.com">
+            <img src="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/rackspace-logo.png"
+		 alt="Rackspace Logo"></img>
+            </a></p>
+      </div>
+      <div class="col-md-3 col-md-offset-1">
+        <h4>Site Map</h4>
+        <ul>
+                      
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+          </ul>
+      </div>
+      <div class="col-md-3">
+        <h4>Contact</h4>
+        <ul>
+        <li><a href="/contact">Contact Form</a></li>
+        <li><a href="/support">Get Support</a></li>
+        <li><a href="mailto:contact@palletops.com">email</a></li>
+        </ul>
+        <p/>
+        <a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-lang="en">Follow @palletops</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+      </div>
+    </div> <!-- row -->
+    <p class="pull-right"><a href="#"><br>Back to top</a></p>
+    <p>
+      <br>
+      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
+      Copyright &copy; 2012 Hugo Duncan and Antoni Batchelli
+    </p>
+  </div>
+  <script type="text/javascript">
+    function extlink(href) {
+      _gaq.push(['_trackEvent','extlink',href]);
+      return true;
+    };
+    (function(){
+    var links = document.getElementsByTagName('a');
+    var regex = new RegExp('^' + window.location.protocol + '//' + window.location.hostname);
+    for (var i = 0, linksLength = links.length; i < linksLength; i++) {
+      if ( ! links[i].href.match(regex) && links[i].href.substr(0,4) == "http") {
+         links[i].setAttribute(
+           'onClick',
+            "extlink('" + links[i].href + "')");}}})();
+  </script>
+</footer>
+
+  </body>
+</html>

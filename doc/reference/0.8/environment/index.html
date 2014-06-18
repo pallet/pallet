@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+  
+<head>
+  <meta charset="utf-8" />
+  <title>Environment - PalletOps</title>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/bootstrap.min.css">
+   <!-- Latest compiled and minified JavaScript -->
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/pallet.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/css.css">
+  <link rel="stylesheet" href="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/css/highlight.css">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19685457-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+  </script>
+
+  
+  
+
+  
+    
+      <meta name="description" content="Pallet is a platform for agile and programmatic automation of infrastructure in the cloud, on server racks or directly on virtual machines." />
+    
+  
+  <!-- begin olark code -->
+<script data-cfasync="false" type='text/javascript'>/*<![CDATA[*/window.olark||(function(c){var f=window,d=document,l=f.location.protocol=="https:"?"https:":"http:",z=c.name,r="load";var nt=function(){
+f[z]=function(){
+(a.s=a.s||[]).push(arguments)};var a=f[z]._={
+},q=c.methods.length;while(q--){(function(n){f[z][n]=function(){
+f[z]("call",n,arguments)}})(c.methods[q])}a.l=c.loader;a.i=nt;a.p={
+0:+new Date};a.P=function(u){
+a.p[u]=new Date-a.p[0]};function s(){
+a.P(r);f[z](r)}f.addEventListener?f.addEventListener(r,s,false):f.attachEvent("on"+r,s);var ld=function(){function p(hd){
+hd="head";return["<",hd,"></",hd,"><",i,' onl' + 'oad="var d=',g,";d.getElementsByTagName('head')[0].",j,"(d.",h,"('script')).",k,"='",l,"//",a.l,"'",'"',"></",i,">"].join("")}var i="body",m=d[i];if(!m){
+return setTimeout(ld,100)}a.P(1);var j="appendChild",h="createElement",k="src",n=d[h]("div"),v=n[j](d[h](z)),b=d[h]("iframe"),g="document",e="domain",o;n.style.display="none";m.insertBefore(n,m.firstChild).id=z;b.frameBorder="0";b.id=z+"-loader";if(/MSIE[ ]+6/.test(navigator.userAgent)){
+b.src="javascript:false"}b.allowTransparency="true";v[j](b);try{
+b.contentWindow[g].open()}catch(w){
+c[e]=d[e];o="javascript:var d="+g+".open();d.domain='"+d.domain+"';";b[k]=o+"void(0);"}try{
+var t=b.contentWindow[g];t.write(p());t.close()}catch(x){
+b[k]=o+'d.write("'+p().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};ld()};nt()})({
+loader: "static.olark.com/jsclient/loader0.js",name:"olark",methods:["configure","extend","declare","identify"]});
+/* custom configuration goes here (www.olark.com/documentation) */
+olark.identify('9249-736-10-9825');/*]]>*/</script><noscript><a href="https://www.olark.com/site/9249-736-10-9825/contact" title="Contact us" target="_blank">Questions? Feedback?</a> powered by <a href="http://www.olark.com?welcome" title="Olark live chat software">Olark live chat software</a></noscript>
+<!-- end olark code -->
+
+</head>
+
+  <body>
+    
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#topbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">PalletOps</a>
+    </div> <!-- /.navbar-toggle -->
+    <div class="collapse navbar-collapse" id="topbar-collapse">
+      <ul class="nav navbar-nav">
+	            
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+      </ul>
+   <form class="navbar-form navbar-right" role="search"
+      method="get" action="http://www.google.com/search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search"
+		 name="q" maxlength="255">
+	  <input name="sitesearch" type="hidden" value="palletops.com">
+        </div> <!-- /.form-group -->
+      </form> 
+    </div> <!-- /#topbar-collapse -->
+  </div> <!-- /.container -->
+</nav>
+
+    <div class="post">
+      <div class="container">
+        <div class="col-md-9 content">
+  <div class="page-header">
+    <h1 class="title">
+      Environment
+    </h1>
+  </div>
+  <div class="doc-tabs">
+      <p>
+    
+      <a href="/pallet/doc/reference-0.8">Reference Index</a>
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+  </p>
+
+  </div>
+  <div class="post_content">
+    <p>The environment is a map used for passing data and configuration choices into
+pallet. The environment may be specified at various scopes.  The environment
+contributed by each scope will be merged.</p>
+
+<h1>Environment API</h1>
+
+<p>The environment can be accessed with
+<a href="/pallet/api/0.8/pallet.environment.html#var-get-environment"><code>pallet.environment/get-environment</code></a>.</p>
+
+<h1>Pallet Specific Keys</h1>
+
+<p>Pallet recognises specific keys in the environment.</p>
+
+<p><code>:algorithms</code>
+: a map that can be used to specify specific algorithms to override the pallet
+  defaults</p>
+
+<p><code>:groups</code>
+: a map, keyed on group name (keyword), that can specify node-spec details</p>
+
+<p><code>:phase</code>
+: a map of phase defintions, that all group-specs will extend</p>
+
+<h1>Specifying Environment Values</h1>
+
+<h2>Config.clj</h2>
+
+<p>In <code>config.clj</code>, the environment may be specified at the top level, and/or at
+the service level.</p>
+<div class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="nf">defpallet</span>
+  <span class="c1">;; general environment</span>
+  <span class="ss">:environment</span> <span class="p">{</span><span class="ss">:algorithms</span>
+                <span class="p">{</span><span class="ss">:lift-fn</span> <span class="nv">pallet.core/parallel-lift</span>
+                 <span class="ss">:converge-fn</span> <span class="nv">pallet.core/parallel-adjust-node-counts</span><span class="p">}}</span>
+  <span class="ss">:services</span> <span class="p">{</span><span class="ss">:vb4</span>
+             <span class="p">{</span><span class="ss">:provider</span> <span class="s">&quot;aws-ec2&quot;</span>
+              <span class="c1">;; environment specific to :vb4 service</span>
+              <span class="ss">:environment</span>
+              <span class="p">{</span><span class="ss">:proxy</span> <span class="s">&quot;http://192.168.1.37:3128&quot;</span>
+               <span class="ss">:mirror</span> <span class="p">{</span><span class="ss">:apache</span> <span class="s">&quot;http://apache.mirror.iweb.ca/&quot;</span><span class="p">}}}})</span>
+</code></pre></div>
+<h2><code>lift</code> and <code>converge</code> Arguments</h2>
+
+<p>Both <a href="/pallet/api/0.8/pallet.api.html#lift"><code>lift</code></a> and
+<a href="/pallet/api/0.8/pallet.api.html#converge"><code>converge</code></a> can be passed an
+environment map using the <code>:environment</code> keyword.</p>
+
+  </div>
+  <div class="doc-tabs">
+      <p>
+    
+      <a href="/pallet/doc/reference-0.8">Reference Index</a>
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+  </p>
+
+  </div>
+  <div class="alert-message info block-message">
+  <p>
+    Is this document broken? Are there missing pieces? Is it unclear? Help
+    us fix it!
+    <a href="https://github.com/pallet/pallet.github.com/issues/new">
+      Report an issue</a>
+    or read up on <a href="/pallet/doc/how-to-help">how to provide a fix</a>.
+  </p>
+</div>
+
+
+  
+  <div class="disqus-post-comments">
+    
+  </div>
+</div><!--content-->
+
+<div class="col-md-3 sidebar">
+  <h1>&nbsp;</h1>
+  
+    <h2>Index</h2>
+<ul>
+<li><a href='/pallet/doc/overview'>Overview</a></li>
+<li><a href='/pallet/doc/first-steps'>First Steps</a></li>
+<li><a href='/pallet/doc/crates'>Crates</a></li>
+<li><a href='/pallet/doc/how-tos'>How Tos</a></li>
+</ul>
+<h3>Pallet 0.7</h3>
+<ul>
+<li><a href='/pallet/doc/reference'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.7/index.html'>API Documentation</a></li>
+</ul>
+
+
+
+<h3>Pallet 0.8</h3>
+<ul>
+<li><a href='/pallet/doc/reference-0.8'>Reference Documentation</a></li>
+<li><a href='/pallet/api/0.8/index.html'>API Documentation</a></li>
+</ul>
+
+
+  
+  
+    <h3><a href="/pallet/doc/reference-0.8">Reference</a><br/></h3>
+  
+  
+    <ul>
+<li><a href='/pallet/doc/reference/0.8/providers'>Talking to the cloud</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/node-push'>Talking to nodes</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/node-types'>Groups, Servers and Node Specs</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/phases'>Phases</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/operations'>Operations</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/crates'>Crates</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/actions'>Actions</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/session'>Session</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/environment'>Environment</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/parameters'>Parameters</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/script'>Shell Script</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/logging'>Logging</a></li>
+
+<li><a href='/pallet/doc/reference/0.8/glossary'>Glossary</a></li>
+</ul>
+
+  
+  <br/>
+  <div class="alert-message warning">
+  <p><strong>Get the news!</strong> Keep yourself up to date with the
+  latest Pallet news.</p>
+<a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @palletops</a>
+<script>!function(d,s,id){var
+  js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</div>
+
+<div class="twitter_widget">
+  <script src="http://widgets.twimg.com/j/2/widget.js"></script>
+  <script>
+new TWTR.Widget({
+  version: 2,
+  type: 'profile',
+  rpp: 4,
+  interval: 30000,
+  width: 'auto',
+  height: 300,
+  theme: {
+    shell: {
+      background: '#EEE',
+      color: '#404040'
+    },
+    tweets: {
+      background: '#EEE',
+      color: '#555',
+      links: '#00438A'
+    }
+  },
+  features: {
+    scrollbar: false,
+    loop: false,
+    live: false,
+    behavior: 'all'
+  }
+}).render().setUser('palletops').start();
+</script>
+</div>
+
+  <br/>
+</div>
+
+      </div>
+    </div>
+    <footer class="footer">
+  <div class="container">
+    
+
+    <div class="row">
+      <div class="col-md-5">
+        <h4>About</h4>
+            <p>Pallet is an open source DevOps library for the JVM,
+            built on Clojure, with native support for clusters, node
+              dependencies and agile development.</p>
+            <p></p>
+        <p>Infrastructure generously provided by:</p>
+        <p>
+          <a href="http://rackspace.com">
+            <img src="http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/rackspace-logo.png"
+		 alt="Rackspace Logo"></img>
+            </a></p>
+      </div>
+      <div class="col-md-3 col-md-offset-1">
+        <h4>Site Map</h4>
+        <ul>
+                      
+              
+            
+              
+            
+              
+                
+                
+                   
+                
+                
+                   
+                
+                <li class="active">
+                  <a href="/pallet/doc">
+                    Documentation
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/news">
+                    News
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/blog">
+                    Blog
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="https://github.com/pallet/pallet">
+                    Code
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/services">
+                    Services
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/support">
+                    Support
+                    </a>
+                </li>
+              
+            
+              
+                
+                
+                
+                <li class="">
+                  <a href="/contact">
+                    Contact
+                    </a>
+                </li>
+              
+            
+              
+            
+              
+            
+
+          </ul>
+      </div>
+      <div class="col-md-3">
+        <h4>Contact</h4>
+        <ul>
+        <li><a href="/contact">Contact Form</a></li>
+        <li><a href="/support">Get Support</a></li>
+        <li><a href="mailto:contact@palletops.com">email</a></li>
+        </ul>
+        <p/>
+        <a href="https://twitter.com/palletops" class="twitter-follow-button" data-show-count="false" data-lang="en">Follow @palletops</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+      </div>
+    </div> <!-- row -->
+    <p class="pull-right"><a href="#"><br>Back to top</a></p>
+    <p>
+      <br>
+      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
+      Copyright &copy; 2012 Hugo Duncan and Antoni Batchelli
+    </p>
+  </div>
+  <script type="text/javascript">
+    function extlink(href) {
+      _gaq.push(['_trackEvent','extlink',href]);
+      return true;
+    };
+    (function(){
+    var links = document.getElementsByTagName('a');
+    var regex = new RegExp('^' + window.location.protocol + '//' + window.location.hostname);
+    for (var i = 0, linksLength = links.length; i < linksLength; i++) {
+      if ( ! links[i].href.match(regex) && links[i].href.substr(0,4) == "http") {
+         links[i].setAttribute(
+           'onClick',
+            "extlink('" + links[i].href + "')");}}})();
+  </script>
+</footer>
+
+  </body>
+</html>
