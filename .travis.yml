@@ -16,7 +16,7 @@ script:
   - bundle install
   - bundle exec jekyll doctor
   - bundle exec jekyll build --verbose --trace --destination $DDIR
-  - ls -lr $DDIR
+  - ls -lR $DDIR
 after_success:
   - cd $DDIR
   - git config credential.helper "store --file=.git/credentials"
