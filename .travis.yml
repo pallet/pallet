@@ -1,0 +1,24 @@
+env:
+  global:
+    secure: "4cYZDJvt5Y7qhGaiuZGCc8RSNKLsoFOidw+x8jGraPcg1UaSbWvR0kfev9Is8hpBuBLI6G3O7o3tz2gYhhBx9V5QaP0wbt9nLlTtcALCkRSa40iusT8qjX7iRs7KF5c7xXbyz63VWptygwCi/KRQZHuKTVZiEG9inqcLBJzdOoU="
+  - ddir="tmp-deploy"
+  - src-branch="gh-pages-src"
+  - target-branch="gh-pages"
+  - project="pallet/pallet"
+before_script:
+  - rm -rf $ddir
+script:
+  - git clone https://github.com/$project.git --branch $target-branch --single-branch $ddir
+  - bundle install
+  - bundle exec jekyll build --target $ddir
+after-success:
+  - cd $ddir
+  - git config credential.helper "store --file=.git/credentials"
+  - echo "https://${GH_TOKEN}:@github.com" > .git/credentials
+  - git add -u .
+  - git config user.email "pbors@palletops.com"
+  - git config user.name "pbors"
+  - git commit -am "new-site-deployed" --allow-empty
+  - git push origin $target_branch 2>&1
+after-script:
+  - rm -rf $ddir
