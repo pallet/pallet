@@ -28,8 +28,3 @@ after-script:
   - rm -rf $ddir
 notifications:
   irc: irc.freenode.org#pallet
-# whitelist
-branches:
-  only:
-    - gh-pages-src
-    - gh-pages
