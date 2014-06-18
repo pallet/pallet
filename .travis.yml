@@ -14,6 +14,7 @@ before_script:
 script:
   - git clone https://github.com/$PROJECT.git --branch $TARGET_BRANCH --single-branch $DDIR
   - bundle install
+  - bundle exec jekyll doctor
   - bundle exec jekyll build --verbose --trace --destination $DDIR
   - ls -lr $DDIR
 after_success:
