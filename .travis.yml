@@ -1,0 +1,33 @@
+language: ruby
+rvm:
+  - 2.1.0
+install:
+  - sudo pip install Pygments
+env:
+  global:
+    - secure: "Og8RjX6nirUwdkG7TJofd2qGJS5sYuy16vQ9eSvOX58ykswa9uaIZlW62xd/cvLIN8LPNbcK53S10xMqLnfN3b5mTTa3T8K8H7tHlkLlhCbuOZ18U/TIle2hwf06w/osNFyDCXOZp0GAl0STdcl/6f9E1+htfMa8J6rBVbRvyDk="
+    # - secure: "4cYZDJvt5Y7qhGaiuZGCc8RSNKLsoFOidw+x8jGraPcg1UaSbWvR0kfev9Is8hpBuBLI6G3O7o3tz2gYhhBx9V5QaP0wbt9nLlTtcALCkRSa40iusT8qjX7iRs7KF5c7xXbyz63VWptygwCi/KRQZHuKTVZiEG9inqcLBJzdOoU="
+    - "DDIR=tmp-deploy"
+    - "TARGET_BRANCH=gh-pages"
+    - "PROJECT=pallet/pallet"
+before_script:
+  - rm -rf $DDIR
+script:
+  - git clone https://github.com/$PROJECT.git --branch $TARGET_BRANCH --single-branch $DDIR
+  - bundle install
+  - bundle exec jekyll doctor
+  - bundle exec jekyll build --verbose --trace --destination $DDIR
+  - ls -lR $DDIR
+after_success:
+  - cd $DDIR
+  - git config credential.helper "store --file=.git/credentials"
+  - echo "https://tbatchelli:${GH_PASSWD}:@github.com" > .git/credentials
+  - git add -A .
+  - git config user.email "tbatchelli@acm.org"
+  - git config user.name "tbatchelli"
+  - git commit -am "new-site-deployed" --allow-empty
+  - git push origin $TARGET_BRANCH 2>&1
+after_script:
+  - rm -rf $DDIR
+notifications:
+  irc: irc.freenode.org#pallet
