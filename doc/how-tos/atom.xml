@@ -1,28 +1,184 @@
----
-layout: nil
----
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
  <title>Pallet, DevOps for the JVM -- How-tos</title>
- <link href="http://palletops.com{{site.base-url}}/doc/how-tos/atom.xml" rel="self"/>
- <link href="http://palletops.com{{site.base-url}}/doc/how-tos"/>
- <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>http://{{ site.domain }}{{site.base-url}}/doc/how-tos</id>
+ <link href="http://palletops.com/pallet/doc/how-tos/atom.xml" rel="self"/>
+ <link href="http://palletops.com/pallet/doc/how-tos"/>
+ <updated>2014-06-18T20:18:50+00:00</updated>
+ <id>http://palletops.com/pallet/doc/how-tos</id>
  <author>
    <name>Antoni Batchelli</name>
    <email>tbatchelli@palletops.com</email>
  </author>
- {% for post in site.categories.how-tos limit:100 %}
+ 
  <entry>
-   <title>{{ post.title }}</title>
-   <link href="http://palletops.com{{site.base-url}}{{ post.url }}"/>
-   <updated>{{ post.date | date_to_xmlschema }}</updated>
-   <id>http://{{ site.domain }}{{site.base-url}}{{ post.url }}</id>
-   <content type="html">{{ post.content | xml_escape }}</content>
+   <title>Demo of webapp deployment on exoscale using Pallet</title>
+   <link href="http://palletops.com/pallet/doc/how-tos/pallet-exoscale-demo/"/>
+   <updated>2014-02-19T00:00:00+00:00</updated>
+   <id>http://palletops.com/pallet/doc/how-tos/pallet-exoscale-demo/</id>
+   <content type="html">&lt;p&gt;Deploy a test infrastructure on pallet. This demonstration set can be found on &lt;a href=&quot;https://raw.github.com/exoscale/pallet-exoscale-demo&quot;&gt;github&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3&gt;Application:&lt;/h3&gt;
+
+&lt;p&gt;The demo app is a simple yet usefull URL-Shortener. This shortener is a 3 tier application with the following layers:
+* Load Balancer: NGINX
+* Web Server: Python
+* Database Server: Redis&lt;/p&gt;
+
+&lt;p&gt;It will make a store a hash of your long url to a exo.po/XXXXX patern &lt;/p&gt;
+
+&lt;h3&gt;Deployer&lt;/h3&gt;
+
+&lt;p&gt;To make things easier and to hide the pallet magic, we have created a web deployer, 
+which is an web application that will control the URL-Shortener deployement and configuration. Once you run the project,
+the deployer will be built and present you with the following interface:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/exoscale-1.png&quot; alt=&quot;exoscale deployer&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Use Case&lt;/h3&gt;
+
+&lt;p&gt;Once running, you can deploy the URL-Shortener with:
+* 1 LB
+* 1 WEB
+* 1 DB&lt;/p&gt;
+
+&lt;p&gt;Then to scale up for more trafic, you can specify:
+* 1 LB
+* 3 WEB
+* 1 DB&lt;/p&gt;
+
+&lt;p&gt;Pallet will then spawn 2 new webserver instances, intall packages and URL-Shortener code and eventually reconfigure the NGINX 
+LB to take in account the 2 new workers.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;root@lb-ac:~# cat /etc/nginx/conf.d/upstream-shorten.conf
+upstream shorten {
+    server 185.19.28.65:8080;
+}
+
+root@lb-ac:~# cat /etc/nginx/conf.d/upstream-shorten.conf
+upstream shorten {
+    server 185.19.28.83:8080;
+    server 185.19.28.86:8080;
+    server 185.19.28.65:8080;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Prerequisites&lt;/h2&gt;
+
+&lt;p&gt;To run the demo, you will need:
+* A working JVM environment
+* The Leiningen http://leiningen.org/#install
+* A valid exoscale account https://portal.exoscale.ch/register&lt;/p&gt;
+
+&lt;h2&gt;Configuration&lt;/h2&gt;
+
+&lt;p&gt;You will need an OpenSSH format RSA key in &lt;code&gt;$HOME/.ssh/id_rsa&lt;/code&gt;.
+Add the following in &lt;code&gt;$HOME/.pallet/services/exoscale.clj&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;{:exoscale {:provider &amp;quot;exoscale&amp;quot;
+            :api-key &amp;quot;&amp;lt;API_KEY&amp;gt;&amp;quot;
+            :api-secret &amp;quot;&amp;lt;API_SECRET&amp;gt;&amp;quot;}}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Running&lt;/h2&gt;
+
+&lt;p&gt;Simply run &lt;code&gt;lein run&lt;/code&gt; in the project&amp;#39;s directory and point
+your browser to http://localhost:8080&lt;/p&gt;
+</content>
    <author>
-     <name>{{ post.author }}</name>
-     <uri>{{ post.author_url }}</uri>
+     <name>Antoine Coetsier</name>
+     <uri></uri>
    </author>
  </entry>
- {% endfor %}
+ 
+ <entry>
+   <title>How To Use Pallet With Existing Servers</title>
+   <link href="http://palletops.com/pallet/doc/how-tos/using-pallet-with-existing-servers/"/>
+   <updated>2012-01-26T00:00:00+00:00</updated>
+   <id>http://palletops.com/pallet/doc/how-tos/using-pallet-with-existing-servers/</id>
+   <content type="html">&lt;p&gt;Pallet has a &lt;a href=&quot;http://palletops.com/pallet/api/0.6/pallet.compute.node-list.html&quot; title=&quot;node-list API&quot;&gt;&lt;code&gt;node-list&lt;/code&gt;&lt;/a&gt; provider, which you can use to connect
+pallet to a server rack or to existing virtual machines. To talk to these
+servers, you need to tell pallet IP addresses and which group they belong
+to. You create a compute service by instantiating a &lt;a href=&quot;http://palletops.com/pallet/api/0.6/pallet.compute.node-list.html&quot; title=&quot;node-list API&quot;&gt;&lt;code&gt;node-list&lt;/code&gt;&lt;/a&gt;
+provider with a sequence of nodes to provide that information.&lt;/p&gt;
+
+&lt;h2&gt;Getting a &lt;code&gt;node-list&lt;/code&gt; compute service&lt;/h2&gt;
+
+&lt;p&gt;There are two ways you can obtain a compute service.&lt;/p&gt;
+
+&lt;h3&gt;Instantiate directly&lt;/h3&gt;
+
+&lt;p&gt;The group is used to match nodes to the &lt;a href=&quot;http://palletops.com/doc/reference/node-types&quot; title=&quot;Defining server and group-specs&quot;&gt;&lt;code&gt;group-spec&lt;/code&gt;&lt;/a&gt;s that you use
+to define the configuration to apply.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.compute&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;def &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;my-data-center&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.compute/instantiate-provider&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&amp;quot;node-list&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;:node-list&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;qa&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;fullstack&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.13&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+                &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;fe&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;tomcats&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.14&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;or for pallet 0.7 or earlier:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.compute&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;def &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;my-data-center&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.compute/compute-service&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&amp;quot;node-list&amp;quot;&lt;/span&gt;
+     &lt;span class=&quot;ss&quot;&gt;:node-list&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;qa&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;fullstack&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.13&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+                 &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;fe&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;tomcats&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.14&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;Instantiate based on &lt;code&gt;~/.pallet/config.clj&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;If your nodes are fairly static, you may wish to just list them in
+&lt;code&gt;~/.pallet/config.clj&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;defpallet&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;:services&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:data-center&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:provider&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;node-list&amp;quot;&lt;/span&gt;
+                 &lt;span class=&quot;ss&quot;&gt;:node-list&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;qa&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;fullstack&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.13&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+                             &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;fe&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;tomcats&amp;quot;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;10.11.12.14&amp;quot;&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:ubuntu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]})&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You can then obtain the compute service using
+&lt;a href=&quot;http://palletops.com/pallet/api/0.6/pallet.configure.html#var-compute-service&quot; title=&quot;pallet.configure/compute-service API doc&quot;&gt;pallet.configure/compute-service&lt;/a&gt;.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.configure&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;def &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;my-data-center&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.configure/compute-service&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:data-center&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Assigning Nodes to groups&lt;/h2&gt;
+
+&lt;p&gt;In the &lt;code&gt;:node-list&lt;/code&gt; values above, the first value in each vector is a hostname,
+the second value a group name, the third an IP address and the last is the
+operating system distribution running on the node.&lt;/p&gt;
+
+&lt;p&gt;The group-name is used to match the nodes to a group-spec (passed to lift, see
+below). This allows you to target different commands to different nodes.&lt;/p&gt;
+
+&lt;h2&gt;Specifying the SSH username and credentials&lt;/h2&gt;
+
+&lt;p&gt;Pallet uses SSH to talk to your nodes. The default is to use your local username
+and your id_rsa key, and assumes that your account on the nodes has
+password-less sudo set up.&lt;/p&gt;
+
+&lt;p&gt;The credentials for ssh are specified using a user map, which can be constructed
+using &lt;a href=&quot;http://palletops.com/doc/reference/node-push&quot; title=&quot;Configuring SSH credentials&quot;&gt;&lt;code&gt;pallet.utils/make-user&lt;/code&gt;&lt;/a&gt;. This user map can be passed to
+&lt;a href=&quot;http://palletops.com/doc/reference/operations&quot; title=&quot;Lift and Converge&quot;&gt;&lt;code&gt;lift&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Running a command on each node&lt;/h2&gt;
+
+&lt;p&gt;To test your configuration, trying running a simple &lt;code&gt;ls&lt;/code&gt; command.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.actions&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.api&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.api/lift&lt;/span&gt;
+ &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.api/group-spec&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&amp;quot;tomcats&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;:phases&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:configure&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.api/plan-fn&lt;/span&gt;
+                       &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.actions/exec-script&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;ls&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))})&lt;/span&gt;
+ &lt;span class=&quot;ss&quot;&gt;:compute&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;my-data-center&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;or for pallet 0.7 or earlier:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;require&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.action.exec-script&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;&amp;#39;pallet.phase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.core/lift&lt;/span&gt;
+ &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.core/group-spec&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&amp;quot;tomcats&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;:phases&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:configure&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.phase/phase-fn&lt;/span&gt;
+                       &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pallet.action.exec-script/exec-script&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;ls&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))})&lt;/span&gt;
+ &lt;span class=&quot;ss&quot;&gt;:compute&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;my-data-center&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
+   <author>
+     <name>Hugo Duncan</name>
+     <uri></uri>
+   </author>
+ </entry>
+ 
 </feed>

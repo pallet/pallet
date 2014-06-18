@@ -1,28 +1,98 @@
----
-layout: nil
----
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
  <title>Pallet, DevOps for the JVM -- FAQ</title>
- <link href="http://palletops.com{{site.base-url}}/doc/faq/atom.xml" rel="self"/>
- <link href="http://palletops.com{{site.base-url}}/doc/faq"/>
- <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>http://{{ site.domain }}{{site.base-url}}{{site.base-url}}/doc/faq</id>
+ <link href="http://palletops.com/pallet/doc/faq/atom.xml" rel="self"/>
+ <link href="http://palletops.com/pallet/doc/faq"/>
+ <updated>2014-06-18T20:18:50+00:00</updated>
+ <id>http://palletops.com/pallet/pallet/doc/faq</id>
  <author>
    <name>Antoni Batchelli</name>
    <email>tbatchelli@palletops.com</email>
  </author>
- {% for post in site.categories.faq limit:100 %}
+ 
  <entry>
-   <title>{{ post.title }}</title>
-   <link href="http://palletops.com{{site.base-url}}{{ post.url }}"/>
-   <updated>{{ post.date | date_to_xmlschema }}</updated>
-   <id>http://{{ site.domain }}{{site.base-url}}{{ post.url }}</id>
-   <content type="html">{{ post.content | xml_escape }}</content>
+   <title>FAQ Using AWS with the jclouds provider</title>
+   <link href="http://palletops.com/pallet/doc/faq/jclouds-aws/"/>
+   <updated>2012-08-29T00:00:00+00:00</updated>
+   <id>http://palletops.com/pallet/doc/faq/jclouds-aws/</id>
+   <content type="html">&lt;h1&gt;How do I run a node on an availability zone or region outside of us-east-1?&lt;/h1&gt;
+
+&lt;p&gt;To run a node outside of us-east-1, you will need to specify a &lt;code&gt;:location-id&lt;/code&gt; in
+your node-spec. You will also need to ensure that your AMI is available in the
+specified location.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;ss&quot;&gt;:image&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:image-id&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;us-east-1/ami-1aad5273&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;ss&quot;&gt;:location&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:location-id&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;us-east-1a&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;How do I run a node in a VPC?&lt;/h1&gt;
+
+&lt;p&gt;To run a node inside a VPC, you will need to specify a &lt;code&gt;:subnet-id&lt;/code&gt; in
+your node-spec.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;ss&quot;&gt;:location&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:subnet-id&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;subxxxx&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;Why does it take 20mins to list images?&lt;/h1&gt;
+
+&lt;p&gt;When jclouds starts, it requests a list of images from the provider. On AWS,
+this list is very long.  If you have DEBUG level logging to the console for
+jclouds.wire, then this takes a very long time. The solutions is to set the log
+level for jclouds.wire to INFO or WARN.&lt;/p&gt;
+
+&lt;h1&gt;How can I make jclouds see my AMIs?&lt;/h1&gt;
+
+&lt;p&gt;Since AWS has a very long list of images, jclouds filters the image lists by
+owner in order to improve performance. You can add your owner id to the list of
+owners it uses, by specifying it in your service configuration in
+&lt;code&gt;~/.pallet/config.clj&lt;/code&gt; or &lt;code&gt;~/.pallet/services/*&lt;/code&gt;, or when calling
+&lt;code&gt;pallet.compute/compute-service&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;ss&quot;&gt;:jclouds.ec2.ami-query&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;owner-id=137112412989&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;How do I run my node in previously existing security groups?&lt;/h1&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;ss&quot;&gt;:network&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:security-groups&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;my-security-group&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;How do I turn on Cloudwatch Monitoring when creating a node?&lt;/h1&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;ss&quot;&gt;:qos&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:enable-monitoring&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;See also
+&lt;a href=&quot;http://www.jclouds.org/documentation/userguide/using-ec2/&quot;&gt;Image Filters&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1&gt;How can I tell jclouds which credentials to use on bootstrap?&lt;/h1&gt;
+
+&lt;p&gt;Normally jclouds can find the login credentials based on the information
+provided in the AMI image.  For less frequently used images, it sometimes fails
+to determine the image&amp;#39;s login credentials, and you have to supply the relevant
+information in the template.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-clojure&quot; data-lang=&quot;clojure&quot;&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;node-spec&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;....&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:image&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:override-login-user&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;ubuntu&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Simple options here are &lt;code&gt;:override-login-user&lt;/code&gt;, &lt;code&gt;:override-login-password&lt;/code&gt;,
+&lt;code&gt;:override-login-private-key&lt;/code&gt;, and &lt;code&gt;:override-authenticate-sudo&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Alternatively, you can pass a &lt;code&gt;org.jclouds.domain.LoginCredentials&lt;/code&gt; object with
+&lt;code&gt;:override-login-credentials&lt;/code&gt; to set all of the above at once.  See
+&lt;code&gt;org.jclouds.domain.LoginCredentials/builder&lt;/code&gt; to construct an instance.&lt;/p&gt;
+
+&lt;h1&gt;How can I mount EBS volumes?&lt;/h1&gt;
+
+&lt;p&gt;EBS volumes can be mounted using the &lt;code&gt;:block-device-mappings&lt;/code&gt; argument in your
+&lt;code&gt;node-spec&lt;/code&gt; under the &lt;code&gt;:hardware&lt;/code&gt; key.  The argument is a sequence of jcloud&amp;#39;s
+BlockDeviceMapping objects.  At the moment, there is no clojure wrapper for
+creating these, but you can use the following jcloud&amp;#39;s constructors, which are
+static classes nested in &lt;code&gt;org.jclouds.ec2.domain.BlockDeviceMapping&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-java&quot; data-lang=&quot;java&quot;&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;MapEBSSnapshotToDevice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;deviceName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;snapshotId&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sizeInGib&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+                           &lt;span class=&quot;n&quot;&gt;deleteOnTermination&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;MapNewVolumeToDevice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;deviceName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sizeInGib&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;deleteOnTermination&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;MapEphemeralDeviceToDevice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;deviceName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;virtualName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;UnmapDeviceNamed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;deviceName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;See also&lt;/h1&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.jclouds.org/documentation/userguide/using-ec2/&quot;&gt;jclouds EC2 User Guide&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.jclouds.org/documentation/faqs/ec2-faq/&quot;&gt;jclouds EC2 FAQ&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
    <author>
-     <name>{{ post.author }}</name>
-     <uri>{{ post.author_url }}</uri>
+     <name></name>
+     <uri></uri>
    </author>
  </entry>
- {% endfor %}
+ 
 </feed>
