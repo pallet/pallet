@@ -241,7 +241,7 @@ credentials for that provider.</p>
 <h2>Credentials in config.clj</h2>
 
 <p>You can use the pallet configuration file
-<a href="/doc/reference/config.clj">~/.pallet/config.clj</a> to specify credentials.</p>
+<a href="/pallet/doc/reference/config.clj">~/.pallet/config.clj</a> to specify credentials.</p>
 <div class="highlight"><pre><code class="language-clojure" data-lang="clojure">  <span class="p">(</span><span class="nf">defpallet</span>
     <span class="ss">:services</span>
       <span class="p">{</span><span class="ss">:aws</span> <span class="p">{</span><span class="ss">:provider</span> <span class="s">&quot;ec2&quot;</span>
@@ -260,7 +260,7 @@ provider entry will be used, and you can specify an alternative provider by
 passing the key to the function.</p>
 <div class="highlight"><pre><code class="language-clojure" data-lang="clojure">  <span class="p">(</span><span class="nf">pallet.compute/service</span> <span class="s">&quot;rs&quot;</span><span class="p">)</span>
 </code></pre></div>
-<p>The <a href="/doc/reference/config.clj">~/.pallet/config.clj</a> file is read automatically
+<p>The <a href="/pallet/doc/reference/config.clj">~/.pallet/config.clj</a> file is read automatically
 by the <code>lein</code> plugin, and in <code>lein</code>, you can switch between providers using the
 <code>-P</code> command line option.</p>
 <div class="highlight"><pre><code class="language-bash" data-lang="bash">  lein pallet -P rs nodes
