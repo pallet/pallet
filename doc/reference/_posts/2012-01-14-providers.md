@@ -17,7 +17,7 @@ credentials for that provider.
 ## Credentials in config.clj
 
 You can use the pallet configuration file
-[~/.pallet/config.clj](/doc/reference/config.clj) to specify credentials.
+[~/.pallet/config.clj]({{site.baseurl}}/doc/reference/config.clj) to specify credentials.
 
 ``` clojure
   (defpallet
@@ -42,7 +42,7 @@ passing the key to the function.
   (pallet.compute/service "rs")
 ```
 
-The [~/.pallet/config.clj](/doc/reference/config.clj) file is read automatically
+The [~/.pallet/config.clj]({{site.baseurl}}/doc/reference/config.clj) file is read automatically
 by the `lein` plugin, and in `lein`, you can switch between providers using the
 `-P` command line option.
 

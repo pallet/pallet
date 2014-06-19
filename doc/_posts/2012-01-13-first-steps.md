@@ -361,7 +361,7 @@ To learn more refer to the following next steps:
   through [Pallet's mailing list][mailing-list] or via IRC at
   [#pallet][irc] on freenode.net.
 
-[ref-doc]: http://palletops.com/doc/reference-0.8
+[ref-doc]: {{site.baseurl}}/doc/reference-0.8
 [jclouds-providers]: http://jclouds.apache.org/guides/providers/
 [jclouds]: http://jclouds.apache.org
 [pallet-vmfest]: https://github.com/pallet/pallet-vmfest
