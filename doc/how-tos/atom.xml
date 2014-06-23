@@ -3,7 +3,7 @@
  <title>Pallet, DevOps for the JVM -- How-tos</title>
  <link href="http://palletops.com/pallet/doc/how-tos/atom.xml" rel="self"/>
  <link href="http://palletops.com/pallet/doc/how-tos"/>
- <updated>2014-06-19T18:31:24+00:00</updated>
+ <updated>2014-06-23T22:24:26+00:00</updated>
  <id>http://palletops.com/pallet/doc/how-tos</id>
  <author>
    <name>Antoni Batchelli</name>
@@ -32,7 +32,7 @@
 which is an web application that will control the URL-Shortener deployement and configuration. Once you run the project,
 the deployer will be built and present you with the following interface:&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140617-02/images/exoscale-1.png&quot; alt=&quot;exoscale deployer&quot;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com/20140623-01/images/exoscale-1.png&quot; alt=&quot;exoscale deployer&quot;&gt;&lt;/p&gt;
 
 &lt;h3&gt;Use Case&lt;/h3&gt;
 

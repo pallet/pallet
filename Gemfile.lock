@@ -36,7 +36,7 @@ GEM
       sass (~> 3.2)
     kramdown (1.4.0)
     liquid (2.5.5)
-    listen (2.7.8)
+    listen (2.7.9)
       celluloid (>= 0.15.2)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
