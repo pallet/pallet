@@ -1,0 +1,43 @@
+<footer class="footer">
+  <div class="container">
+    {% include main/banner-main.html %}
+    <div class="row">
+      <div class="col-md-5">
+        <h4>About</h4>
+            <p>Pallet is an open source DevOps library for the JVM,
+            built on Clojure, with native support for clusters, node
+              dependencies and agile development.</p>
+            <p></p>
+        <p>Infrastructure generously provided by:</p>
+        <p>
+          <a href="http://rackspace.com">
+            <img src="{{site.cdn}}/{{site.asset-ver}}/images/rackspace-logo.png" alt="Rackspace Logo"></img>
+            </a></p>
+      </div>
+      <div class="col-md-3 col-md-offset-1">
+        <h4>Site Map</h4>
+        <ul>
+          {% include main/navigation.html %}
+          </ul>
+      </div>
+      <div class="col-md-3">
+        <h4>Contact</h4>
+        <ul>
+        <li><a href="/contact">Contact Form</a></li>
+        <li><a href="/support">Get Support</a></li>
+        <li><a href="mailto:contact@palletops.com">email</a></li>
+	<li><a href="https://twitter.com/intent/user?screen_name=PalletOps" target="_blank"><i class="fa fa-twitter"></i>twitter</a></li>
+        </ul>
+      </div>
+    </div> <!-- row -->
+    <p class="pull-right"><a href="#"><br>Back to top</a></p>
+    <p>
+      <br>
+      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
+      Copyright &copy; 2014 Hugo Duncan and Antoni Batchelli
+    </p>
+  </div>
+</footer>
+
+{% include main/scripts.html %}

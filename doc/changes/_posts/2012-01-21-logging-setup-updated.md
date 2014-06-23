@@ -1,5 +1,5 @@
 ---
-layout: news
+layout: main/blog-post
 title: Logging section updated for SLF4J
 section: documentation
 ---

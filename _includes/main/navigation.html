@@ -7,7 +7,7 @@
                 {% if section.sections contains page.section %}
                    {% assign active = "active" %}
                 {% endif %}
-                <li class="{{active}}">
+                  <li class="{{active}} {{section.class}}" >
                   <a href="{{section.url}}">
                     {{section.text}}
                     </a>

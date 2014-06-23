@@ -1,8 +1,6 @@
 <div class="col-md-9 content">
   <div class="page-header">
-    <h1 class="title">
-      {{ post.title}}
-    </h1>
+    <h1 class="title"> {{ post.title}} </h1>
   </div>
   <div class="doc-tabs">
     {% capture crateintro %}{% include crate-intro.markdown %}{% endcapture %}
@@ -15,20 +13,13 @@
     {% capture cratefoot %}{% include crate-foot.markdown %}{% endcapture %}
     {{ cratefoot | markdownify }}
   </div>
-  {% include broken-doc.html %}
-  {% include share.html %}
-  <div class="row disqus-post-comments">
-  {% include disqus.html %}
-  </div>
+  {% include main/broken-doc.html %}
+  {% include main/share.html %}
 </div><!--content-->
 
 <div class="col-md-3 sidebar">
-  <h1>&nbsp;</h1>
   {% include docindex.html %}
   <h3><a href="{{site.baseurl}}/doc/crate">Crates</a><br/></h3>
   {% include crateindex.html %}
-  <br/>
-  {% include banner-side.html %}
-  {% include twitter-widget.html %}
-  <br/>
+  {% include main/sidebar-common.html %}
 </div>

@@ -13,11 +13,8 @@
   <div class="doc-tabs">
     {% include reflinks.html %}
   </div>
-  {% include broken-doc.html %}
-  {% include share.html %}
-  <div class="disqus-post-comments">
-    {% include disqus.html %}
-  </div>
+  {% include main/broken-doc.html %}
+  {% include main/share.html %}
 </div><!--content-->
 
 <div class="col-md-3 sidebar">
@@ -37,7 +34,5 @@
   {% else %}
     {% include refindex.html %}
   {% endif %}
-  <br/>
-  {% include twitter-widget.html %}
-  <br/>
+  {% include main/sidebar-common.html %}
 </div>

@@ -10,16 +10,13 @@
   url: /pallet/doc
   sections: [doc, documentation]
 - text: News
-  active: true
+  active: false
   url: /news
   sections: [news]
 - text: Blog
   active: true
   url: /blog
   sections: [blog]
-- text: Code
-  active: true
-  url: https://github.com/pallet/pallet
 - text: Services
   active: true
   url: /services
@@ -28,10 +25,16 @@
   active: true
   url: /support
   sections: [support]
+  class: hidden-sm hidden-xm
 - text: Contact
   active: true
   url: /contact
   sections: [contact]
+  class: hidden-sm hidden-xm
+- text: Code
+  active: true
+  url: https://github.com/pallet/pallet
+  class: hidden-sm hidden-xs
 - text: Getting Started
   active: false
   url: /pallet/doc/getting-started

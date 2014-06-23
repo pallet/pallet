@@ -1,5 +1,5 @@
 ---
-layout: news
+layout: main/blog-post
 title: Stevedore script reference updated
 section: documentation
 ---

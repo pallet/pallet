@@ -7,21 +7,14 @@
   <div class="post_content">
     {{ content }}
   </div>
-  {% include broken-doc.html %}
-  {% include share.html %}
-  <div class="disqus-post-comments">
-  {% include disqus.html %}
-  </div>
+  {% include main/broken-doc.html %}
+  {% include main/share.html %}
 </div><!--content-->
 
 <div class="col-md-3 sidebar">
-  <h1>&nbsp;</h1>
   {% include docindex.html %}
   <h3><a href="{{site.baseurl}}/doc/crates">Crates</a><br/></h3>
   {% capture crates %}{% include crate-index.md %}{% endcapture %}
   {{ crates | markdownify }}
-  <br/>
-  {% include banner-side.html %}
-  {% include twitter-widget.html %}
-  <br/>
+  {% include main/sidebar-common.html %}
 </div>

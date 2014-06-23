@@ -6,9 +6,9 @@ section: documentation
 <!doctype html>
 <html lang="en">
   {% assign atom = true %}
-  {% include head.html %}
+  {% include main/head.html %}
   <body>
-    {% include topbar.html %}
+    {% include main/topbar.html %}
     <div class="post">
       <div class="container">
         <div class="row">
@@ -32,14 +32,10 @@ section: documentation
             
           </div>
           <div class="col-md-3 sidebar">
-            <br>
-            <br>
-            <br>
-            {% include banner-side.html %}
-            {% include twitter-widget.html %}
+            {% include main/sidebar-common.html %}
           </div>
         </div> <!-- row -->
       </div> <!-- container -->   
-      {% include foot.html %}
+      {% include main/foot.html %}
   </body>
 </html>

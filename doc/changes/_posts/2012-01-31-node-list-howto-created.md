@@ -1,5 +1,5 @@
 ---
-layout: news
+layout: main/blog-post
 title: Node-List How-To Created
 section: documentation
 ---

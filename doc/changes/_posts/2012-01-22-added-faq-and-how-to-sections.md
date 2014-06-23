@@ -1,5 +1,5 @@
 ---
-layout: news
+layout: main/blog-post
 title: Added FAQ and How-To sections
 section: documentation
 ---
