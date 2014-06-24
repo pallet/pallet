@@ -1,7 +1,7 @@
             {% for section in site.data.navigation %}
               {% if section.active %}
                 {% assign active = nil %}
-                 {% if section.sections contains page.section %}
+                {% if section.sections contains page.section %}
                    {% assign active = "active" %}
                 {% endif %}
                   <li class="{{active}} {{section.class}}" >

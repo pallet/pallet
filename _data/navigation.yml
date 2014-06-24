@@ -31,7 +31,7 @@
   url: /contact
   sections: [contact]
   class: hidden-sm hidden-xm
-- text: Code
+- text: <i class="fa fa-github"></i> Code
   active: true
   url: https://github.com/pallet/pallet
   class: hidden-sm hidden-xs
