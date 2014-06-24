@@ -1,5 +1,5 @@
 ---
-layout: doc
+layout: main/naked-doc
 title: Documentation
 section: documentation
 ---
@@ -7,12 +7,16 @@ section: documentation
 Pallet is a node provisioning, configuration and administration tool.  It is
 designed to make small to midsize deployments simple.
 
+{% include docindex-ver.html %}
+
+{% comment %}
 - [Overview]({{site.baseurl}}/doc/overview)
 - [First Steps]({{site.baseurl}}/doc/first-steps)
 - [Reference Documentation]({{site.baseurl}}/doc/reference)
 - [How Tos]({{site.baseurl}}/doc/how-tos)
 - [Crates]({{site.baseurl}}/doc/crates)
 - [API Documentation]({{site.baseurl}}/api/0.7/index.html)
+{% endcomment %}
 
 {% comment %} // dont' add this back until we have updates 
 ## [Latest Documentation Changes]({{site.baseurl}}/doc/changes) <small><a href="{{site.baseurl}}/doc/changes/atom.xml">RSS</a></small>
@@ -36,5 +40,5 @@ designed to make small to midsize deployments simple.
 <p><a class="pull-right" href="{{site.baseurl}}/doc/faq"> See all the FAQs &rarr;</a></p>
 
 {% endcomment %}
-<br>
+
 
