@@ -4,14 +4,14 @@
       {{ post.title}}
     </h1>
   </div>
-  <div class="post_content">
+  <div class="post-content">
     {{ content }}
   </div>
   {% include main/broken-doc.html %}
   {% include main/share.html %}
 </div><!--content-->
 
-<div class="col-md-3 sidebar">
+<div class="col-md-3 col-xs-12 sidebar">
   {% include docindex.html %}
   <h3><a href="{{site.baseurl}}/doc/crates">Crates</a><br/></h3>
   {% capture crates %}{% include crate-index.md %}{% endcapture %}

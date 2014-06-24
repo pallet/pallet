@@ -1,24 +1,20 @@
 <!-- This must be within a content class -->
 {% capture url %}http://{{site.domain}}{{site.baseurl}}{{page.url}}{% endcapture %}
-<div class="panel panel-default">
+<div class="panel panel-default post-share-panel">
   <div class="panel-heading">
     <h3 class="panel-title">Share this post:</h3>
   </div> <!-- /.panel-heading-->
-  <div class="row panel-body">
-    <div class="col-md-2 col-md-offset-1">
-      <a href="//twitter.com/intent/tweet?url={{ url | cgi_escape }}&text={{ 'Check this out:' | cgi_escape}}&hashtags=palletops">
+  <div class="panel-body">
+    <ul class="list-inline">
+      <li> <a href="//twitter.com/intent/tweet?url={{ url | cgi_escape }}&text={{ 'Check this out:' | cgi_escape}}&hashtags=palletops">
 	 <button class="btn btn-sm btn-twitter"><i class="fa
-	 fa-twitter"></i> | Twitter</button> </a>
-    </div>
-    <div class="col-md-2">
-      <a href="http://linkedin.com/shareArticle?mini=true&url={{ url | cgi_escape }}&title={{page.title}}&summary={{page.excerpt|strip_html}}">
+	 fa-twitter"></i> | Twitter</button> </a> </li>
+      <li><a href="http://linkedin.com/shareArticle?mini=true&url={{ url | cgi_escape }}&title={{page.title}}&summary={{page.excerpt|strip_html}}">
 	<button class="btn btn-sm btn-linkedin"><i class="fa
-	fa-linkedin"></i> | LinkedIn</button></a>
-    </div>
-    <div class="col-md-2">
-      <a href="https://plus.google.com/share?url={{ url | cgi_escape }}"
-	 <button class="btn btn-sm btn-google-plus"><i class="fa
-	 fa-google-plus"></i> | Goolge+</button></a>
-    </div>
+	fa-linkedin"></i> | LinkedIn</button></a><li>
+      <li><a href="https://plus.google.com/share?url={{ url | cgi_escape }}"
+	 <button class="btn btn-sm btn-google-plus">
+	   <i class="fa fa-google-plus"></i> | Goolge+</button></a></li>
+    </ul>
   </div> <!-- share row -->
 </div>

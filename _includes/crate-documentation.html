@@ -6,7 +6,7 @@
     {% capture crateintro %}{% include crate-intro.markdown %}{% endcapture %}
     {{ crateintro | markdownify }}
   </div>
-  <div class="post_content">
+  <div class="post-content">
     {{ content }}
   </div>
   <div class="doc-tabs">
@@ -17,7 +17,7 @@
   {% include main/share.html %}
 </div><!--content-->
 
-<div class="col-md-3 sidebar">
+<div class="col-md-3 col-xs-12 sidebar">
   {% include docindex.html %}
   <h3><a href="{{site.baseurl}}/doc/crate">Crates</a><br/></h3>
   {% include crateindex.html %}

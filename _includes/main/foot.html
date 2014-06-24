@@ -14,13 +14,13 @@
             <img src="{{site.cdn}}/{{site.asset-ver}}/images/rackspace-logo.png" alt="Rackspace Logo"></img>
             </a></p>
       </div>
-      <div class="col-md-3 col-md-offset-1">
+      <div class="col-md-3  col-xs-6 col-md-offset-1">
         <h4>Site Map</h4>
         <ul>
           {% include main/navigation.html %}
           </ul>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-3 col-xs-6">
         <h4>Contact</h4>
         <ul>
         <li><a href="/contact">Contact Form</a></li>
@@ -30,13 +30,21 @@
         </ul>
       </div>
     </div> <!-- row -->
-    <p class="pull-right"><a href="#"><br>Back to top</a></p>
-    <p>
-      <br>
-      Site built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
-      <a target="_blank" href="http://getbootstrap.com">Bootstrap</a>.<br>
-      Copyright &copy; 2014 Hugo Duncan and Antoni Batchelli
-    </p>
+    <div class="row footer-footer">
+      <div class="col-sm-6">
+	<p>
+	  Copyright &copy; 2014 Hugo Duncan and Antoni Batchelli
+	</p>
+      </div>
+      <div class="col-sm-6">
+	<div class="pull-right">
+	  <p class="text-muted">
+	    <small>Built with <a target="_blank" href="http://jekyllrb.com">Jekyll</a> and
+	    <a target="_blank" href="http://getbootstrap.com">Bootstrap</a> on
+	    {{ site.time | date_to_rfc822 }}</small></p>
+	</div>
+      </div>
+    </div> <!-- /.row -->
   </div>
 </footer>
 

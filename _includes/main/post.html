@@ -1,36 +1,17 @@
-{% if page.is_index %}{% assign content = post.content %}{% endif %}
 <div class="row">
 <div class="col-md-9 content">
   <div class="page-header">
-    {% if post.title %}
-      <h1 class="title">
-      {% if page.is_index %}
-        <a href="/{{ post.url }}">
-          {{ post.title }}
-        </a>
-      {% else %}
-        {{ post.title}}
-      {% endif %}
-      </h1>
-    {% endif %}
+    <h1 class="title"><a href="/{{ page.url }}">{{ page.title }}</a></h1>
   </div>
-  <div class="post_content">
-    {% if page.is_index %}
-       {% if post.summary %}
-         {{ post.summary }}
-       {% else %}
-         {{ content }}
-      {% endif %}
-    {% else %}
-      {{ content }}
-    {% endif %}
+  <div class="post-content">
+    {{ content }}
   </div>
-  <p class="text-muted"> This post was published on {{ post.date | date:'%d %B %Y' }}
+  <p class="text-muted post-meta"> This post was published on {{ post.date | date:'%d %B %Y' }}
   under the categories: {% for category in post.categories %}{{category }} {% endfor %} </p>
   {% include main/share.html %}
   {% include main/disqus.html %}
 </div><!--content-->
-<div class="col-md-3 sidebar">
+<div class="col-md-3 col-xs-12 sidebar">
   {% include main/sidebar-common.html %}
-</div> <!-- /.sidebar -->
+</div><!-- /.sidebar -->
 </div><!-- /.row -->
