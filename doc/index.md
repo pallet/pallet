@@ -1,5 +1,5 @@
 ---
-layout: main/naked-doc
+layout: doc
 title: Documentation
 section: documentation
 ---
