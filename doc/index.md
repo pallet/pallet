@@ -2,6 +2,7 @@
 layout: doc
 title: Documentation
 section: documentation
+is-index: true
 ---
 
 Pallet is a node provisioning, configuration and administration tool.  It is
