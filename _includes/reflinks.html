@@ -1,20 +1,20 @@
   <p>
-    {% if post.apiver %}
-      <a href="{{site.baseurl}}/doc/reference-{{ post.apiver }}">Reference Index</a>
+    {% if page.apiver %}
+      <a href="{{site.baseurl}}/doc/reference-{{ page.apiver }}">Reference Index</a>
     {% else %}
       <a href="{{site.baseurl}}/doc/reference">Reference Index</a>
     {% endif %}
-    {% if post.prior %}
+    {% if page.prior %}
       {% for p in site.categories.reference %}
-        {% if p.url == post.prior %}
+        {% if p.url == page.prior %}
           &#xb7; <a href="{{site.baseurl}}{{ p.url }}">{{ p.title }}</a>
         {% endif %}
       {% endfor %}
     {% endif %}
 
-    {% if post.follow %}
+    {% if page.follow %}
       {% for p in site.categories.reference %}
-        {% if p.url == post.follow %}
+        {% if p.url == page.follow %}
           &#xb7; <a href="{{site.baseurl}}{{ p.url }}">{{ p.title }}</a>
         {% endif %}
       {% endfor %}

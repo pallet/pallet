@@ -18,10 +18,9 @@ section: news
                 {{ page.title }}
               </h1>
             </div>
-
             {% for post in site.categories.changes offset: 0 limit: 150 %}
             <!-- include news_summary.html -->
-              <div class="post-content">
+              <div class="post_content">
                 <h2><a href="{{site.baseurl}}{{ post.url }}">{{ post.title }}</a></h2>
                 <p class="date"><small>{{ post.date | date: "%A, %d %B %Y"}}</small></p>
                 <p>{% if post.summary %}
@@ -34,7 +33,6 @@ section: news
                 </p>
               </div>
             {% endfor %}
-         
            </div>
           <div class="col-md-3 col-xs-12 sidebar">
             {% include main/sidebar-common.html %}

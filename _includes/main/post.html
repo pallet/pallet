@@ -6,8 +6,8 @@
   <div class="post-content">
     {{ content }}
   </div>
-  <p class="text-muted post-meta"> This post was published on {{ post.date | date:'%d %B %Y' }}
-  under the categories: {% for category in post.categories %}{{category }} {% endfor %} </p>
+  <p class="text-muted post-meta"> This post was published on {{ page.date | date:'%d %B %Y' }}
+  under the categories: {% for category in page.categories %}{{category }} {% endfor %} </p>
   {% include main/share.html %}
   {% include main/disqus.html %}
 </div><!--content-->
