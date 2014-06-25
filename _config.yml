@@ -6,7 +6,7 @@ name: PalletOps
 highlighter: pygments
 domain: palletops.com
 cdn: http://67516654d2ef99c3042d-b9d92f522aee852c07f26ce9d1459c9c.r8.cf1.rackcdn.com
-asset-ver: 20140624-01
+asset-ver: 20140625-01
 gems:
   - jekyll-redirect-from
 baseurl: /pallet
