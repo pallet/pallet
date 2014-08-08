@@ -81,7 +81,7 @@ Copyright 2010, 2011, 2012  Hugo Duncan.
 
 [palletops]: http://palletops.com "Pallet site"
 
-[docs]: http://palletops.com/doc "Pallet Documentation"
+[docs]: http://palletops.com/pallet/doc "Pallet Documentation"
 [ml]: http://groups.google.com/group/pallet-clj "Pallet mailing list"
 [basicdemo]: https://github.com/pallet/pallet-examples/blob/develop/basic/src/demo.clj "Basic interactive usage of Pallet"
 [basic]: https://github.com/pallet/pallet-examples/tree/develop/basic/ "Basic Pallet Examples"
