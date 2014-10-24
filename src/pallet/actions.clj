@@ -639,7 +639,7 @@ only specified files or directories, use the :extract-files option.
                   unpack tar-options unzip-options jar-options
                   strip-components md5 md5-url owner group recursive
                   force-overwrite
-                  local-file-options]
+                  local-file-options blob blobstore]
            :or {action :create
                 tar-options "xz"
                 unzip-options "-o"

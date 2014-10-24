@@ -29,7 +29,7 @@
 (defn- source-to-cmd-and-path
   [session path
    {:keys [url local-file remote-file md5 md5-url install-new-files
-           overwrite-changes]}
+           overwrite-changes blob blobstore]}
    upload-path content-files action-options]
   (cond
    url (let [filename (.getFile (java.net.URL. url))
@@ -43,6 +43,17 @@
                               :overwrite-changes overwrite-changes})
                first second))
           tarpath])
+   blob (let [filename (:path blob)
+              tarpath (content-path content-files session action-options
+                                    (str path filename))]
+          [(stevedore/chain-commands
+            (-> (directory* session (fragment @(dirname ~tarpath))) first second)
+            (-> (remote-file* session tarpath
+                              {:install-new-files install-new-files
+                               :overwrite-changes overwrite-changes
+                               :blob blob :blobstore blobstore})
+                first second))
+           tarpath])
    local-file [""
                upload-path
                (md5-filename session (-> session :action :script-dir) path)]
@@ -53,7 +64,8 @@
   [session path {:keys [action url local-file remote-file
                         unpack tar-options unzip-options jar-options
                         strip-components md5 md5-url owner group recursive
-                        install-new-files overwrite-changes extract-files]
+                        install-new-files overwrite-changes extract-files
+                        blob blobstore]
                  :or {action :create
                       tar-options "xz"
                       unzip-options "-o"
@@ -75,7 +87,7 @@
                               (assoc options
                                 :group (fragment @(user-default-group ~owner)))
                               options)]
-                (when (and (or url local-file remote-file) unpack)
+                (when (and (or url local-file remote-file blob) unpack)
                   (let [[cmd tarpath tar-md5] (source-to-cmd-and-path
                                                session path
                                                (select-keys
@@ -83,7 +95,8 @@
                                                 [:url :local-file :remote-file
                                                  :md5 :md5-url
                                                  :install-new-files
-                                                 :overwrite-changes])
+                                                 :overwrite-changes
+                                                 :blob :blobstore])
                                                upload-path
                                                content-files
                                                action-options)

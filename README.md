@@ -44,7 +44,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 ### lein project.clj
 
 ```clojure
-:dependencies [[com.palletops/pallet "0.8.0-RC.9"]]
+:dependencies [[com.palletops/pallet "0.8.0-RC.10"]]
 ```
 
 ### maven pom.xml
@@ -54,7 +54,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>com.palletops</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.8.0-RC.9</version>
+    <version>0.8.0-RC.10</version>
   </dependency>
 <dependencies>
 
@@ -81,7 +81,7 @@ Copyright 2010, 2011, 2012  Hugo Duncan.
 
 [palletops]: http://palletops.com "Pallet site"
 
-[docs]: http://palletops.com/doc "Pallet Documentation"
+[docs]: http://palletops.com/pallet/doc "Pallet Documentation"
 [ml]: http://groups.google.com/group/pallet-clj "Pallet mailing list"
 [basicdemo]: https://github.com/pallet/pallet-examples/blob/develop/basic/src/demo.clj "Basic interactive usage of Pallet"
 [basic]: https://github.com/pallet/pallet-examples/tree/develop/basic/ "Basic Pallet Examples"

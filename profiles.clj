@@ -10,10 +10,7 @@
                                         :compile-path]
        :plugins [[codox/codox.leiningen "0.6.4"]
                  [lein-marginalia "0.7.1"]
-                 [lein-pallet-release "0.1.3"]],
-       :pallet-release
-       {:url "https://pbors:${GH_TOKEN}@github.com/pallet/pallet.git",
-        :branch "master"}}
+                 [lein-pallet-release "RELEASE"]],}
  :doc {:dependencies [[com.palletops/pallet-codox "0.1.0"]]
        :codox {:writer codox-md.writer/write-docs
                :output-dir "autodoc/api/0.8"
@@ -22,9 +19,6 @@
        :aliases {"marg" ["marg" "-d" "autodoc/marginalia/0.8/"]
                  "codox" ["doc"]
                  "doc" ["do" "codox," "marg"]}}
- :release
- {:set-version
-  {:updates [{:path "README.md" :no-snapshot true}]}}
  :no-checkouts {:checkout-deps-shares ^:replace []} ; disable checkouts
  :clojure-1.5.0 {:dependencies [[org.clojure/clojure "1.5.0"]]}
  :jclouds {:repositories
