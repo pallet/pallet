@@ -1,3 +1,24 @@
+## 0.8.0-RC.10
+
+- Enable blob source for remote-directory
+
+- Add support for pallet.repl's step-wise lift/mock. Fixes #334
+  data-api/explain-plan now:
+
+  1- Takes a plan-state to continue a session 2- returns {:actions <actions>
+  :session <session>}
+
+- Add :plan-state to lift's schema. Fixes #333
+
+- Update to pallet-stevedore 0.8.0-beta.7
+  Closes #329
+
+- Upgrade tools.macro to 0.1.2
+
+- Add exclusion for tools.logging on fsmop
+
+- Add dev-resource file for emacs clojure indents
+
 ## 0.8.0-RC.9
 
 - Update to lein-pallet-release 0.1.3
@@ -9,7 +30,7 @@
 - Print session when error in pallet up, summary if success.
 
 - Fix remote-directory with a url and md5
-  Remote-directory with a url and md5 was failing due to the filename of the 
+  Remote-directory with a url and md5 was failing due to the filename of the
   intermediate directory not matching the original download filename.
 
 - Make the :user config optional for nohup crate
