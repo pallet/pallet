@@ -1,3 +1,9 @@
+## 0.8.0-RC.11
+
+- Apply multiple yum actions in single transaction
+  When carrying out multiple yum install/remove actions, do so atomically 
+  using yum shell.
+
 ## 0.8.0-RC.10
 
 - Enable blob source for remote-directory
