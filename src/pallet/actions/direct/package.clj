@@ -174,33 +174,76 @@
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
 
+(defmulti yum-shell-clause
+  (fn [action package] action))
+
+(defmethod yum-shell-clause :default
+  [action package]
+  (stevedore/script (~(name action) ~package)))
+
+(defmethod yum-shell-clause :remove
+  [action package]
+  (stevedore/script
+   @(if ("rpm" --query --queryformat (quoted "") (quoted ~package)
+         ">" "/dev/null" "2>&1")
+      (println ~(name action) (quoted ~package)))))
+
 ;; `yum` has separate install, remove and purge commands, so we just need to
-;; split by enable/disable options and by command.  We install before removing.
+;; split by enable/disable options and by command. Multiple actions are applied
+;; as a single transaction using yum shell.
 (defmethod adjust-packages :yum
   [session packages]
-  (checked-commands
-   "Packages"
-   (stevedore/chain-commands*
-    (conj
-     (vec
-      (for [[action packages] (->> packages
-                                   (sort-by #(action-order (:action %)))
-                                   (group-by :action))
-            [opts packages] (->>
-                             packages
-                             (group-by
-                              #(select-keys % [:enable :disable :exclude]))
-                             (sort-by #(apply min (map :priority (second %)))))]
-        (stevedore/script
-         ("yum"
-          ~(name action) -q -y
-          ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
-          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
-          ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
-          ~(string/join
-            " "
-            (distinct (map :package packages)))))))
-     (stevedore/script (~lib/list-installed-packages))))))
+  (let [final-state (reduce
+                     (fn [f {:keys [package action]}]
+                       (assoc f package action))
+                     {}
+                     packages)]
+    (checked-commands
+     "Packages"
+     (stevedore/chain-commands*
+      (for [[{:keys [enable disable exclude]} packages]
+            (group-by #(select-keys % [:enable :disable :exclude]) packages)
+            :let [action-packages (group-by :action packages)]]
+        (if (> (count action-packages) 1)
+          (stevedore/script
+           (lib/heredoc-in
+            ("yum"
+             -y
+             ~(string/join " " (map #(str "--disablerepo=" %) disable))
+             ~(string/join " " (map #(str "--enablerepo=" %) enable))
+             ~(string/join " " (map #(str "--exclude=" %) exclude))
+             shell)
+            ~(str
+              (string/join "\n"
+                           (for [{:keys [action package]} packages]
+                             (stevedore/script
+                              ~(yum-shell-clause action package))))
+              "\nrun\nexit\n")
+            {:literal false}))
+
+          (let [[action packages] (first action-packages)]
+            (stevedore/script
+             ("yum"
+              -q -y
+              ~(string/join " " (map #(str "--disablerepo=" %) disable))
+              ~(string/join " " (map #(str "--enablerepo=" %) enable))
+              ~(string/join " " (map #(str "--exclude=" %) exclude))
+              ~(name action)
+              ~(string/join " " (map :package packages))))))))
+
+     ;; yum swap doesn't report failed installed in its exit code
+     ;; so explicitly check for success
+     (stevedore/chain-commands*
+      (for [[package action] (sort-by key final-state)]
+        (cond
+         (#{:install :upgrade} action)
+         (stevedore/script
+          ("rpm" --query --queryformat (quoted "") (quoted ~package)))
+         (= :remove action)
+         (stevedore/script
+          (not ("rpm" --query --queryformat (quoted "") (quoted ~package))))))))))
+
+
 
 
 (defmethod adjust-packages :default
