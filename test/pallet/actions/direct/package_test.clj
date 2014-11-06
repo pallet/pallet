@@ -92,10 +92,22 @@
               {:server {:tag :n :image {:os-family :centos}}}
             (exec-checked-script
              "Packages"
-             "yum install -q -y java rubygems"
-             "yum remove -q -y git ruby"
-             "yum upgrade -q -y maven2"
-             ("yum" list installed))))
+             (lib/heredoc-in
+              ("yum -y shell")
+              ~(stevedore/script
+                ("install java")
+                ("install rubygems")
+                ("upgrade maven2")
+                "$(if rpm --query --queryformat \"\" \"git\" > /dev/null 2>&1; then echo remove \"git\";fi)"
+                "$(if rpm --query --queryformat \"\" \"ruby\" > /dev/null 2>&1; then echo remove \"ruby\";fi)"
+                "run"
+                "exit")
+              {:literal false})
+             (not ("rpm" --query --queryformat (quoted "") (quoted git)))
+             ("rpm" --query --queryformat (quoted "") (quoted java))
+             ("rpm" --query --queryformat (quoted "") (quoted maven2))
+             (not ("rpm" --query --queryformat (quoted "") (quoted ruby)))
+             ("rpm" --query --queryformat (quoted "") (quoted rubygems)))))
          (first
           (build-actions
               {:server {:tag :n :image {:os-family :centos}}}
@@ -651,10 +663,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          ("yum" install -q -y p2)
-          ("yum" remove -q -y p1 p4)
-          ("yum" upgrade -q -y p3)
-          ("yum" list installed))
+          (lib/heredoc-in
+           ("yum -y shell")
+           ~(stevedore/script
+             "$(if rpm --query --queryformat \"\" \"p1\" > /dev/null 2>&1; then echo remove \"p1\";fi)"
+             ("install" p2)
+             ("upgrade" p3)
+             "$(if rpm --query --queryformat \"\" \"p4\" > /dev/null 2>&1; then echo remove \"p4\";fi)"
+             "run"
+             "exit")
+           {:literal false})
+          (not ("rpm" --query --queryformat (quoted "") (quoted p1)))
+          ("rpm" --query --queryformat (quoted "") (quoted p2))
+          ("rpm" --query --queryformat (quoted "") (quoted p3))
+          (not ("rpm" --query --queryformat (quoted "") (quoted p4))))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:yum]
              (adjust-packages
@@ -667,9 +689,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          ("yum" install -q -y "--disablerepo=r1" p2)
-          ("yum" install -q -y p1)
-          ("yum" list installed))
+          ("yum" -q -y install p1)
+          ("yum" -q -y "--disablerepo=r1" install p2)
+          ("rpm" --query --queryformat (quoted "") (quoted p1))
+          ("rpm" --query --queryformat (quoted "") (quoted p2)))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:yum]
              (adjust-packages
@@ -680,9 +703,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          ("yum" install -q -y "--disablerepo=r1" p2)
-          ("yum" install -q -y p1)
-          ("yum" list installed))
+          ("yum" -q -y install p1)
+          ("yum" -q -y "--disablerepo=r1" install p2)
+          ("rpm" --query --queryformat (quoted "") (quoted p1))
+          ("rpm" --query --queryformat (quoted "") (quoted p2)))
          (first
           (build-actions centos-session
             (package "p1")
