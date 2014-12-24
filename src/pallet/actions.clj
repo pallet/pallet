@@ -814,7 +814,14 @@ The :id key must contain a recognised repository."
   [local-path remote-path {:keys [port]}])
 
 (defaction rsync-to-local
-  "Use rsync to copy files from remote-path to local-path"
+  "Use rsync to copy files from remote-path to local-path
+  Rsync runs on the machine running the pallet application.
+  Default options:
+    :r -r Recurse into directories.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   [remote-path local-path {:keys [port]}])
 
 (defn rsync-directory
