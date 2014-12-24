@@ -853,7 +853,14 @@ The :id key must contain a recognised repository."
     (rsync from to options)))
 
 (defn rsync-to-local-directory
-  "Rsync from a local directory to a remote directory."
+  "Rsync from a local directory to a remote directory.
+  Rsync runs on the machine running the pallet application.
+  Default options:
+    :r -r Recurse into directories.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   {:pallet/plan-fn true}
   [from to & {:keys [owner group mode port] :as options}]
   (phase-context rsync-directory-fn {:name :rsync-directory}
