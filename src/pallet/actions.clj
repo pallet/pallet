@@ -810,8 +810,8 @@ The :id key must contain a recognised repository."
 
 ;;; # Synch local file to remote
 (defaction rsync
-  "Use rsync to copy files from local-path to remote-path
-  Rsync runs on the machine running the pallet application.
+  "Use rsync to copy files from local-path to remote-path.
+  Rsync must be installed on both local and remote machines.
   Default options:
     :r -r Recurse into directories.
     :delete --delete Delete extraneous files from dest dirs.
@@ -823,7 +823,7 @@ The :id key must contain a recognised repository."
 
 (defaction rsync-to-local
   "Use rsync to copy files from remote-path to local-path
-  Rsync runs on the machine running the pallet application.
+  Rsync must be installed on both local and remote machines.
   Default options:
     :r -r Recurse into directories.
     :copy-links --copy-links Transform symlink into referent file/dir.
@@ -834,7 +834,7 @@ The :id key must contain a recognised repository."
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory.
-  Rsync runs on the machine running the pallet application.
+  Rsync must be installed on both local and remote machines.
   Default options:
     :r -r Recurse into directories.
     :delete --delete Delete extraneous files from dest dirs.
@@ -854,7 +854,7 @@ The :id key must contain a recognised repository."
 
 (defn rsync-to-local-directory
   "Rsync from a local directory to a remote directory.
-  Rsync runs on the machine running the pallet application.
+  Rsync must be installed on both local and remote machines.
   Default options:
     :r -r Recurse into directories.
     :copy-links --copy-links Transform symlink into referent file/dir.
