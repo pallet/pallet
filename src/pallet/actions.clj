@@ -812,6 +812,9 @@ The :id key must contain a recognised repository."
 (defaction rsync
   "Use rsync to copy files from local-path to remote-path.
   Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
   Default options:
     :r -r Recurse into directories.
     :delete --delete Delete extraneous files from dest dirs.
@@ -824,6 +827,9 @@ The :id key must contain a recognised repository."
 (defaction rsync-to-local
   "Use rsync to copy files from remote-path to local-path
   Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
   Default options:
     :r -r Recurse into directories.
     :copy-links --copy-links Transform symlink into referent file/dir.
@@ -835,6 +841,9 @@ The :id key must contain a recognised repository."
 (defn rsync-directory
   "Rsync from a local directory to a remote directory.
   Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
   Default options:
     :r -r Recurse into directories.
     :delete --delete Delete extraneous files from dest dirs.
@@ -855,6 +864,9 @@ The :id key must contain a recognised repository."
 (defn rsync-to-local-directory
   "Rsync from a local directory to a remote directory.
   Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
   Default options:
     :r -r Recurse into directories.
     :copy-links --copy-links Transform symlink into referent file/dir.
