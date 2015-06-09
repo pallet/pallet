@@ -6,7 +6,8 @@
    [pallet.crate :refer [defplan]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [with-source-line-comments]]))
+   [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [apply-map]]))
 
 (defplan write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if
@@ -31,3 +32,30 @@
                \newline
                (for [[k v] (partition 2 key-value-pairs)]
                  (str (name k) "=" (pr-str v)))))))
+
+(defplan write-opts
+  "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if
+   filename starts with a /.  Note that all values are quoted, and quotes in
+   values are escaped, but otherwise, values are written literally.
+
+   e.g. (write_opts \"tomcat6\"
+          {:JAVA_OPTS \"-Xmx1024m\"
+           \"JSP_COMPILER\" \"javac\"}
+          {:overwrite-changes true})"
+  [filename key-values options]
+  (let [file (if (= \/ (first filename))
+               filename
+               (str (with-source-line-comments false
+                      (stevedore/script (~lib/etc-default)))
+                    "/" filename))]
+    (apply-map
+     remote-file
+     file
+     :owner "root"
+     :group "root"
+     :mode 644
+     :content (string/join
+               \newline
+               (for [[k v] key-values]
+                 (str (name k) "=" (pr-str v))))
+     options)))
