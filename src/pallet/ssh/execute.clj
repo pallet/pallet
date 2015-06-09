@@ -86,7 +86,8 @@
     (if (or (and (= type :clj-ssh/open-channel-failure)
                  (= reason :clj-ssh/channel-open-failed))
             (= type :runtime-exception)
-            (= type :remote-execution-failure))
+            (= type :remote-execution-failure)
+            (= (class e) com.jcraft.jsch.JSchException))
       {::retriable true ::exception e}
       (throw e))
     (throw e)))
