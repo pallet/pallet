@@ -44,7 +44,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 ### lein project.clj
 
 ```clojure
-:dependencies [[com.palletops/pallet "0.8.0-RC.11"]]
+:dependencies [[com.palletops/pallet "0.8.0"]]
 ```
 
 ### maven pom.xml
@@ -54,7 +54,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>com.palletops</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.8.0-RC.11</version>
+    <version>0.8.0</version>
   </dependency>
 <dependencies>
 
