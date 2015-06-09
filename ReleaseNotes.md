@@ -1,3 +1,13 @@
+## 0.8.0
+
+- Retry remote scripts on JSchException
+
+- Add a write-opts function to etc-default
+  Allow specification of remote-file options when writing etc-default files.
+
+- Retry ssh commands on runtime exceptions
+  This will retry commands if the SSH connection is broken for some reason.
+
 ## 0.8.0-RC.11
 
 - Apply multiple yum actions in single transaction
