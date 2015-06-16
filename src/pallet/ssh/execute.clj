@@ -86,11 +86,12 @@
     (if (or (and (= type :clj-ssh/open-channel-failure)
                  (= reason :clj-ssh/channel-open-failed))
             (= type :runtime-exception)
-            (= type :remote-execution-failure)
-            (= (class e) com.jcraft.jsch.JSchException))
+            (= type :remote-execution-failure))
       {::retriable true ::exception e}
       (throw e))
-    (throw e)))
+    (if (= (class e) com.jcraft.jsch.JSchException)
+      {::retriable true ::exception e}
+      (throw e))))
 
 (defn ^{:internal true} with-connection*
   "Execute a function with a connection to the current target node,"
