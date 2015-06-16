@@ -1,3 +1,7 @@
+## 0.8.1
+
+- Fix retry on JSchException
+
 ## 0.8.0
 
 - Retry remote scripts on JSchException
