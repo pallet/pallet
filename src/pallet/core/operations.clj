@@ -101,14 +101,15 @@
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
   (logging/tracef "lift environment %s" environment)
-  (letfn [(phase-meta [phase target]
-            (-> (api/target-phase target phase) meta))]
+  (letfn [(phase-meta [phase targets]
+            (meta (some #(api/target-phase % phase) targets)))
+          (target-meta [phase target]
+            (meta (api/target-phase target phase)))]
     (dofsm lift
       [[results plan-state] (reduce*
                              (fn reducer [[results plan-state] phase]
                                (dofsm reduce-phases
-                                 [meta (result
-                                        (phase-meta phase (first targets)))
+                                 [meta (result (phase-meta phase targets))
                                   f (result (or (:phase-execution-f meta)
                                                 phase-execution-f))
                                   _ (result (logging/tracef
@@ -120,16 +121,15 @@
                                            (:execution-settings-f meta)
                                            execution-settings-f))
                                   results1 (result
-                                            (concat
-                                             results
-                                             (->>
-                                              r
-                                              (map
-                                               (fn [x]
-                                                 (update-in x
-                                                  [:plan-state]
-                                                  dissoc
-                                                  :node-values))))))
+                                            (->>
+                                             r
+                                             (map
+                                              (fn [x]
+                                                (update-in x
+                                                           [:plan-state]
+                                                           dissoc
+                                                           :node-values)))
+                                             (concat results)))
                                   _ (result
                                      (when post-phase-f
                                        (post-phase-f targets phase r)))
@@ -139,7 +139,7 @@
                                                 (map
                                                  (comp
                                                   :post-phase-f
-                                                  #(phase-meta phase %)))
+                                                  #(target-meta phase %)))
                                                 (remove nil?)
                                                 distinct)]
                                        (f targets phase r)))
@@ -153,11 +153,11 @@
                                               targets
                                               (map
                                                (comp :post-phase-fsm
-                                                     #(phase-meta phase %)))
+                                                     #(target-meta phase %)))
                                               (remove nil?)
                                               distinct))
                                   _ (succeed
-                                     (not (some :error (mapcat :result r)))
+                                     (not-any? :error (mapcat :result r))
                                      :phase-errors)]
                                  [results1 ps]))
                              [[] plan-state]

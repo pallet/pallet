@@ -136,9 +136,8 @@
          [results (result (logging/tracef "execute-and-flag %s" state-flag))
           [results plan-state] (execute-f
                                 service-state plan-state environment phase
-                                (filter
-                                 (complement (api/has-state-flag? state-flag))
-                                 targets)
+                                (remove (api/has-state-flag? state-flag)
+                                        targets)
                                 execution-settings-f)
           _ (result (logging/tracef
                      "execute-and-flag %s setting flag" state-flag))

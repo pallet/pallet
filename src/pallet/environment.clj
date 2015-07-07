@@ -30,7 +30,8 @@
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge]
    [pallet.map-merge :refer [merge-key]]
-   [pallet.utils :as utils :refer [maybe-update-in total-order-merge]]))
+   [pallet.utils :as utils
+    :refer [deep-merge maybe-update-in total-order-merge]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -40,7 +41,7 @@
   [a b]
   (with-meta
     (fn merged-phases [& args] (apply a args) (apply b args))
-    (merge (meta a) (meta b))))         ; TODO merge keys properly
+    (deep-merge (meta a) (meta b))))    ; TODO merge keys properly
 
 (defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]
