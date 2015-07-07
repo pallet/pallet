@@ -121,16 +121,15 @@
                                            (:execution-settings-f meta)
                                            execution-settings-f))
                                   results1 (result
-                                            (concat
-                                             results
-                                             (->>
-                                              r
-                                              (map
-                                               (fn [x]
-                                                 (update-in x
-                                                  [:plan-state]
-                                                  dissoc
-                                                  :node-values))))))
+                                            (->>
+                                             r
+                                             (map
+                                              (fn [x]
+                                                (update-in x
+                                                           [:plan-state]
+                                                           dissoc
+                                                           :node-values)))
+                                             (concat results)))
                                   _ (result
                                      (when post-phase-f
                                        (post-phase-f targets phase r)))
@@ -158,7 +157,7 @@
                                               (remove nil?)
                                               distinct))
                                   _ (succeed
-                                     (not (some :error (mapcat :result r)))
+                                     (not-any? :error (mapcat :result r))
                                      :phase-errors)]
                                  [results1 ps]))
                              [[] plan-state]
