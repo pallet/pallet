@@ -1,3 +1,14 @@
+## 0.8.2
+
+- Deep merge phase metadata
+  When merging phases, deep merge the phase metadata.
+
+- Ensure phase metadata is from group with phase
+  Take phase metadata from the first target with a group phase corresponding
+  to the target phase.  This ensure phase metadata is not ignored.
+
+  Fixes #346
+
 ## 0.8.1
 
 - Fix retry on JSchException
@@ -15,7 +26,7 @@
 ## 0.8.0-RC.11
 
 - Apply multiple yum actions in single transaction
-  When carrying out multiple yum install/remove actions, do so atomically 
+  When carrying out multiple yum install/remove actions, do so atomically
   using yum shell.
 
 ## 0.8.0-RC.10
