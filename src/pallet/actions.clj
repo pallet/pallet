@@ -357,7 +357,8 @@ value is itself an action return value."
    (optional-path [:tar-options]) String
    (optional-path [:unzip-options]) String
    (optional-path [:strip-components]) Number
-   (optional-path [:install-new-files]) any-value])
+   (optional-path [:install-new-files]) any-value
+   (optional-path [:no-versioning]) any-value])
 
 (defmacro check-remote-directory-arguments
   [m]
@@ -596,6 +597,9 @@ Options:
 
 `:md5-url`
 : url of md5 file for file to unpack
+
+`:no-versioning`
+: flag to not apply versioning to downloaded archives
 
 Ownership options:
 `:owner`
