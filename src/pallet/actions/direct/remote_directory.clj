@@ -29,7 +29,7 @@
 (defn- source-to-cmd-and-path
   [session path
    {:keys [url local-file remote-file md5 md5-url install-new-files
-           overwrite-changes blob blobstore]}
+           overwrite-changes blob blobstore no-versioning]}
    upload-path content-files action-options]
   (cond
    url (let [filename (.getFile (java.net.URL. url))
@@ -40,7 +40,8 @@
            (-> (remote-file* session tarpath
                              {:url url :md5 md5 :md5-url md5-url
                               :install-new-files install-new-files
-                              :overwrite-changes overwrite-changes})
+                              :overwrite-changes overwrite-changes
+                              :no-versioning no-versioning})
                first second))
           tarpath])
    blob (let [filename (:path blob)
@@ -51,7 +52,8 @@
             (-> (remote-file* session tarpath
                               {:install-new-files install-new-files
                                :overwrite-changes overwrite-changes
-                               :blob blob :blobstore blobstore})
+                               :blob blob :blobstore blobstore
+                               :no-versioning no-versioning})
                 first second))
            tarpath])
    local-file [""
@@ -65,7 +67,7 @@
                         unpack tar-options unzip-options jar-options
                         strip-components md5 md5-url owner group recursive
                         install-new-files overwrite-changes extract-files
-                        blob blobstore]
+                        blob blobstore no-versioning]
                  :or {action :create
                       tar-options "xz"
                       unzip-options "-o"
@@ -96,7 +98,8 @@
                                                  :md5 :md5-url
                                                  :install-new-files
                                                  :overwrite-changes
-                                                 :blob :blobstore])
+                                                 :blob :blobstore
+                                                 :no-versioning])
                                                upload-path
                                                content-files
                                                action-options)
@@ -146,5 +149,11 @@
                          :owner owner
                          :group group
                          :recursive recursive)
-                        first second)))))))]
+                        first second))
+                     (when (and blob tarpath)
+                       (-> (remote-file*
+                            session tarpath
+                            {:action :delete
+                             :force true})
+                           first second)))))))]
    session])
