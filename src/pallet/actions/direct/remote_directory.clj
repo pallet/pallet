@@ -149,5 +149,11 @@
                          :owner owner
                          :group group
                          :recursive recursive)
-                        first second)))))))]
+                        first second))
+                     (when (and blob tarpath)
+                       (-> (remote-file*
+                            session tarpath
+                            {:action :delete
+                             :force true})
+                           first second)))))))]
    session])
