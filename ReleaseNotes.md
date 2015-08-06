@@ -1,3 +1,11 @@
+## 0.8.3
+
+- Remove archive file for remote-directory blobs
+  Removes the intermediate archive file for blob downloads.
+
+- Add no-versioning option to remote-directory
+  Allow for no versioning of downloaded archive files for remote-directory.
+
 ## 0.8.2
 
 - Deep merge phase metadata
