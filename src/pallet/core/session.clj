@@ -69,7 +69,7 @@
 (defn target
   "Target server."
   [session]
-  (-> session :server))
+  (or (:server session) (:group session)))
 
 (defn target-node
   "Target compute service node."
@@ -122,7 +122,7 @@
 (defn group-name
   "Group name of the target-node."
   [session]
-  (-> session :server :group-name))
+  (:group-name (target session)))
 
 (comment
    (defn safe-name
