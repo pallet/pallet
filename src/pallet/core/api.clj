@@ -248,25 +248,29 @@
 (defn groups-to-create
   "Return a sequence of groups that currently have no nodes, but will have nodes
   added."
-  [group-deltas]
+  [group-deltas compute-service]
   (letfn [(new-group? [{:keys [actual target]}]
             (and (zero? actual) (pos? target)))]
     (->>
      group-deltas
      (filter #(new-group? (val %)))
      (map key)
-     (map (fn [group-spec] (assoc group-spec :target-type :group))))))
+     (map (fn [group-spec] (assoc group-spec
+                                  :target-type :group
+                                  :compute compute-service))))))
 
 (defn groups-to-remove
   "Return a sequence of groups that have nodes, but will have all nodes
   removed."
-  [group-deltas]
+  [group-deltas compute-service]
   (letfn [(remove-group? [{:keys [actual target]}]
             (and (zero? target) (pos? actual)))]
     (->>
      group-deltas
      (filter #(remove-group? (second %)))
-     (map #(assoc (first %) :target-type :group)))))
+     (map #(assoc (first %)
+                  :target-type :group
+                  :compute compute-service)))))
 
 (defn nodes-to-remove
   "Finds the specified number of nodes to be removed from the given groups.

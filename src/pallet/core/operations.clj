@@ -30,12 +30,12 @@
      [results2 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :destroy-group
-                            (api/groups-to-remove group-deltas)
+                            (api/groups-to-remove group-deltas compute-service)
                             execution-settings-f)
      [results3 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :create-group
-                            (api/groups-to-create group-deltas)
+                            (api/groups-to-create group-deltas compute-service)
                             execution-settings-f)
      new-nodes (primitives/create-group-nodes
                 compute-service environment nodes-to-add)]
