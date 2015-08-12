@@ -1,3 +1,13 @@
+## 0.8.4
+
+- Make group-name, target functions work for groups
+  Ensure these session functions work for the group addition and removal 
+  phases.
+
+- Add :compute to group phases
+  Adds a compute service entry in the target map for the group creation and
+  removal phases.
+
 ## 0.8.3
 
 - Remove archive file for remote-directory blobs
