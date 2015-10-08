@@ -118,6 +118,7 @@
   [msg & body]
   `(local-script-context
     (let [cmd# (stevedore/checked-script ~msg ~@body)]
+      (logging/debugf "local-checked-script %s" cmd#)
       (result-with-error-map "localhost" ~msg
         (transport/exec local-connection {:in cmd#} nil)))))
 
