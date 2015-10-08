@@ -93,6 +93,18 @@
       {::retriable true ::exception e}
       (throw e))))
 
+(def on-retry-f-var (fn []))
+
+(defn on-retry-f
+  [f]
+  (alter-var-root #'on-retry-f-var (constantly f)))
+
+(defn on-retry
+  "A function that can be overriden to do something before a retry.
+  Useful when switching between VPN/Non-VPN"
+  []
+  (on-retry-f-var))
+
 (defn ^{:internal true} with-connection*
   "Execute a function with a connection to the current target node,"
   [session f]
@@ -104,6 +116,7 @@
          (and (::retriable r) (pos? retries))
          (do
            (release-connection session)
+           (on-retry)
            (recur (dec retries)))
 
          (::retriable r) (throw (::exception r))
