@@ -16,10 +16,10 @@
 
 (deftest service-test
   (is (script-no-comment=
-       "echo start tomcat\n/etc/init.d/tomcat start\n"
+       "set +m\necho start tomcat\n/etc/init.d/tomcat start\n"
        (first (build-actions {} (service "tomcat")))))
   (is (script-no-comment=
-       "echo stop tomcat\n/etc/init.d/tomcat stop\n"
+       "set +m\necho stop tomcat\n/etc/init.d/tomcat stop\n"
        (first (build-actions {} (service "tomcat" :action :stop)))))
   (is (script-no-comment=
        (first
@@ -41,7 +41,9 @@
 (deftest with-restart-test
   (is (script-no-comment=
 
-       (str "echo stop tomcat\n/etc/init.d/tomcat stop\n"
+       (str "set +m\n"
+            "echo stop tomcat\n/etc/init.d/tomcat stop\n"
+            "set +m\n"
             "echo start tomcat\n/etc/init.d/tomcat start\n")
        (first (build-actions {}
                 (with-service-restart "tomcat"))))))

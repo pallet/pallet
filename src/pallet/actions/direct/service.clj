@@ -27,10 +27,12 @@
      (~lib/configure-service ~service-name ~action ~options))
     (if if-stopped
       (stevedore/script
+       ("set" "+m")
        (println ~(name action) ~service-name "if stopped")
        (if-not (~(init-script-path service-name) status)
          (~(init-script-path service-name) ~(name action))))
       (stevedore/script
+       ("set" "+m")
        (println ~(name action) ~service-name)
        (~(init-script-path service-name) ~(name action))))))
 
@@ -52,7 +54,8 @@
           (stevedore/script
            (println ~(name action) ~service-name "if stopped")
            (if-not ("service" ~service-name status)
-             ("service" ~service-name ~(name action))))
+             ("service" ~service-name ~(name action)))
+           ("service" ~service-name status))
           (stevedore/script
            (println ~(name action) ~service-name)
            ("service" ~service-name ~(name action)))))))
