@@ -47,10 +47,19 @@
 (defn node-in-group? [grp-name node]
   (= (name grp-name) (group-name node)))
 
+(def prefer-private-ip
+  "Prefer using the node private IP address"
+  nil)
+
+(defn use-private-ip
+  [val]
+  (alter-var-root #'prefer-private-ip (constantly val)))
+
 (defn node-address
   [node]
   (cond
     (string? node) node
+    (and prefer-private-ip (private-ip node)) (private-ip node)
     (primary-ip node) (primary-ip node)
     :else (private-ip node)))
 
