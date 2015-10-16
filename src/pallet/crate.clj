@@ -51,11 +51,16 @@
    :indent 'defun}
   [sym & body]
   (letfn [(output-body [[args & body]]
-            (let [no-context? (final-fn-sym? sym body)]
+            (let [no-context? (final-fn-sym? sym body)
+                  [pre-post body] (if (and (> (count body) 1)
+                                           (map? (first body)))
+                                    [[(first body)] (rest body)]
+                                    [nil body])]
               `(~args
                 ;; if the final function call is recursive, then don't add a
                 ;; phase-context, so that just forwarding different arities only
                 ;; gives one log entry/event, etc.
+                ~@pre-post
                 ~@(if no-context?
                     body
                     [(let [locals (gensym "locals")]

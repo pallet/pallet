@@ -1,3 +1,20 @@
+## 0.8.5
+
+- Allow side effects between retries of actions
+  Enables switching between private and public IP addresses when a VPN is 
+  started during a pallet phase execution.
+
+- Allow preference for private ips
+  Enables use of pallet in a AWS VPN.
+
+- Add logging of script to local-checked-script
+
+- Enable :pre, :post checks in plan functions
+
+- Ensure job control is disabled in service action
+  Prevents services from being killed if the init script backgrounds the 
+  process and the action exits before the process detaches itself.
+
 ## 0.8.4
 
 - Make group-name, target functions work for groups
