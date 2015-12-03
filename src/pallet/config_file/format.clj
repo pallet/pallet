@@ -21,8 +21,10 @@
    names.  The inner maps are keyword value maps."
   [m & {:keys [separator] :or {separator " = "}}]
   (letfn [(format-section
-           [[section-name kv-map]]
-           (format
-            "[%s]\n%s\n" (name section-name)
-                         (name-values kv-map :separator separator)))]
+            [[section-name kv-map]]
+            (let [n (name section-name)
+                  vs (name-values kv-map :separator separator)]
+              (if (string/blank? n)
+                vs
+                (format "[%s]\n%s\n" n vs))))]
     (string/join (map format-section m))))
