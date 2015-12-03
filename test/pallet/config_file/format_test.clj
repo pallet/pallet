@@ -6,7 +6,10 @@
 (deftest sectioned-properties-test
   (is (= "[a]\nb = 1\n\n[b]\nc = some-path\n\n"
          (sectioned-properties
-          (array-map :a {:b 1} "b" {"c" "some-path"})))))
+          (array-map :a {:b 1} "b" {"c" "some-path"}))))
+  (is (= "b = 1\n[b]\nc = some-path\n\n"
+         (sectioned-properties
+          (array-map "" {:b 1} "b" {"c" "some-path"})))))
 
 (deftest name-values-test
   (is (= "a 1\nb some-path\n"
