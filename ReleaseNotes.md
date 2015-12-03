@@ -1,3 +1,8 @@
+## 0.8.6
+
+- Allow root section in sectioned-properties
+  A section with a blank key will be output without a section header.
+
 ## 0.8.5
 
 - Allow side effects between retries of actions
