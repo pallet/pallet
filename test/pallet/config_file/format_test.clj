@@ -15,4 +15,8 @@
   (is (= "a 1\nb some-path\n"
          (name-values (array-map :a 1 "b" "some-path"))))
   (is (= "a=1\nb=some-path\n"
-         (name-values (array-map :a 1 "b" "some-path") :separator "="))))
+         (name-values (array-map :a 1 "b" "some-path") :separator "=")))
+  (is (= "a=1\nb=\"some-path\"\n"
+         (name-values (array-map :a 1 "b" "some-path")
+                      :separator "="
+                      :value-formatter pr-str))))
