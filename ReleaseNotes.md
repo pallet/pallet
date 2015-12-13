@@ -1,3 +1,12 @@
+## 0.8.7
+
+- Add :value-formatter to sectioned-properties
+  Allows for using some other formatting for values in name-values based 
+  config, eg. pr-str.
+
+- Update script-exec dependency
+  Fixes ssh forwarding.
+
 ## 0.8.6
 
 - Allow root section in sectioned-properties

@@ -320,7 +320,25 @@
     [value session]))
 
 
-(defmacro with-ssh-tunnel
+(defmacro ^{:deprecated true} with-ssh-tunnel
+  "Execute the body with an ssh-tunnel available for the ports given in the
+   tunnels map. Automatically closes port forwards on completion.
+
+   Tunnels should be a map from local ports (integers) to either
+     1) An integer remote port. Remote host is assumed to be \"localhost\".
+     2) A vector of remote host and remote port. eg, [\"yahoo.com\" 80].
+
+   e.g.
+        (with-ssh-tunnel session {2222 22}
+           ;; do something on local port 2222
+  session)"
+  [transport session tunnels & body]
+  `(let [{:as connection#} (get-connection ~session)]
+     (transport/with-ssh-tunnel
+       connection# ~tunnels
+       ~@body)))
+
+(defmacro with-ssh-forward
   "Execute the body with an ssh-tunnel available for the ports given in the
    tunnels map. Automatically closes port forwards on completion.
 
@@ -332,8 +350,9 @@
         (with-ssh-tunnel session {2222 22}
            ;; do something on local port 2222
            session)"
-  [transport session tunnels & body]
-  `(let [{:as connection#} (get-connection ~session)]
+  [session tunnels & body]
+  `(with-connection ~session [connection#]
+     (clojure.tools.logging/errorf "with-ssh-forward %s" (pr-str connection#))
      (transport/with-ssh-tunnel
        connection# ~tunnels
        ~@body)))
