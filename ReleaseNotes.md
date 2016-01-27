@@ -1,3 +1,11 @@
+## 0.8.8
+
+- Add admin-user and user crates
+  More flexible alternatives to automated-admin-user.
+
+- Update to map-merge 0.1.1
+  Fixes deep merges with keys with specialised merge algorithms.
+
 ## 0.8.7
 
 - Add :value-formatter to sectioned-properties
