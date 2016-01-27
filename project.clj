@@ -32,6 +32,7 @@ unprecedented level of customization."
                   :exclusions [org.clojure/tools.logging]]
                  [pallet-map-merge "0.1.1"]
                  [org.clojars.runa/clj-schema "0.9.4"]
+                 [prismatic/schema "1.0.4"]
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
