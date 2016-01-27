@@ -30,7 +30,7 @@ unprecedented level of customization."
                   :exclusions [org.clojure/clojure]]
                  [pallet-fsmop "0.3.1"
                   :exclusions [org.clojure/tools.logging]]
-                 [pallet-map-merge "0.1.0"]
+                 [pallet-map-merge "0.1.1"]
                  [org.clojars.runa/clj-schema "0.9.4"]
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
