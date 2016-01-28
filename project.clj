@@ -1,4 +1,4 @@
-(defproject com.palletops/pallet "0.8.7"
+(defproject com.palletops/pallet "0.8.8"
   :description
   "DevOps for the JVM.
 
@@ -30,9 +30,13 @@ unprecedented level of customization."
                   :exclusions [org.clojure/clojure]]
                  [pallet-fsmop "0.3.1"
                   :exclusions [org.clojure/tools.logging]]
-                 [pallet-map-merge "0.1.0"]
+                 [pallet-map-merge "0.1.1"]
                  [org.clojars.runa/clj-schema "0.9.4"]
+                 [prismatic/schema "1.0.4"]
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
-                        :resource-paths ^:replace []}})
+                        :resource-paths ^:replace []}}
+  :test-selectors {:default
+                   ;; travis sudo is configured with !env_reset
+                   (complement :require-no-ssh-env)})
