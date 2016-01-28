@@ -1,3 +1,7 @@
+## 0.8.9
+
+- Fix admin-user crate
+
 ## 0.8.8
 
 - Add admin-user and user crates
