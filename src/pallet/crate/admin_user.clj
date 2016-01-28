@@ -46,10 +46,10 @@
 (defn default-user []
   (let [user (crate/admin-user)
         user (if-let [k (:public-key user)]
-               (assoc :public-keys [k])
+               (assoc user :public-keys [k])
                user)
         user (if-let [p (:public-key-path user)]
-               (assoc :public-key-paths [p])
+               (assoc user :public-key-paths [p])
                user)]
     (dissoc user
             :state-root
