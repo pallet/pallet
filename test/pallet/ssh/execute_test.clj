@@ -131,11 +131,18 @@
     (testing "env-fwd"
       (with-script-for-node (:server session) nil
         (let [[r s] (ssh-script-on-target
-                     session {:node-value-path (keyword (name (gensym "nv")))}
-                     nil [{} "echo $SSH_CLIENT"])]
-          (is (= "" (trim (:out r)))))
-        (let [[r s] (ssh-script-on-target
                      session {:node-value-path (keyword (name (gensym "nv")))
                               :script-env-fwd [:SSH_CLIENT]}
                      nil [{} "echo $SSH_CLIENT"])]
           (is (= "127.0.0.1" (subs (:out r) 0 9))))))))
+
+(deftest ^:require-no-ssh-env with-connection-no-ssh-env-test
+  (let [session {:server {:node (make-localhost-node)
+                          :image {:os-family :ubuntu}}
+                 :user *admin-user*}]
+    (testing "env-fwd"
+      (with-script-for-node (:server session) nil
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))}
+                     nil [{} "echo $SSH_CLIENT"])]
+          (is (= "" (trim (:out r)))))))))

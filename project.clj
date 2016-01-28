@@ -36,4 +36,7 @@ unprecedented level of customization."
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
-                        :resource-paths ^:replace []}})
+                        :resource-paths ^:replace []}}
+  :test-selectors {:default
+                   ;; travis sudo is configured with !env_reset
+                   (complement :require-no-ssh-env)})
