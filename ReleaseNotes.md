@@ -1,3 +1,7 @@
+## 0.8.10
+
+- Fix admin-user and sudoers server-spec
+
 ## 0.8.9
 
 - Fix admin-user crate
