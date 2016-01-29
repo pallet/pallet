@@ -232,21 +232,11 @@ specs [ { [\"user1\" \"user2\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
   [aliases defaults specs]
   (fn [& args]
-    ;; {:pre [(validate
-    ;;         [[(schema/one Aliases "aliases")
-    ;;           (schema/one Defaults "defaults")
-    ;;           (schema/one Specs "specs")]]
-    ;;         args)]}
-    (logging/debugf "sudoers %s" (pr-str args))
-
     (validate
      [[(schema/one Aliases "aliases")
        (schema/one Defaults "defaults")
        (schema/one Specs "specs")]]
      args)
-    ;; (validate Aliases aliases)
-    ;; (validate Defaults defaults)
-    ;; (validate Specs specs)
     (logging/trace "apply-sudoers")
     (phase-context sudoers {}
       (let [specs (default-specs)]
@@ -277,12 +267,11 @@ specs [ { [\"user1\" \"user2\"]
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
   [aliases defaults specs {:keys [instance-id] :as options}]
-  ;; {:pre [(validate Aliases aliases)
-  ;;        (validate Defaults defaults)
-  ;;        (validate Specs specs)]}
+  {:pre [(validate Aliases aliases)
+         (validate Defaults defaults)
+         (validate Specs specs)]}
   (logging/debugf "sudoer %s %s %s"
                   (pr-str aliases) (pr-str defaults) (pr-str specs))
-  (logging/debugf "sudoer %s" (get-settings facility options))
   (validate Aliases aliases)
   (validate Defaults defaults)
   (validate Specs specs)
@@ -311,9 +300,11 @@ specs [ { [\"user1\" \"user2\"]
   "Returns a server-spec that installs sudoers in the configure phase."
   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
   (api/server-spec
-   {:phases {:settings (plan-fn
-                        (pallet.crate.sudoers/settings settings))
-             :install (plan-fn
-                       (utils/apply-map install options))
-             :configure (plan-fn
-                         (configure options))}}))
+   :phases {:settings (plan-fn
+                       (pallet.crate.sudoers/settings settings))
+            :install (plan-fn
+                      (utils/apply-map install options))
+            :bootstrap (plan-fn
+                        (configure options))
+            :configure (plan-fn
+                        (configure options))}))

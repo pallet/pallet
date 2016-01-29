@@ -35,8 +35,7 @@
         (get-settings facility options)]
     (debugf "admin-user configure")
     (when install-sudo
-      (apply-map sudoers/install {:instance-id sudoers-instance-id}))
-    (sudoers/configure {:instance-id sudoers-instance-id})))
+      (apply-map sudoers/install {:instance-id sudoers-instance-id}))))
 
 
 (def UserSettings
@@ -117,13 +116,15 @@ user.
   "Convenience server spec to add the current admin-user on bootstrap."
   [settings]
   (api/server-spec
-   :extends [(user/server-spec (user/default-settings))]
+   :extends [(user/server-spec (user/default-settings))
+             (sudoers/server-spec (:sudoers settings))]
    :phases {:settings (plan-fn
-                       (sudoers/settings (:sudoers settings))
                        (pallet.crate.admin-user/settings
                            (:automated-admin-user settings))
                        (admin-user))
             :bootstrap (plan-fn
+                        (configure (select-keys settings [:instance-id])))
+            :configure (plan-fn
                         (configure (select-keys settings [:instance-id])))
             :reconfigure (plan-fn
                           (configure (select-keys settings [:instance-id])))}))
