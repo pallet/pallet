@@ -10,7 +10,7 @@
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.script.lib :refer [user-home]]
    [pallet.stevedore :as stevedore :refer [fragment]]
-   [pallet.utils :refer [apply-map]]
+   [pallet.utils :refer [apply-map deep-merge]]
    [schema.core :as schema :refer [either eq optional-key validate]]))
 
 (def facility ::user)
@@ -118,7 +118,11 @@ user.
      (debugf "user %s" user)
      (update-settings
       facility {} update-in [:users]
-      (fn [c s] (vec (conj c s))) user-settings))))
+      (fn [c s]
+        (if-let [u (first (filter #(= (:username %) (:username s)) c))]
+          (vec (conj (remove #(= u %) c) (deep-merge u s)))
+          (vec (conj c s))))
+      user-settings))))
 
 (defn server-spec
   "Convenience server spec to add users."
