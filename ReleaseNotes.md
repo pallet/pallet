@@ -1,3 +1,11 @@
+## 0.8.11
+
+- Ensure user default group actually exists
+
+- Merge user info given to admin-user
+  If a user is specified multiple times, merge the configuration for the
+  user.
+
 ## 0.8.10
 
 - Fix admin-user and sudoers server-spec
@@ -17,7 +25,7 @@
 ## 0.8.7
 
 - Add :value-formatter to sectioned-properties
-  Allows for using some other formatting for values in name-values based 
+  Allows for using some other formatting for values in name-values based
   config, eg. pr-str.
 
 - Update script-exec dependency
@@ -31,7 +39,7 @@
 ## 0.8.5
 
 - Allow side effects between retries of actions
-  Enables switching between private and public IP addresses when a VPN is 
+  Enables switching between private and public IP addresses when a VPN is
   started during a pallet phase execution.
 
 - Allow preference for private ips
@@ -42,13 +50,13 @@
 - Enable :pre, :post checks in plan functions
 
 - Ensure job control is disabled in service action
-  Prevents services from being killed if the init script backgrounds the 
+  Prevents services from being killed if the init script backgrounds the
   process and the action exits before the process detaches itself.
 
 ## 0.8.4
 
 - Make group-name, target functions work for groups
-  Ensure these session functions work for the group addition and removal 
+  Ensure these session functions work for the group addition and removal
   phases.
 
 - Add :compute to group phases
