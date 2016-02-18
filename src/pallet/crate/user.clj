@@ -65,6 +65,8 @@
     (doseq [{:keys [username public-key-paths public-keys create-user
                     create-home user-options] :as user} users]
       (debugf "user user %s" user)
+      (when-let [group (:group user-options)]
+        (actions/group group))
       (create-user-and-home
        username create-user create-home user-options)
       (doseq [kp public-key-paths]
