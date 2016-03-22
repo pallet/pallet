@@ -331,7 +331,7 @@
                           (println "/tmp")
                           (if (directory? "/var/tmp")
                             (println "/var/tmp")
-                            (if (directory? "/use/tmp")
+                            (if (directory? "/usr/tmp")
                               (println "/usr/tmp"))))))))
 
 (script/defscript make-temp-file [pattern & {:keys [tmpdir]}])

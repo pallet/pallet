@@ -51,7 +51,7 @@
 (deftest tmpdir-test
   (is (= "${TMPDIR:-${TEMP:-${TMP:-$(if [ -d /tmp ]; then echo /tmp;else
 if [ -d /var/tmp ]; then echo /var/tmp;else
-if [ -d /use/tmp ]; then echo /usr/tmp;fi
+if [ -d /usr/tmp ]; then echo /usr/tmp;fi
 fi
 fi)}}}"
          (fragment (~tmp-dir)))))
