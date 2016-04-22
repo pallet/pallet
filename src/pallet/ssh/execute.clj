@@ -113,16 +113,24 @@
           r (f connection)]
       (if (map? r)
         (cond
-         (and (::retriable r) (pos? retries))
-         (do
-           (release-connection session)
-           (on-retry)
-           (recur (dec retries)))
+          (and (::retriable r) (pos? retries))
+          (do
+            (release-connection session)
+            (on-retry)
+            (recur (dec retries)))
 
-         (::retriable r) (throw (::exception r))
+          (::retriable r) (throw (::exception r))
 
-         :else r)
-        r))))
+          :else (do
+                  (try
+                    (release-connection session)
+                    (catch Exception _))
+                  r))
+        (do
+          (try
+            (release-connection session)
+            (catch Exception _))
+          r)))))
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
