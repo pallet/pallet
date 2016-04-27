@@ -282,9 +282,7 @@
               "{:error {:type :pallet/action-execution-error, "
               ":context nil, "
               ":message \"Unexpected exception: "
-              "remote-file file1 specified without content.\", :cause "
-              "#<IllegalArgumentException java.lang.IllegalArgumentException: "
-              "remote-file file1 specified without content.>}}")
+              "remote-file file1 specified without content.\"}}")
              (binding [*verify-contracts* false]
                (->
                 (build-actions/build-actions
@@ -292,6 +290,7 @@
                 second
                 build-actions/action-phase-errors
                 first
+                (update-in [:error] dissoc :cause)
                 str))))))
     (testing "local-file"
       (utils/with-temporary [tmp (utils/tmpfile)

@@ -12,9 +12,16 @@
     :refer [get-connection ssh-script-on-target with-connection]]
    [pallet.transport :as transport]))
 
+(def release-connection #'pallet.ssh.execute/release-connection)
+
 (use-fixtures :once (logging-threshold-fixture))
 
 (def open-channel clj-ssh.ssh/open-channel)
+
+(defn- get-cached-connection [session]
+  (let [connection (get-connection session)]
+    (release-connection session connection)
+    connection))
 
 (deftest with-connection-test
   (let [session {:server {:node (make-localhost-node)
@@ -25,12 +32,13 @@
         [connection]
         (is connection)))
     (testing "caching"
-      (let [original-connection (get-connection session)]
+      (let [original-connection (get-cached-connection session)]
         (with-connection session
           [connection]
-          (is connection))
+          (is connection)
+          (is (= original-connection connection) "connection cached"))
         (is (= original-connection (get-connection session))
-            "connection cached")
+            "connection still cached")
         (is (transport/open? (get-connection session)))))
     (testing "fail on general open-channel exception"
       (let [log-out
@@ -58,20 +66,20 @@
                            (:type (ex-data e))))))))]
         (is log-out)))
     (testing "retry on session is not opened open-channel exception"
-      (let [a (atom nil)
+      (let [no-throw-after-first-call (atom nil)
             seen (atom nil)
-            c (atom 0)
-            original-connection (get-connection session)
+            open-channel-count (atom 0)
+            original-connection (get-cached-connection session)
             log-out
             (with-log-to-string []
               (with-redefs [clj-ssh.ssh/open-channel
                             (fn [session session-type]
-                              (swap! c inc)
+                              (swap! open-channel-count inc)
                               (debugf (Exception. "here") "Inc")
-                              (if @a
+                              (if @no-throw-after-first-call
                                 (open-channel session session-type)
                                 (do
-                                  (reset! a true)
+                                  (reset! no-throw-after-first-call true)
                                   (throw
                                    (ex-info
                                     (format "clj-ssh open-channel failure")
@@ -83,29 +91,33 @@
                   [connection]
                   (transport/exec connection {:execv ["echo" "1"]} {})
                   (reset! seen true))
-                (is @seen)
-                (is (= 3 @c))           ; 1 failed + sftp +exec
+                (is @no-throw-after-first-call "called at least once")
+                (is @seen "called at least twice")
+                (is (= 3 @open-channel-count) "1 failed + sftp + exec")
                 (is (not= original-connection (get-connection session))
                     "new cached connection")))]
         (is log-out "exception is logged")))
     (testing "new session after :new-login-after-action"
       (with-script-for-node (:server session) nil
-        (let [original-connection (get-connection session)]
+        (let [original-connection (get-cached-connection session)]
           (ssh-script-on-target
            session {:node-value-path (keyword (name (gensym "nv")))}
            nil [{} "echo 1"])
-          (is (= original-connection (get-connection session)))
+          (is (= original-connection (get-cached-connection session)))
           (ssh-script-on-target
            session {:node-value-path (keyword (name (gensym "nv")))
                     :new-login-after-action true}
            nil [{} "echo 1"])
-          (is (not= original-connection (get-connection session)))
-          (let [second-connection (get-connection session)]
+          (is (not= original-connection (get-cached-connection session))
+              "a new connection following :new-login-after-action")
+          (let [second-connection (get-cached-connection session)]
             (ssh-script-on-target
              session {:node-value-path (keyword (name (gensym "nv")))}
              nil [{} "echo 1"])
-            (is (not= original-connection (get-connection session)))
-            (is (= second-connection (get-connection session)))))))
+            (is (not= original-connection (get-cached-connection session))
+                "a new connection following :new-login-after-action")
+            (is (= second-connection (get-cached-connection session))
+                "a new connection is stable following :new-login-after-action")))))
     (testing "agent-forward"
       (with-script-for-node (:server session) nil
         (let [[r s] (ssh-script-on-target

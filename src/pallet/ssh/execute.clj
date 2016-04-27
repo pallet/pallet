@@ -69,15 +69,23 @@
          :err (:err result)
          :out (:out result)})))))
 
+(def ssh-connection-options {:max-tries 3})
+
 (defn get-connection [session]
   (transport/open
    ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+   ssh-connection-options))
 
-(defn release-connection [session]
+(defn release-connection [session connection]
+  (assert connection)
   (transport/release
+   ssh-connection connection (endpoint session) (authentication session)
+   ssh-connection-options))
+
+(defn expire-connection [session]
+  (transport/expire
    ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))
+   ssh-connection-options))
 
 (defn ^{:internal true} with-connection-exception-handler
   [e]
@@ -89,7 +97,7 @@
             (= type :remote-execution-failure))
       {::retriable true ::exception e}
       (throw e))
-    (if (= (class e) com.jcraft.jsch.JSchException)
+    (if (= com.jcraft.jsch.JSchException (class e)) ; ssh protocol errors
       {::retriable true ::exception e}
       (throw e))))
 
@@ -108,37 +116,44 @@
 (defn ^{:internal true} with-connection*
   "Execute a function with a connection to the current target node,"
   [session f]
-  (loop [retries 1]
-    (let [connection (get-connection session)
-          r (f connection)]
+  (loop [retries 5]
+    (let [r (f)]
       (if (map? r)
         (cond
-         (and (::retriable r) (pos? retries))
-         (do
-           (release-connection session)
-           (on-retry)
-           (recur (dec retries)))
+          (and (::retriable r) (pos? retries))
+          (do
+            (logging/warnf "Retrying SSH commands due to: %s" (::exception r))
+            (on-retry)
+            (recur (dec retries)))
 
-         (::retriable r) (throw (::exception r))
+          (::retriable r)
+          (throw (::exception r))
 
-         :else r)
+          :else r)
         r))))
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
-  [session [connection] & body]
-  `(with-connection* ~session (fn [~connection]
-                                (try
-                                  ~@body
-                                  (catch Exception e#
-                                    (with-connection-exception-handler e#))))))
+  [session [connection & [no-cache]] & body]
+  `(with-connection* ~session
+     (fn []
+       (try
+         (let [~connection (get-connection ~session)
+               res# (do ~@body)]
+           (assert ~connection)
+           (when-not ~no-cache
+             (release-connection ~session ~connection))
+           res#)
+         (catch Exception e#
+           (expire-connection ~session)
+           (with-connection-exception-handler e#))))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
   (logging/trace "ssh-script-on-target")
-  (logging/trace "action %s options %s" action options)
+  (logging/tracef "action %s options %s" action options)
   (let [endpoint (endpoint session)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
@@ -146,7 +161,7 @@
        (:server endpoint) (:port endpoint)
        (or (context-label action) "")
        (or (:summary options) ""))
-      (with-connection session [connection]
+      (with-connection session [connection (:new-login-after-action action)]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
               sudo-user (or (:sudo-user action)
@@ -200,8 +215,6 @@
             (logging/trace "ssh-script-on-target done")
             (logging/debugf "%s   <== ----------------------------------------"
                             (:server endpoint))
-            (when (:new-login-after-action action)
-              (transport/close connection))
             [result session]))))))
 
 (defn- ssh-upload

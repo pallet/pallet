@@ -103,6 +103,9 @@
      (try
        (when-not (find-ns ns)
          (require ns))
+       (when-not (find-ns ns)
+         ;; require failed on previous attempt
+         (require ns :reload))
        (catch java.io.FileNotFoundException _)
        (catch Exception e
          ;; require on a bad namespace still instantiates the namespace
