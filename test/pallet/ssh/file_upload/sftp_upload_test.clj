@@ -47,7 +47,8 @@
           (is (= content (slurp target-f)))
           (.delete target-f)))
       (finally
-        (transport/release ssh-connection endpoint auth {:max-tries 3})))))
+        (transport/release
+         ssh-connection connection endpoint auth {:max-tries 3})))))
 
 (deftest sftp-ensure-dir-test
   (let [endpoint {:server "127.0.0.1"}
@@ -61,4 +62,5 @@
         (.isDirectory (.getParentFile f))
         (.delete (.getParentFile f)))
       (finally
-        (transport/release ssh-connection endpoint auth {:max-tries 3})))))
+        (transport/release
+         ssh-connection connection endpoint auth {:max-tries 3})))))
