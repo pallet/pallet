@@ -1,3 +1,18 @@
+## 0.8.12
+
+- Update to script-exec 0.4.2
+  Solves issues with caching of SSH connections.
+
+  Fixes #292
+
+- Move clojure to a :provided dependency
+  Updates dev dependency to clojure 1.7.0.
+
+- Make connection scope more robust
+  Avoid complaints about close not being implemented on nil.
+
+- Fix tmp-dir script to test properly for /usr/tmp
+
 ## 0.8.11
 
 - Ensure user default group actually exists
