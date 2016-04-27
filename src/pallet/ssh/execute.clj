@@ -89,7 +89,7 @@
             (= type :remote-execution-failure))
       {::retriable true ::exception e}
       (throw e))
-    (if (= (class e) com.jcraft.jsch.JSchException)
+    (if (= com.jcraft.jsch.JSchException (class e)) ; ssh protocol errors
       {::retriable true ::exception e}
       (throw e))))
 

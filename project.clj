@@ -12,8 +12,7 @@ unprecedented level of customization."
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :scm {:url "git@github.com:pallet/pallet.git"}
 
-  :dependencies [[org.clojure/clojure "1.4.0"]
-                 [org.clojure/core.incubator "0.1.0"]
+  :dependencies [[org.clojure/core.incubator "0.1.0"]
                  [org.clojure/tools.logging "0.2.0"]
                  [org.clojure/tools.macro "0.1.2"]
                  [org.clojure/tools.cli "0.2.2"]

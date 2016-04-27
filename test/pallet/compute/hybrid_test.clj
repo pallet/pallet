@@ -31,8 +31,8 @@
         node-list-2 (compute/instantiate-provider "node-list" :node-list [node-2])
         hybrid (compute/instantiate-provider
                 "hybrid" :sub-services {:nl1 node-list-1 :nl2 node-list-2})]
-    (is (= [(assoc node-2 :service node-list-2)
-            (assoc node-1 :service node-list-1)]
+    (is (= [(assoc node-1 :service node-list-1)
+            (assoc node-2 :service node-list-2)]
            (compute/nodes hybrid))
         "return nodes from both sub-services")))
 

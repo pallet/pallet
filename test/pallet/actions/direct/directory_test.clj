@@ -55,7 +55,7 @@
     (is (script-no-comment=
          (stevedore/checked-script
           "Delete directory file1"
-          "rm --recursive --force file1")
+          "rm --force --recursive file1")
          (first
           (build-actions {}
             (directory "file1" :action :delete :recursive true)))))))

@@ -48,7 +48,7 @@
          (exec-checked-script
           "Mount /dev/a at /mnt/a"
           (if-not @("mountpoint" -q "/mnt/a")
-            ("mount" -t "vboxsf" -o "gid=user,uid=user"
+            ("mount" -t "vboxsf" -o "uid=user,gid=user"
              "/dev/a" (quoted "/mnt/a"))))))
        (first
         (build-actions/build-actions
