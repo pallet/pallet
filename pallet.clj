@@ -10,7 +10,8 @@
            operations-test rolling-lift-test
            partitioning-test exec-meta-test]]
  '[pallet.crate.initd-test :refer [initd-test-spec]]
- '[pallet.crate.nohup-test :refer [nohup-test-spec]])
+ '[pallet.crate.nohup-test :refer [nohup-test-spec]]
+ '[pallet.crate.automated-admin-user-test :refer [create-admin-test-spec]])
 
 (defproject pallet
   :provider {:vmfest
@@ -31,4 +32,7 @@
            (group-spec "nohup-test"
              :extends [with-automated-admin-user
                        nohup-test-spec]
-             :roles #{:live-test :default :nohup})])
+             :roles #{:live-test :default :nohup})
+           (group-spec "create-admin-test"
+             :extends [create-admin-test-spec]
+             :roles #{:live-test :default :create-admin})])

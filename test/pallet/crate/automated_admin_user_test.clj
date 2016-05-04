@@ -1,18 +1,22 @@
 (ns pallet.crate.automated-admin-user-test
   (:require
    [clojure.test :refer :all]
-   [pallet.actions :refer [exec-checked-script user]]
+   [pallet.actions :refer [directory exec-checked-script plan-when-not user]]
    [pallet.api :refer [lift make-user node-spec plan-fn server-spec]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
    [pallet.context :as logging]
    [pallet.core.user :refer [default-public-key-path]]
+   [pallet.crate :refer [admin-user]]
    [pallet.crate.automated-admin-user :as automated-admin-user]
-   [pallet.crate.automated-admin-user :refer [automated-admin-user]]
+   [pallet.crate.automated-admin-user :refer [automated-admin-user
+                                              create-admin]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
-   [pallet.live-test :as live-test]))
+   [pallet.live-test :as live-test]
+   [pallet.script.lib :refer [user-home]]
+   [pallet.stevedore :refer [fragment]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -115,7 +119,31 @@
              (first
               (build-actions/build-actions
                   {:environment {:user (make-user user-name)}}
-               (automated-admin-user))))))))
+                  (automated-admin-user))))))))
+
+(deftest create-admin-test
+  (testing "with defaults"
+    (with-redefs [pallet.actions/plan-flag-kw (constantly :flagxxx)]
+      (is (script-no-comment=
+           (first
+            (build-actions/build-actions
+                {:phase-context "create-admin"}
+              (sudoers/install)
+              (plan-when-not (fragment ("getent" passwd fred))
+                (user "fred" :create-home true :shell :bash))
+              (directory (fragment (user-home fred)) :owner "fred")
+              (sudoers/sudoers
+               {}
+               {:default {:env_keep "SSH_AUTH_SOCK"}}
+               {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              (context/with-phase-context
+                {:kw :authorize-user-key :msg "authorize-user-key"}
+                (ssh-key/authorize-key
+                 "fred" (slurp (default-public-key-path))))))
+           (first
+            (build-actions/build-actions
+                {}
+              (create-admin :username "fred"))))))))
 
 (deftest live-test
   ;; tests a node specific admin user
@@ -141,3 +169,28 @@
     (is
      (lift
       (val (first node-types)) :phase [:verify] :compute compute)))))
+
+(def create-admin-test-spec
+  (server-spec
+   :phases {:bootstrap (plan-fn
+                        (automated-admin-user/create-admin)
+                        (automated-admin-user/create-admin
+                         :username "xxx"
+                         :sudo false)
+                        (automated-admin-user/create-admin
+                         :username "yyy"
+                         :sudo false
+                         :user-options {:shell :sh}))
+            :verify (plan-fn
+                     (context/with-phase-context
+                       {:kw :automated-admin-user
+                        :msg "Check Automated admin user"}
+                       (exec-checked-script
+                        "is functional"
+                        (pipe (println @SUDO_USER)
+                              ("grep" ~(:username (admin-user))))
+                        (not ("grep" "xxx" "/etc/sudoers"))
+                        (user-home "xxx")
+                        (pipe
+                         ("getent" "yyy")
+                         (not ("grep" "bash"))))))}))
