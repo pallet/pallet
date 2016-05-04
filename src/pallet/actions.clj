@@ -814,15 +814,47 @@ The :id key must contain a recognised repository."
 
 ;;; # Synch local file to remote
 (defaction rsync
-  "Use rsync to copy files from local-path to remote-path"
+  "Use rsync to copy files from local-path to remote-path.
+  Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
+  Default options:
+    :r -r Recurse into directories.
+    :delete --delete Delete extraneous files from dest dirs.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   [local-path remote-path {:keys [port]}])
 
 (defaction rsync-to-local
-  "Use rsync to copy files from remote-path to local-path"
+  "Use rsync to copy files from remote-path to local-path
+  Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
+  Default options:
+    :r -r Recurse into directories.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   [remote-path local-path {:keys [port]}])
 
 (defn rsync-directory
-  "Rsync from a local directory to a remote directory."
+  "Rsync from a local directory to a remote directory.
+  Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
+  Default options:
+    :r -r Recurse into directories.
+    :delete --delete Delete extraneous files from dest dirs.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   {:pallet/plan-fn true}
   [from to & {:keys [owner group mode port] :as options}]
   (phase-context rsync-directory-fn {:name :rsync-directory}
@@ -834,7 +866,17 @@ The :id key must contain a recognised repository."
     (rsync from to options)))
 
 (defn rsync-to-local-directory
-  "Rsync from a local directory to a remote directory."
+  "Rsync from a local directory to a remote directory.
+  Rsync must be installed on both local and remote machines.
+  By default rsync will try to run as root on the remote machine with the
+  --no-prompt option. Make sure the user running the command has passwordless
+  sudo set up. To override this, change the :rsync-path value.
+  Default options:
+    :r -r Recurse into directories.
+    :copy-links --copy-links Transform symlink into referent file/dir.
+    :rsync-path --rsync-path Specify the rsync to run on remote machine.
+    :owner --owner Preserve owner (super-user only).
+    :perms --perms Preserve permissions."
   {:pallet/plan-fn true}
   [from to & {:keys [owner group mode port] :as options}]
   (phase-context rsync-directory-fn {:name :rsync-directory}
