@@ -24,7 +24,7 @@
 
 (defn default-options
   [session]
-  {:r true :delete true :copy-links true
+  {:r true :copy-links true
    :rsync-path (if-let [sudo-user (rsync-sudo-user session)]
                  (fragment ((sudo :no-prompt true :user ~sudo-user) "rsync"))
                  "rsync")
