@@ -37,7 +37,7 @@
    (when (file-exists? "/etc/redhat-release")
      (set! ID @(pipe ("cat" "/etc/redhat-release")
                      ("egrep" -o -e "'^[A-Za-z ]+release'")
-                     ("sed -e 's/ release//'")))
+                     ("sed -e 's/ .*//'")))
      (set! RELEASE @(pipe ("cat" "/etc/redhat-release")
                           ("sed" -e "'s/.*release//'")
                           ("sed" -e "'s/[^0-9.]//g'"))))
@@ -53,6 +53,9 @@
      (set! RELEASE @(pipe ("cat" "/etc/mandrake-release")
                           ("sed" -e "'s/.*release //'")
                           ("sed" -e "'s/ .*//'"))))
+   (when (file-exists? "/etc/debian_version")
+     (set! ID "Debian")
+     (set! RELEASE @("cat /etc/debian_version")))
 
    (println "{")
    (println "  :id" (str "'\"'" @ID:-unknown "'\"'"))
