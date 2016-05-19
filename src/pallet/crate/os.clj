@@ -53,6 +53,9 @@
      (set! RELEASE @(pipe ("cat" "/etc/mandrake-release")
                           ("sed" -e "'s/.*release //'")
                           ("sed" -e "'s/ .*//'"))))
+   (when (file-exists? "/etc/debian_version")
+     (set! ID "Debian")
+     (set! RELEASE @("cat /etc/debian_version")))
 
    (println "{")
    (println "  :id" (str "'\"'" @ID:-unknown "'\"'"))
