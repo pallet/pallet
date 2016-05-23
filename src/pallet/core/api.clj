@@ -228,7 +228,7 @@
        (ex-info
         (format "Node :count not specified for group: %s" group)
         {:reason :target-count-not-specified
-         :group group}) (:group-name group)))
+         :group group})))
     {:actual existing-count :target target-count
      :delta (- target-count existing-count)}))
 
