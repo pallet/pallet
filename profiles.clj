@@ -24,6 +24,7 @@
                  "doc" ["do" "codox," "marg"]}}
  :no-checkouts {:checkout-deps-shares ^:replace []} ; disable checkouts
  :clojure-1.5.0 {:dependencies [[org.clojure/clojure "1.5.0"]]}
+ :clojure-1.8.0 {:dependencies [[org.clojure/clojure "1.8.0"]]}
  :jclouds {:repositories
            {"sonatype"
             "https://oss.sonatype.org/content/repositories/releases/"}
