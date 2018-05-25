@@ -42,8 +42,8 @@
                               {:os-family :ubuntu :os-version-matches "12.10"
                                :os-64-bit true}}}
                 :group-suffix "u1204a"
-                :selectors #{:other}}]
-              }}
+                :selectors #{:other}}]}}
+
 
   ;; # General phases
 
